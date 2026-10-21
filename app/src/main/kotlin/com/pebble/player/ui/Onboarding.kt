@@ -369,7 +369,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
     }
     val progress by animateFloatAsState(done / labels.size.toFloat(), MaterialTheme.motionScheme.slowSpatialSpec(), label = "p")
     Box(Modifier.fillMaxWidth().height(520.dp), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(!finished, exit = fadeOut() + scaleIn(initialScale = 0.9f)) {
+        AnimatedVisibility(!finished, exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.9f)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(168.dp), contentAlignment = Alignment.Center) {
                     CircularWavyProgressIndicator(progress = { progress }, modifier = Modifier.size(168.dp))
