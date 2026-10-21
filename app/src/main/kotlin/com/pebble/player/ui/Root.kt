@@ -163,9 +163,11 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 }
             },
         ) { pad ->
+            val inSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+            val outSpec = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
             AnimatedContent(
                 targetState = tab,
-                transitionSpec = { fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) togetherWith fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) },
+                transitionSpec = { fadeIn(inSpec) togetherWith fadeOut(outSpec) },
                 modifier = Modifier.padding(pad).fillMaxSize(),
                 label = "tab",
             ) { t ->
