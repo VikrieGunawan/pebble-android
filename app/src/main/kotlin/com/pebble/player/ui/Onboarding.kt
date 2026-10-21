@@ -64,6 +64,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -203,12 +204,12 @@ fun AppMark(size: Int) {
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(n * 0.354f),
         )
         val k = 1.11f // same content scale as the adaptive launcher icon
-        androidx.compose.ui.graphics.drawscope.withTransform({ scale(k, k, Offset(n / 2f, n / 2f)) }) {
+        withTransform({ scale(k, k, Offset(n / 2f, n / 2f)) }) {
             drawRoundRect(
                 Color.White.copy(alpha = 0.35f), Offset(n * 5f / 48f, n * 5f / 48f), androidx.compose.ui.geometry.Size(n * 38f / 48f, n * 38f / 48f),
                 androidx.compose.ui.geometry.CornerRadius(n * 13f / 48f), style = androidx.compose.ui.graphics.drawscope.Stroke(n * 1.5f / 48f),
             )
-            androidx.compose.ui.graphics.drawscope.withTransform({ translate(n * 9f / 48f, n * 9f / 48f); scale(n * 30f / 48f / 24f, n * 30f / 48f / 24f, Offset.Zero) }) {
+            withTransform({ translate(n * 9f / 48f, n * 9f / 48f); scale(n * 30f / 48f / 24f, n * 30f / 48f / 24f, Offset.Zero) }) {
                 drawPath(PLAY_PATH, Color.White)
             }
         }
