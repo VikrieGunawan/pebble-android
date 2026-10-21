@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.pebble.player"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.pebble.player"
