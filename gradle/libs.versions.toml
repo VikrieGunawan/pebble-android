@@ -1,9 +1,9 @@
 [versions]
-agp = "8.13.0"
+agp = "9.1.0"
 kotlin = "2.4.21"
-composeBom = "2026.06.00"
+composeBom = "2026.09.00"
 # Material 3 Expressive (experimental APIs). Change to the newest 1.5.0-alpha/beta/rc if you like.
-material3 = "1.5.0-alpha23"
+material3 = "1.5.0-beta01"
 media3 = "1.11.1"
 activityCompose = "1.11.0"
 coreKtx = "1.17.0"
