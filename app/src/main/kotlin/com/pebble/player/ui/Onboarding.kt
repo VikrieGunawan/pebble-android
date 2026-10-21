@@ -110,7 +110,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
         }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             // header: dots + skip
-            AnimatedVisibility(step < LAST, enter = fadeIn(), exit = fadeOut()) {
+            androidx.compose.animation.AnimatedVisibility(step < LAST, enter = fadeIn(), exit = fadeOut()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.weight(1f)) {
                         for (i in 0 until LAST) {
@@ -152,9 +152,9 @@ fun Onboarding(prefs: Prefs, store: Store) {
                     }
                 }
             }
-            AnimatedVisibility(step < LAST, enter = fadeIn(), exit = fadeOut()) {
+            androidx.compose.animation.AnimatedVisibility(step < LAST, enter = fadeIn(), exit = fadeOut()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
-                    AnimatedVisibility(
+                    androidx.compose.animation.AnimatedVisibility(
                         step > 0,
                         enter = fadeIn(efSpec) + expandHorizontally(spSpec2, expandFrom = Alignment.Start),
                         exit = fadeOut(efSpec) + shrinkHorizontally(spSpec2, shrinkTowards = Alignment.Start),
@@ -339,7 +339,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
     }
     val progress by animateFloatAsState(done / labels.size.toFloat(), MaterialTheme.motionScheme.slowSpatialSpec(), label = "p")
     Box(Modifier.fillMaxWidth().height(520.dp), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(!finished, exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.9f)) {
+        androidx.compose.animation.AnimatedVisibility(!finished, exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.9f)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(168.dp), contentAlignment = Alignment.Center) {
                     CircularWavyProgressIndicator(progress = { progress }, modifier = Modifier.size(168.dp))
@@ -363,14 +363,14 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                             }
                             Column {
                                 Text(t, fontWeight = FontWeight.SemiBold, color = if (on || cur) cs.onSurface else cs.onSurfaceVariant.copy(alpha = 0.6f))
-                                AnimatedVisibility(on) { Text(v, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant) }
+                                androidx.compose.animation.AnimatedVisibility(on) { Text(v, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant) }
                             }
                         }
                     }
                 }
             }
         }
-        AnimatedVisibility(finished, enter = fadeIn() + scaleIn(initialScale = 0.7f, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec())) {
+        androidx.compose.animation.AnimatedVisibility(finished, enter = fadeIn() + scaleIn(initialScale = 0.7f, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec())) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(180.dp), contentAlignment = Alignment.Center) {
                     Confetti(true, Modifier.fillMaxSize())

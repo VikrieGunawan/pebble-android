@@ -314,7 +314,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             }
         }
 
-        AnimatedVisibility(show, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
+        androidx.compose.animation.AnimatedVisibility(show, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize().background(Color(0x66000000))) {
                 // top bar
                 Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
