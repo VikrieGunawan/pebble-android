@@ -74,6 +74,6 @@ fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
                 }
             }
         }
-        androidx.compose.animation.AnimatedVisibility(done == steps.size) { Text("All clean. Taking you back to Welcome…", Modifier.padding(top = 24.dp), color = cs.onSurfaceVariant) }
+        PAnim(done == steps.size) { Text("All clean. Taking you back to Welcome…", Modifier.padding(top = 24.dp), color = cs.onSurfaceVariant) }
     }
 }

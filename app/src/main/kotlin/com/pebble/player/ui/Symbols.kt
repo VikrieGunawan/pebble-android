@@ -88,3 +88,15 @@ fun PebbleSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Mod
         Icon(if (checked) "check" else "close", null, Modifier.size(SwitchDefaults.IconSize))
     })
 }
+
+/** Scope-free AnimatedVisibility: avoids the ColumnScope/RowScope extension being picked inside nested Box/Column. */
+@Composable
+fun PAnim(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    enter: androidx.compose.animation.EnterTransition = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandIn(),
+    exit: androidx.compose.animation.ExitTransition = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkOut(),
+    content: @Composable androidx.compose.animation.AnimatedVisibilityScope.() -> Unit,
+) {
+    androidx.compose.animation.AnimatedVisibility(visible, modifier, enter, exit, content = content)
+}

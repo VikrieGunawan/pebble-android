@@ -216,7 +216,7 @@ fun SwatchGrid(selected: Int, autoOption: Boolean, onPick: (Int) -> Unit) {
                         Modifier.fillMaxWidth(0.84f).aspectRatio(1f).clip(CircleShape).background(col(c)).border(ring, cs.onSurface, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
-                        androidx.compose.animation.AnimatedVisibility(sel, enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) {
+                        PAnim(sel, enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) {
                             Icon("check", name, Modifier.size(22.dp), tint = if (col(c).luminance() > 0.6f) Color.Black else Color.White)
                         }
                     }

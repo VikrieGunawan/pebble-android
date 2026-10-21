@@ -83,7 +83,7 @@ private fun PreviewCard(label: String, icon: String, selected: Boolean, modifier
     ) {
         Box(Modifier.fillMaxWidth()) {
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(r)).clickable(onClick = onClick).border(bw, if (selected) cs.primary else cs.outlineVariant, RoundedCornerShape(r))) { preview() }
-            androidx.compose.animation.AnimatedVisibility(selected, Modifier.align(Alignment.TopEnd).padding(8.dp), enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(), exit = scaleOut() + fadeOut()) {
+            PAnim(selected, Modifier.align(Alignment.TopEnd).padding(8.dp), enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(), exit = scaleOut() + fadeOut()) {
                 Box(Modifier.size(26.dp).clip(CircleShape).background(cs.primary), contentAlignment = Alignment.Center) { Icon("check", null, Modifier.size(16.dp), tint = cs.onPrimary) }
             }
         }
