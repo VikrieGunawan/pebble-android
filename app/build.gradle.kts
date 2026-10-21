@@ -44,7 +44,6 @@ kotlin {
             "androidx.compose.foundation.ExperimentalFoundationApi",
             "androidx.compose.foundation.layout.ExperimentalLayoutApi",
             "androidx.compose.animation.ExperimentalAnimationApi",
-            "androidx.media3.common.util.UnstableApi",
         )
     }
 }
