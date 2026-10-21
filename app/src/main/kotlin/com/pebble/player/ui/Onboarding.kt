@@ -20,6 +20,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -100,7 +101,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val kb = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     Box(Modifier.fillMaxSize().background(cs.background).pointerInput(Unit) {
-        androidx.compose.foundation.gestures.detectTapGestures(onTap = { focus.clearFocus(); kb?.hide() })
+        detectTapGestures(onTap = { focus.clearFocus(); kb?.hide() })
     }) {
         // soft animated blobs
         Canvas(Modifier.fillMaxSize()) {
