@@ -115,7 +115,11 @@ fun Onboarding(prefs: Prefs, store: Store) {
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.weight(1f)) {
                         for (i in 0 until LAST) {
                             val w by animateDpAsState(if (i == step) 22.dp else 8.dp, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "dot")
-                            Box(Modifier.height(8.dp).width(w).clip(CircleShape).background(if (i == step) cs.primary else if (i < step) cs.primaryContainer else cs.outlineVariant))
+                            val dotCol by androidx.compose.animation.animateColorAsState(
+                if (i == step) cs.primary else if (i < step) cs.primaryContainer else cs.outlineVariant,
+                MaterialTheme.motionScheme.defaultEffectsSpec(), label = "dotc",
+            )
+            Box(Modifier.height(8.dp).width(w).clip(CircleShape).background(dotCol))
                         }
                     }
                     TextButton(onClick = { scope.launch { store.saveProfile(profile); store.put(K.onb, true) } }) { Text("Skip") }
@@ -184,15 +188,31 @@ fun StepTitle(title: String, sub: String) {
     Spacer(Modifier.height(22.dp))
 }
 
+private val PLAY_PATH = androidx.compose.ui.graphics.vector.PathParser()
+    .parsePathString("M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18c.62-.39.62-1.29 0-1.69L9.54 5.98C8.87 5.55 8 6.03 8 6.82z").toPath()
+
+/** Same artwork as the launcher/web icon: gradient square, soft frame and play, scaled like the home-screen icon. */
 @Composable
 fun AppMark(size: Int) {
     val sc = remember { Animatable(0.6f) }
     LaunchedEffect(Unit) { sc.animateTo(1f, androidx.compose.animation.core.spring(0.45f, 220f)) }
-    Box(
-        Modifier.size(size.dp).scale(sc.value).clip(RoundedCornerShape((size * 0.34f).dp))
-            .background(Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)))),
-        contentAlignment = Alignment.Center,
-    ) { Icon("play_arrow", null, Modifier.size((size * 0.55f).dp), tint = Color.White) }
+    androidx.compose.foundation.Canvas(Modifier.size(size.dp).scale(sc.value)) {
+        val n = this.size.width
+        drawRoundRect(
+            Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)), Offset.Zero, Offset(n, n)),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(n * 0.354f),
+        )
+        val k = 1.11f // same content scale as the adaptive launcher icon
+        androidx.compose.ui.graphics.drawscope.withTransform({ scale(k, k, Offset(n / 2f, n / 2f)) }) {
+            drawRoundRect(
+                Color.White.copy(alpha = 0.35f), Offset(n * 5f / 48f, n * 5f / 48f), androidx.compose.ui.geometry.Size(n * 38f / 48f, n * 38f / 48f),
+                androidx.compose.ui.geometry.CornerRadius(n * 13f / 48f), style = androidx.compose.ui.graphics.drawscope.Stroke(n * 1.5f / 48f),
+            )
+            androidx.compose.ui.graphics.drawscope.withTransform({ translate(n * 9f / 48f, n * 9f / 48f); scale(n * 30f / 48f / 24f, n * 30f / 48f / 24f, Offset.Zero) }) {
+                drawPath(PLAY_PATH, Color.White)
+            }
+        }
+    }
 }
 
 @Composable

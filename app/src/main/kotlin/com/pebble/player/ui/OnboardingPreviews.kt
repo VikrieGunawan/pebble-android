@@ -78,11 +78,11 @@ private fun PreviewCard(label: String, icon: String, selected: Boolean, modifier
     val r by animateDpAsState(if (selected) 30.dp else 20.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
     val bw by animateDpAsState(if (selected) 3.dp else 1.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "bw")
     Column(
-        modifier.graphicsLayer { scaleX = sc; scaleY = sc }.clip(RoundedCornerShape(r + 6.dp)).clickable(onClick = onClick),
+        modifier.graphicsLayer { scaleX = sc; scaleY = sc },
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(Modifier.fillMaxWidth()) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(r)).border(bw, if (selected) cs.primary else cs.outlineVariant, RoundedCornerShape(r))) { preview() }
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(r)).clickable(onClick = onClick).border(bw, if (selected) cs.primary else cs.outlineVariant, RoundedCornerShape(r))) { preview() }
             androidx.compose.animation.AnimatedVisibility(selected, Modifier.align(Alignment.TopEnd).padding(8.dp), enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(), exit = scaleOut() + fadeOut()) {
                 Box(Modifier.size(26.dp).clip(CircleShape).background(cs.primary), contentAlignment = Alignment.Center) { Icon("check", null, Modifier.size(16.dp), tint = cs.onPrimary) }
             }
@@ -97,7 +97,7 @@ private fun PreviewCard(label: String, icon: String, selected: Boolean, modifier
 @Composable
 fun ThemeStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
-    val primary = MaterialTheme.colorScheme.primary
+    val primary = Color(0xFF7B61FF) // locked: previews never change with the current theme
     StepTitle("Light or dark?", "Tap a preview. The whole app follows right away.")
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(Triple("System", "brightness_auto", 0), Triple("Light", "light_mode", 1), Triple("Dark", "dark_mode", 2)).forEach { (l, ic, v) ->
