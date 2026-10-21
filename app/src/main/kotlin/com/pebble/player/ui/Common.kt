@@ -70,6 +70,7 @@ import com.pebble.player.PebbleApp
 import com.pebble.player.data.Profile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.text.style.TextOverflow
 import java.io.File
 import java.util.Calendar
 
@@ -157,40 +158,70 @@ fun saveProfilePhoto(ctx: Context, bmp: Bitmap): String {
 }
 
 @Composable
-fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Avatar", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 5) {
-            EMOJIS.forEach { e ->
-                val sel = p.photo.isEmpty() && p.emoji == e
-                Box(
-                    Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(16.dp))
-                        .background(if (sel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(if (sel) 2.dp else 0.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-                        .clickable { onChange(p.copy(emoji = e, photo = "")) },
-                    contentAlignment = Alignment.Center,
-                ) { if (e.isEmpty()) Text("Aa", fontWeight = FontWeight.Bold) else Text(e, fontSize = 22.sp) }
-            }
-        }
-        Text("Color", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        SwatchGrid(selected = p.color, autoOption = true, onPick = { onChange(p.copy(color = it)) })
+private fun PickCard(title: String, content: @Composable () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(cs.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = cs.primary)
+        content()
     }
 }
 
 @Composable
+fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        PickCard("Emoji") {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 5) {
+                EMOJIS.forEach { e ->
+                    val sel = p.photo.isEmpty() && p.emoji == e
+                    val r by androidx.compose.animation.core.animateDpAsState(if (sel) 26.dp else 16.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
+                    Box(
+                        Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(r))
+                            .background(if (sel) cs.primaryContainer else cs.surfaceContainerHigh)
+                            .border(if (sel) 2.dp else 0.dp, cs.primary, RoundedCornerShape(r))
+                            .clickable { onChange(p.copy(emoji = e, photo = "")) },
+                        contentAlignment = Alignment.Center,
+                    ) { if (e.isEmpty()) Text("Aa", fontWeight = FontWeight.Bold) else Text(e, fontSize = 24.sp) }
+                }
+            }
+        }
+        PickCard("Color") { SwatchGrid(selected = p.color, autoOption = true, onPick = { onChange(p.copy(color = it)) }) }
+    }
+}
+
+/** Named color grid: shows the chosen color's name, and every swatch has a label. */
+@Composable
 fun SwatchGrid(selected: Int, autoOption: Boolean, onPick: (Int) -> Unit) {
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 6) {
-        val list = (if (autoOption) listOf("Auto" to 0) else emptyList()) + ACCENTS.drop(if (autoOption) 1 else 0)
-        list.forEach { (name, c) ->
-            val sel = c == selected
-            Box(
-                Modifier.weight(1f).aspectRatio(1f).clip(CircleShape)
-                    .background(if (c == 0) MaterialTheme.colorScheme.primary else Color(c))
-                    .border(if (sel) 3.dp else 0.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                    .clickable { onPick(c) },
-                contentAlignment = Alignment.Center,
-            ) {
-                if (sel) Icon("check", name, tint = Color.White, modifier = Modifier.size(22.dp))
+    val cs = MaterialTheme.colorScheme
+    val list = (if (autoOption) listOf("Auto" to 0) else emptyList()) + ACCENTS.drop(if (autoOption) 1 else 0)
+    val cur = list.firstOrNull { it.second == selected } ?: list.first()
+    fun col(c: Int) = if (c == 0) cs.primary else Color(c)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(col(cur.second)))
+            Column {
+                Text("Selected", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                androidx.compose.animation.AnimatedContent(cur.first, label = "cname") { n -> Text(n, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            }
+        }
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 5) {
+            list.forEach { (name, c) ->
+                val sel = c == selected
+                val ring by androidx.compose.animation.core.animateDpAsState(if (sel) 3.dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "ring")
+                Column(
+                    Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable { onPick(c) }.padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Box(
+                        Modifier.fillMaxWidth(0.84f).aspectRatio(1f).clip(CircleShape).background(col(c)).border(ring, cs.onSurface, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        androidx.compose.animation.AnimatedVisibility(sel, enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) {
+                            Icon("check", name, Modifier.size(22.dp), tint = if (col(c).luminance() > 0.6f) Color.Black else Color.White)
+                        }
+                    }
+                    Text(name, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = if (sel) cs.onSurface else cs.onSurfaceVariant)
+                }
             }
         }
     }

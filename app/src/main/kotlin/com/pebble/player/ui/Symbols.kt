@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -59,6 +61,7 @@ private val CP = mapOf(
     "closed_caption" to 0xe996,
     "video_library" to 0xe04a,
     "view_list" to 0xe8ef,
+    "close" to 0xe5cd,
 )
 
 @Composable
@@ -76,4 +79,12 @@ fun Icon(name: String, contentDescription: String?, modifier: Modifier = Modifie
             modifier = Modifier.size(side).wrapContentSize(Alignment.Center, unbounded = true),
         )
     }
+}
+
+/** Material 3 Expressive switch with a check (on) / cross (off) inside the thumb. */
+@Composable
+fun PebbleSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
+    Switch(checked, onChange, modifier, thumbContent = {
+        Icon(if (checked) "check" else "close", null, Modifier.size(SwitchDefaults.IconSize))
+    })
 }

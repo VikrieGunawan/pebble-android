@@ -176,7 +176,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
 }
 
 @Composable
-private fun StepTitle(title: String, sub: String) {
+fun StepTitle(title: String, sub: String) {
     Spacer(Modifier.height(8.dp))
     Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
     Spacer(Modifier.height(6.dp))
@@ -240,34 +240,6 @@ private fun AvatarStep(p: Profile, onChange: (Profile) -> Unit) {
 }
 
 @Composable
-private fun ChoiceCard(icon: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val lift by animateDpAsState(if (selected) (-4).dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "lift")
-    val r by animateDpAsState(if (selected) 36.dp else 24.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
-    Column(
-        modifier.graphicsLayer { translationY = lift.toPx() }.clip(RoundedCornerShape(r))
-            .background(if (selected) cs.primaryContainer else cs.surfaceContainerHigh)
-            .border(if (selected) 2.5.dp else 0.dp, cs.primary, RoundedCornerShape(r))
-            .clickable(onClick = onClick).padding(vertical = 26.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(icon, null, Modifier.size(36.dp), tint = if (selected) cs.primary else cs.onSurfaceVariant)
-        Text(label, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun ThemeStep(prefs: Prefs, store: Store) {
-    val scope = rememberCoroutineScope()
-    StepTitle("Light or dark?", "Match your device, or choose one.")
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf(Triple("System", "brightness_auto", 0), Triple("Light", "light_mode", 1), Triple("Dark", "dark_mode", 2)).forEach { (l, i, v) ->
-            ChoiceCard(i, l, prefs.theme == v, Modifier.weight(1f)) { scope.launch { store.put(K.theme, v) } }
-        }
-    }
-}
-
-@Composable
 private fun AccentStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     StepTitle("Pick your color", "It tints buttons and the whole look.")
@@ -280,22 +252,12 @@ private fun AccentStep(prefs: Prefs, store: Store) {
                 Text("Material You", fontWeight = FontWeight.SemiBold)
                 Text("Use colors from your wallpaper", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(prefs.dynamic, { v -> scope.launch { store.put(K.dyn, v) } })
+            PebbleSwitch(prefs.dynamic, { v -> scope.launch { store.put(K.dyn, v) } })
         }
         Spacer(Modifier.height(18.dp))
     }
     SwatchGrid(selected = prefs.accent, autoOption = false) { c -> scope.launch { store.put(K.accent, c); store.put(K.dyn, false) } }
     Spacer(Modifier.height(16.dp))
-}
-
-@Composable
-private fun LayoutStep(prefs: Prefs, store: Store) {
-    val scope = rememberCoroutineScope()
-    StepTitle("How do you browse?", "Choose how your library looks.")
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ChoiceCard("grid_view", "Grid", prefs.layout == 0, Modifier.weight(1f)) { scope.launch { store.put(K.layout, 0) } }
-        ChoiceCard("view_list", "List", prefs.layout == 1, Modifier.weight(1f)) { scope.launch { store.put(K.layout, 1) } }
-    }
 }
 
 @Composable
@@ -312,7 +274,7 @@ private fun ToggleRow(icon: String, title: String, sub: String, checked: Boolean
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(sub, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
-        Switch(checked, onChange)
+        PebbleSwitch(checked, onChange)
     }
 }
 

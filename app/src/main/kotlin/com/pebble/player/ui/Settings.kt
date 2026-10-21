@@ -71,7 +71,7 @@ private fun SwitchRow(title: String, sub: String, v: Boolean, onChange: (Boolean
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(v, onChange)
+        PebbleSwitch(v, onChange)
     }
 }
 
@@ -182,7 +182,7 @@ private fun LibraryControls(prefs: Prefs, store: Store, all: List<Video>, onResc
                 Text(name.ifBlank { "Videos" })
                 Text(path, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(hidden, { scope.launch { store.toggleBlacklist(path) } })
+            PebbleSwitch(hidden, { scope.launch { store.toggleBlacklist(path) } })
         }
     }
 }
