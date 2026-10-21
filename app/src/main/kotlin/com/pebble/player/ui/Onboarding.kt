@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -359,7 +360,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
         delay(2300); onFinished()
     }
     val progress by animateFloatAsState(done / labels.size.toFloat(), MaterialTheme.motionScheme.slowSpatialSpec(), label = "p")
-    Box(Modifier.fillMaxWidth().height(520.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().heightIn(min = 600.dp), contentAlignment = Alignment.Center) {
         PAnim(!finished, exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.9f)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(168.dp), contentAlignment = Alignment.Center) {
@@ -375,16 +376,17 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                         val on = i < done
                         val cur = i == done
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Box(
-                                Modifier.size(30.dp).clip(CircleShape).background(if (on) cs.primary else cs.surfaceContainerHighest),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (on) Icon("check", null, Modifier.size(18.dp), tint = cs.onPrimary)
-                                else if (cur) LoadingIndicator(Modifier.size(26.dp))
+                            val bgc by androidx.compose.animation.animateColorAsState(if (on) cs.primary else cs.surfaceContainerHighest, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "chk")
+                            Box(Modifier.size(30.dp).clip(CircleShape).background(bgc), contentAlignment = Alignment.Center) {
+                                PAnim(on, enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(), exit = fadeOut()) {
+                                    Icon("check", null, Modifier.size(18.dp), tint = cs.onPrimary)
+                                }
+                                PAnim(cur && !on, enter = fadeIn(), exit = fadeOut()) { LoadingIndicator(Modifier.size(26.dp)) }
                             }
                             Column {
                                 Text(t, fontWeight = FontWeight.SemiBold, color = if (on || cur) cs.onSurface else cs.onSurfaceVariant.copy(alpha = 0.6f))
-                                PAnim(on) { Text(v, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant) }
+                                val sa by animateFloatAsState(if (on) 1f else 0f, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sub")
+                                Text(v, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.graphicsLayer { alpha = sa })
                             }
                         }
                     }

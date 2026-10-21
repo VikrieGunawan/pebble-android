@@ -75,7 +75,7 @@ private fun DrawScope.mini(c: Mini, primary: Color) {
 private fun PreviewCard(label: String, icon: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit, preview: @Composable () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val sc by animateFloatAsState(if (selected) 1f else 0.93f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "sc")
-    val r by animateDpAsState(if (selected) 30.dp else 20.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
+    val r = 20.dp
     val bw by animateDpAsState(if (selected) 3.dp else 1.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "bw")
     Column(
         modifier.graphicsLayer { scaleX = sc; scaleY = sc },
@@ -100,7 +100,7 @@ fun ThemeStep(prefs: Prefs, store: Store) {
     val primary = Color(0xFF7B61FF) // locked: previews never change with the current theme
     StepTitle("Light or dark?", "Tap a preview. The whole app follows right away.")
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf(Triple("System", "brightness_auto", 0), Triple("Light", "light_mode", 1), Triple("Dark", "dark_mode", 2)).forEach { (l, ic, v) ->
+        listOf(Triple("System", "contrast", 0), Triple("Light", "light_mode", 1), Triple("Dark", "dark_mode", 2)).forEach { (l, ic, v) ->
             PreviewCard(l, ic, prefs.theme == v, Modifier.weight(1f), { scope.launch { store.put(K.theme, v) } }) {
                 Canvas(Modifier.fillMaxWidth().aspectRatio(100f / 166f)) {
                     when (v) {

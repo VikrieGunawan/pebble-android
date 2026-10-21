@@ -62,6 +62,7 @@ private val CP = mapOf(
     "video_library" to 0xe04a,
     "view_list" to 0xe8ef,
     "close" to 0xe5cd,
+    "contrast" to 0xeb37,
 )
 
 @Composable
