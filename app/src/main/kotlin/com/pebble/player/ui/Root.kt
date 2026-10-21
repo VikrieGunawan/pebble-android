@@ -37,20 +37,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
@@ -156,7 +146,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         Scaffold(
             bottomBar = {
                 NavigationBar {
-                    val icons = listOf(Icons.Rounded.Home, Icons.Rounded.VideoLibrary, Icons.Rounded.Favorite, Icons.Rounded.History, Icons.Rounded.Settings)
+                    val icons = listOf("home", "video_library", "favorite", "history", "settings")
                     TABS.forEachIndexed { i, t ->
                         NavigationBarItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(icons[i], t) }, label = { Text(t) })
                     }
@@ -226,7 +216,7 @@ private fun HomeTab(prefs: Prefs, videos: List<Video>, onProfile: () -> Unit, on
                         Text(greeting(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(prefs.profile.name.ifBlank { "Welcome back" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    IconButton(onClick = onRefresh) { Icon(Icons.Rounded.Refresh, "Refresh") }
+                    IconButton(onClick = onRefresh) { Icon("sync", "Refresh") }
                     Avatar(prefs.profile, 48.dp, Modifier.clickable(onClick = onProfile))
                 }
                 if (cont.isNotEmpty()) {
@@ -303,7 +293,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
     val thumb: @Composable (Modifier) -> Unit = { m ->
         Box(m.aspectRatio(16f / 9f).clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainerHigh)) {
             bmp?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                ?: Icon(Icons.Rounded.PlayArrow, null, Modifier.align(Alignment.Center).size(36.dp), tint = cs.onSurfaceVariant)
+                ?: Icon("play_arrow", null, Modifier.align(Alignment.Center).size(36.dp), tint = cs.onSurfaceVariant)
             if (v.dur > 0) Text(
                 fmt(v.dur), color = Color.White, style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp),
@@ -317,7 +307,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
     }
     val heart: @Composable () -> Unit = {
         IconButton(onClick = { scope.launch { app.store.toggleFav(v.uri.toString()) } }) {
-            Icon(if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Favorite", tint = if (fav) cs.primary else cs.onSurfaceVariant)
+            Icon("favorite", "Favorite", fill = fav, tint = if (fav) cs.primary else cs.onSurfaceVariant)
         }
     }
     if (row) {

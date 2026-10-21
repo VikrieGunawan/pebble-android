@@ -23,18 +23,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -142,7 +139,7 @@ fun PhotoAvatar(p: Profile, size: Dp, onPhoto: (String) -> Unit) {
                 .border(3.dp, MaterialTheme.colorScheme.surface, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(size * 0.16f), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Icon("photo_camera", null, Modifier.size(size * 0.16f), tint = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }
     picked?.let { u ->
@@ -161,13 +158,13 @@ fun saveProfilePhoto(ctx: Context, bmp: Bitmap): String {
 
 @Composable
 fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Avatar", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 5) {
             EMOJIS.forEach { e ->
                 val sel = p.photo.isEmpty() && p.emoji == e
                 Box(
-                    Modifier.size(48.dp).clip(RoundedCornerShape(16.dp))
+                    Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(16.dp))
                         .background(if (sel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
                         .border(if (sel) 2.dp else 0.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
                         .clickable { onChange(p.copy(emoji = e, photo = "")) },
@@ -182,18 +179,18 @@ fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
 
 @Composable
 fun SwatchGrid(selected: Int, autoOption: Boolean, onPick: (Int) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 6) {
         val list = (if (autoOption) listOf("Auto" to 0) else emptyList()) + ACCENTS.drop(if (autoOption) 1 else 0)
         list.forEach { (name, c) ->
             val sel = c == selected
             Box(
-                Modifier.size(42.dp).clip(CircleShape)
+                Modifier.weight(1f).aspectRatio(1f).clip(CircleShape)
                     .background(if (c == 0) MaterialTheme.colorScheme.primary else Color(c))
                     .border(if (sel) 3.dp else 0.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                     .clickable { onPick(c) },
                 contentAlignment = Alignment.Center,
             ) {
-                if (sel) Icon(Icons.Rounded.Check, name, tint = Color.White, modifier = Modifier.size(22.dp))
+                if (sel) Icon("check", name, tint = Color.White, modifier = Modifier.size(22.dp))
             }
         }
     }

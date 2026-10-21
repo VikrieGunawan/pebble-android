@@ -30,20 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AspectRatio
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Headphones
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.ScreenRotation
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -331,19 +318,19 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             Box(Modifier.fillMaxSize().background(Color(0x66000000))) {
                 // top bar
                 Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClose) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = Color.White) }
+                    IconButton(onClose) { Icon("arrow_back", "Back", tint = Color.White) }
                     Text(video.name, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    IconButton({ if (subUri == null) pickSub.launch(arrayOf("*/*")) else subs = !subs }) { Icon(Icons.Rounded.Subtitles, "Subtitles", tint = if (subUri != null && subs) MaterialTheme.colorScheme.primary else Color.White) }
-                    IconButton({ dialog = 1 }) { Icon(Icons.Rounded.Headphones, "Audio output", tint = Color.White) }
-                    IconButton({ dialog = 2 }) { Icon(Icons.Rounded.Speed, "Speed", tint = Color.White) }
+                    IconButton({ if (subUri == null) pickSub.launch(arrayOf("*/*")) else subs = !subs }) { Icon("closed_caption", "Subtitles", tint = if (subUri != null && subs) MaterialTheme.colorScheme.primary else Color.White) }
+                    IconButton({ dialog = 1 }) { Icon("headphones", "Audio output", tint = Color.White) }
+                    IconButton({ dialog = 2 }) { Icon("speed", "Speed", tint = Color.White) }
                 }
                 // center
                 Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton({ prev?.let(onSelect) }, enabled = prev != null) { Icon(Icons.Rounded.SkipPrevious, "Previous", Modifier.size(36.dp), tint = Color.White.copy(alpha = if (prev != null) 1f else 0.35f)) }
+                    IconButton({ prev?.let(onSelect) }, enabled = prev != null) { Icon("skip_previous", "Previous", Modifier.size(36.dp), tint = Color.White.copy(alpha = if (prev != null) 1f else 0.35f)) }
                     FilledIconButton({ if (player.isPlaying) player.pause() else player.play(); tick++ }, Modifier.size(76.dp)) {
-                        Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play/Pause", Modifier.size(42.dp))
+                        Icon(if (isPlaying) "pause" else "play_arrow", "Play/Pause", Modifier.size(42.dp))
                     }
-                    IconButton({ next?.let(onSelect) }, enabled = next != null) { Icon(Icons.Rounded.SkipNext, "Next", Modifier.size(36.dp), tint = Color.White.copy(alpha = if (next != null) 1f else 0.35f)) }
+                    IconButton({ next?.let(onSelect) }, enabled = next != null) { Icon("skip_next", "Next", Modifier.size(36.dp), tint = Color.White.copy(alpha = if (next != null) 1f else 0.35f)) }
                 }
                 // bottom
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -358,8 +345,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         Text(fmt(dur), color = Color.White, style = MaterialTheme.typography.labelMedium)
                     }
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                        IconButton({ fit = (fit + 1) % 3; Toast.makeText(ctx, listOf("Fit", "Zoom", "Stretch")[fit], Toast.LENGTH_SHORT).show() }) { Icon(Icons.Rounded.AspectRatio, "Fit", tint = Color.White) }
-                        IconButton({ orient = (orient + 1) % 3; Toast.makeText(ctx, listOf("Auto rotation", "Portrait", "Landscape")[orient], Toast.LENGTH_SHORT).show() }) { Icon(Icons.Rounded.ScreenRotation, "Rotation", tint = Color.White) }
+                        IconButton({ fit = (fit + 1) % 3; Toast.makeText(ctx, listOf("Fit", "Zoom", "Stretch")[fit], Toast.LENGTH_SHORT).show() }) { Icon("aspect_ratio", "Fit", tint = Color.White) }
+                        IconButton({ orient = (orient + 1) % 3; Toast.makeText(ctx, listOf("Auto rotation", "Portrait", "Landscape")[orient], Toast.LENGTH_SHORT).show() }) { Icon("screen_rotation", "Rotation", tint = Color.White) }
                     }
                 }
             }
@@ -373,7 +360,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             SPEEDS.forEach { s ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { speed = s; player.setPlaybackSpeed(s); scope.launch { store.put(com.pebble.player.data.K.speed, s) }; dialog = 0 }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("${s}x".replace(".0x", "x"), Modifier.weight(1f))
-                    if (s == speed) Icon(Icons.Rounded.Check, null, tint = MaterialTheme.colorScheme.primary)
+                    if (s == speed) Icon("check", null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -412,7 +399,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                         Text(label, fontWeight = FontWeight.SemiBold)
                         Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (sel) Icon(Icons.Rounded.Check, null, tint = MaterialTheme.colorScheme.primary)
+                    if (sel) Icon("check", null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             row("Automatic", "Let Android choose", chosen == -1) { chosen = -1; player.setPreferredAudioDevice(null) }

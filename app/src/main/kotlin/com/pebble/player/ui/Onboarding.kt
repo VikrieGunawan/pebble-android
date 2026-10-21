@@ -10,6 +10,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -36,22 +38,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.AutoMode
-import androidx.compose.material.icons.rounded.BlurOn
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.PlayCircle
-import androidx.compose.material.icons.rounded.ViewList
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -75,7 +64,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -108,7 +97,11 @@ fun Onboarding(prefs: Prefs, store: Store) {
         store.put(K.onb, true)
     }
 
-    Box(Modifier.fillMaxSize().background(cs.background)) {
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val kb = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    Box(Modifier.fillMaxSize().background(cs.background).pointerInput(Unit) {
+        androidx.compose.foundation.gestures.detectTapGestures(onTap = { focus.clearFocus(); kb?.hide() })
+    }) {
         // soft animated blobs
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(Brush.radialGradient(listOf(cs.primary.copy(alpha = 0.22f), Color.Transparent), center = Offset(size.width * 0.1f, size.height * 0.05f), radius = size.width * 0.9f), radius = size.width, center = Offset(size.width * 0.1f, size.height * 0.05f))
@@ -128,6 +121,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
                 }
             }
             val spSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
+            val spSpec2 = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntSize>()
             val efSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 AnimatedContent(
@@ -158,12 +152,21 @@ fun Onboarding(prefs: Prefs, store: Store) {
                 }
             }
             AnimatedVisibility(step < LAST, enter = fadeIn(), exit = fadeOut()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (step > 0) OutlinedButton(onClick = { go(step - 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(56.dp)) { Text("Back") }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
+                    AnimatedVisibility(
+                        step > 0,
+                        enter = fadeIn(efSpec) + expandHorizontally(spSpec2, expandFrom = Alignment.Start),
+                        exit = fadeOut(efSpec) + shrinkHorizontally(spSpec2, shrinkTowards = Alignment.Start),
+                    ) {
+                        Row {
+                            OutlinedButton(onClick = { go(step - 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(56.dp)) { Text("Back") }
+                            Spacer(Modifier.width(12.dp))
+                        }
+                    }
                     Button(onClick = { go(step + 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.weight(1f).height(56.dp)) {
                         Text(if (step == 0) "Get started" else if (step == LAST - 1) "Finish" else "Next", fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.width(8.dp))
-                        Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, Modifier.size(20.dp))
+                        Icon("arrow_forward", null, Modifier.size(20.dp))
                     }
                 }
             }
@@ -188,7 +191,7 @@ fun AppMark(size: Int) {
         Modifier.size(size.dp).scale(sc.value).clip(RoundedCornerShape((size * 0.34f).dp))
             .background(Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)))),
         contentAlignment = Alignment.Center,
-    ) { Icon(Icons.Rounded.PlayArrow, null, Modifier.size((size * 0.55f).dp), tint = Color.White) }
+    ) { Icon("play_arrow", null, Modifier.size((size * 0.55f).dp), tint = Color.White) }
 }
 
 @Composable
@@ -196,13 +199,13 @@ private fun WelcomeStep() {
     AppMark(128)
     Spacer(Modifier.height(28.dp))
     val words = listOf("Welcome", "to", "Pebble")
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         words.forEachIndexed { i, w ->
             var on by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { delay(250L + i * 140L); on = true }
             val a by animateFloatAsState(if (on) 1f else 0f, MaterialTheme.motionScheme.slowEffectsSpec(), label = "w")
             val y by animateDpAsState(if (on) 0.dp else 18.dp, MaterialTheme.motionScheme.slowSpatialSpec(), label = "wy")
-            Text(w, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
+            Text(w, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
                 color = if (i == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.graphicsLayer { alpha = a; translationY = y.toPx() })
         }
@@ -214,13 +217,15 @@ private fun WelcomeStep() {
 
 @Composable
 private fun NameStep(p: Profile, onChange: (Profile) -> Unit) {
+    val focusMgr = androidx.compose.ui.platform.LocalFocusManager.current
     StepTitle("What should we call you?", "Your name shows in the greeting. You can skip this.")
     PhotoAvatar(p, 132.dp) { onChange(p.copy(photo = it, emoji = "")) }
     Spacer(Modifier.height(24.dp))
     OutlinedTextField(
         value = p.name, onValueChange = { onChange(p.copy(name = it.take(24))) },
         label = { Text("Your name") }, singleLine = true, shape = RoundedCornerShape(20.dp),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusMgr.clearFocus() }), modifier = Modifier.fillMaxWidth(),
     )
 }
 
@@ -234,7 +239,7 @@ private fun AvatarStep(p: Profile, onChange: (Profile) -> Unit) {
 }
 
 @Composable
-private fun ChoiceCard(icon: ImageVector, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun ChoiceCard(icon: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val lift by animateDpAsState(if (selected) (-4).dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "lift")
     val r by animateDpAsState(if (selected) 36.dp else 24.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
@@ -255,7 +260,7 @@ private fun ThemeStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     StepTitle("Light or dark?", "Match your device, or choose one.")
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf(Triple("System", Icons.Rounded.AutoMode, 0), Triple("Light", Icons.Rounded.LightMode, 1), Triple("Dark", Icons.Rounded.DarkMode, 2)).forEach { (l, i, v) ->
+        listOf(Triple("System", "brightness_auto", 0), Triple("Light", "light_mode", 1), Triple("Dark", "dark_mode", 2)).forEach { (l, i, v) ->
             ChoiceCard(i, l, prefs.theme == v, Modifier.weight(1f)) { scope.launch { store.put(K.theme, v) } }
         }
     }
@@ -287,13 +292,13 @@ private fun LayoutStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     StepTitle("How do you browse?", "Choose how your library looks.")
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ChoiceCard(Icons.Rounded.GridView, "Grid", prefs.layout == 0, Modifier.weight(1f)) { scope.launch { store.put(K.layout, 0) } }
-        ChoiceCard(Icons.Rounded.ViewList, "List", prefs.layout == 1, Modifier.weight(1f)) { scope.launch { store.put(K.layout, 1) } }
+        ChoiceCard("grid_view", "Grid", prefs.layout == 0, Modifier.weight(1f)) { scope.launch { store.put(K.layout, 0) } }
+        ChoiceCard("view_list", "List", prefs.layout == 1, Modifier.weight(1f)) { scope.launch { store.put(K.layout, 1) } }
     }
 }
 
 @Composable
-private fun ToggleRow(icon: ImageVector, title: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun ToggleRow(icon: String, title: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh).clickable { onChange(!checked) }.padding(16.dp),
@@ -315,9 +320,9 @@ private fun PlaybackStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     StepTitle("Playback and feel", "Switch on what you like.")
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ToggleRow(Icons.Rounded.PlayCircle, "Autoplay", "Start as soon as a video opens", prefs.autoplay) { v -> scope.launch { store.put(K.autoplay, v) } }
-        ToggleRow(Icons.Rounded.Fullscreen, "Rotate with the video", "Wide videos go landscape automatically", prefs.autoFs) { v -> scope.launch { store.put(K.autoFs, v) } }
-        ToggleRow(Icons.Rounded.BlurOn, "Resume where you stopped", "Continue from your last position", prefs.resume) { v -> scope.launch { store.put(K.resume, v) } }
+        ToggleRow("play_circle", "Autoplay", "Start as soon as a video opens", prefs.autoplay) { v -> scope.launch { store.put(K.autoplay, v) } }
+        ToggleRow("fullscreen", "Rotate with the video", "Wide videos go landscape automatically", prefs.autoFs) { v -> scope.launch { store.put(K.autoFs, v) } }
+        ToggleRow("blur_on", "Resume where you stopped", "Continue from your last position", prefs.resume) { v -> scope.launch { store.put(K.resume, v) } }
     }
 }
 
@@ -390,7 +395,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                                 Modifier.size(30.dp).clip(CircleShape).background(if (on) cs.primary else cs.surfaceContainerHighest),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (on) Icon(Icons.Rounded.Check, null, Modifier.size(18.dp), tint = cs.onPrimary)
+                                if (on) Icon("check", null, Modifier.size(18.dp), tint = cs.onPrimary)
                                 else if (cur) LoadingIndicator(Modifier.size(26.dp))
                             }
                             Column {
@@ -407,7 +412,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                 Box(Modifier.size(180.dp), contentAlignment = Alignment.Center) {
                     Confetti(true, Modifier.fillMaxSize())
                     Box(Modifier.size(112.dp).clip(CircleShape).background(cs.primary), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Check, null, Modifier.size(60.dp), tint = cs.onPrimary)
+                        Icon("check", null, Modifier.size(60.dp), tint = cs.onPrimary)
                     }
                 }
                 Spacer(Modifier.height(16.dp))

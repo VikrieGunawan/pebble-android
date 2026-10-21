@@ -14,10 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -70,7 +67,7 @@ fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
             steps.forEachIndexed { i, t ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Box(Modifier.size(28.dp).clip(CircleShape).background(if (i < done) cs.primary else cs.surfaceContainerHighest), contentAlignment = Alignment.Center) {
-                        if (i < done) Icon(Icons.Rounded.Check, null, Modifier.size(17.dp), tint = cs.onPrimary)
+                        if (i < done) Icon("check", null, Modifier.size(17.dp), tint = cs.onPrimary)
                         else if (i == done) LoadingIndicator(Modifier.size(24.dp))
                     }
                     Text(t, color = if (i <= done) cs.onSurface else cs.onSurfaceVariant.copy(alpha = 0.6f))
