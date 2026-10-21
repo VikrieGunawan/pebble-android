@@ -135,8 +135,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
                     transitionSpec = {
                         val dir = if (back) -1 else 1
                         (slideInHorizontally(spSpec) { dir * it / 3 } + fadeIn(efSpec)) togetherWith
-                        (slideOutHorizontally(spSpec) { -dir * it / 3 } + fadeOut(efSpec))
-                    },
+                            (slideOutHorizontally(spSpec) { -dir * it / 3 } + fadeOut(efSpec))
                     },
                     label = "step",
                 ) { s ->
