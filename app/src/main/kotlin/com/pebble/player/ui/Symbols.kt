@@ -8,8 +8,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSliderState
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -105,7 +103,11 @@ fun PAnim(
     androidx.compose.animation.AnimatedVisibility(visible, modifier, enter, exit, content = content)
 }
 
-/** Slider on the non-deprecated SliderState API, used like a plain value/onValueChange slider. */
+/**
+ * Slider wrapper. SliderState's API changed between Material3 1.5 pre-releases, so this keeps using the
+ * value-based overload (still works, only deprecated) in ONE place; swap the body when 1.5 is stable.
+ */
+@Suppress("DEPRECATION")
 @Composable
 fun PebbleSlider(
     value: Float,
@@ -115,11 +117,8 @@ fun PebbleSlider(
     steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    val state = rememberSliderState(value = value, steps = steps, valueRange = valueRange)
-    SideEffect {
-        state.onValueChange = onValueChange
-        state.onValueChangeFinished = onValueChangeFinished
-        if (state.value != value) state.value = value
-    }
-    Slider(state = state, modifier = modifier)
+    Slider(
+        value = value, onValueChange = onValueChange, modifier = modifier,
+        valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
+    )
 }
