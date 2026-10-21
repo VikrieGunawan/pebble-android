@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.0"
+agp = "9.4.0"
 kotlin = "2.4.21"
 composeBom = "2026.09.00"
 # Material 3 Expressive (experimental APIs). Change to the newest 1.5.0-alpha/beta/rc if you like.
@@ -35,5 +35,4 @@ media3-common = { module = "androidx.media3:media3-common", version.ref = "media
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
