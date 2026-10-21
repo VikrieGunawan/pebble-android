@@ -4,9 +4,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSliderState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -100,4 +103,23 @@ fun PAnim(
     content: @Composable androidx.compose.animation.AnimatedVisibilityScope.() -> Unit,
 ) {
     androidx.compose.animation.AnimatedVisibility(visible, modifier, enter, exit, content = content)
+}
+
+/** Slider on the non-deprecated SliderState API, used like a plain value/onValueChange slider. */
+@Composable
+fun PebbleSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+) {
+    val state = rememberSliderState(value = value, steps = steps, valueRange = valueRange)
+    SideEffect {
+        state.onValueChange = onValueChange
+        state.onValueChangeFinished = onValueChangeFinished
+        if (state.value != value) state.value = value
+    }
+    Slider(state = state, modifier = modifier)
 }

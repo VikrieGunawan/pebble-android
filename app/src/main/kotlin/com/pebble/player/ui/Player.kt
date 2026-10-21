@@ -200,7 +200,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         onDispose {
             c?.show(WindowInsetsCompat.Type.systemBars())
             act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            w?.attributes = w?.attributes?.also { it.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
+            w?.let { win -> win.attributes = win.attributes.also { a -> a.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } }
         }
     }
 
@@ -336,7 +336,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, style = MaterialTheme.typography.labelMedium)
-                        Slider(
+                        PebbleSlider(
                             value = scrub ?: if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f,
                             onValueChange = { scrub = it },
                             onValueChangeFinished = { scrub?.let { player.seekTo((it * dur).toLong()) }; scrub = null },

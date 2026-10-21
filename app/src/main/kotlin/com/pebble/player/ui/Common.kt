@@ -289,7 +289,7 @@ fun CropDialog(uri: Uri, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
                         }
                     } else LoadingIndicator()
                 }
-                Slider(value = zoom, onValueChange = {
+                PebbleSlider(value = zoom, onValueChange = {
                     zoom = it
                     bmp?.let { b -> val mo = maxOff(b.width, b.height, viewPx, zoom); off = Offset(off.x.coerceIn(-mo.x, mo.x), off.y.coerceIn(-mo.y, mo.y)) }
                 }, valueRange = 1f..5f)

@@ -352,12 +352,14 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
     )
     var done by remember { mutableIntStateOf(0) }
     var finished by remember { mutableStateOf(false) }
+    var showSummary by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         store.saveProfile(profile)
         delay(700)
         for (i in labels.indices) { delay(800); done = i + 1 }
         delay(400); finished = true
-        delay(2300); onFinished()
+        delay(1300); showSummary = true
+        delay(2800); onFinished()
     }
     val progress by animateFloatAsState(done / labels.size.toFloat(), MaterialTheme.motionScheme.slowSpatialSpec(), label = "p")
     Box(Modifier.fillMaxWidth().heightIn(min = 600.dp), contentAlignment = Alignment.Center) {
@@ -403,7 +405,25 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(if (profile.name.isBlank()) "You're all set" else "You're all set, ${profile.name}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                Text("Enjoy Pebble.", color = cs.onSurfaceVariant)
+                Text("Enjoy Pebble.", color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
+                PAnim(
+                    showSummary,
+                    enter = androidx.compose.animation.expandVertically(MaterialTheme.motionScheme.slowSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.slowEffectsSpec()),
+                    exit = fadeOut(),
+                ) {
+                    Column(
+                        Modifier.padding(top = 22.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Your customization", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = cs.primary)
+                        listOf("Profile", "Theme", "Color", "Layout", "Playback").forEachIndexed { i, k ->
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(k, Modifier.weight(1f), color = cs.onSurfaceVariant)
+                                Text(labels[i].second, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

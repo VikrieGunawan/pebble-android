@@ -36,25 +36,30 @@ import kotlinx.coroutines.delay
 @Composable
 fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    val steps = listOf("Clearing watch history", "Removing favorites", "Resetting settings", "Deleting profile photo", "Clearing cache", "Wiping app data")
+    val steps = listOf("Clearing watch history", "Removing favorites", "Resetting settings", "Deleting profile photo", "Clearing cache", "Wiping app data from the system")
     var done by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         delay(500)
         val ctx = app.applicationContext
         for (i in steps.indices) {
             when (i) {
+                5 -> {}
                 0 -> app.store.clearHistory()
                 1 -> app.store.clearFavs()
                 2 -> app.store.resetSettings()
                 3 -> ctx.filesDir.listFiles { f -> f.name.startsWith("profile_") }?.forEach { it.delete() }
                 4 -> { ThumbCache.clear(); ctx.cacheDir.deleteRecursively() }
-                5 -> app.store.clearAll()
             }
             delay(750)
             done = i + 1
         }
-        delay(700)
-        onDone()
+        delay(900)
+        // Real system wipe (same as Settings > Storage > Clear data): removes every file, database and
+        // preference of this app and closes it. Next launch starts at Welcome.
+        val ok = try {
+            (ctx.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager).clearApplicationUserData()
+        } catch (_: Exception) { false }
+        if (!ok) { app.store.clearAll(); onDone() }
     }
     val progress by animateFloatAsState(done / steps.size.toFloat(), MaterialTheme.motionScheme.slowSpatialSpec(), label = "p")
     Column(Modifier.fillMaxSize().background(cs.background).statusBarsPadding().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -66,14 +71,17 @@ fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             steps.forEachIndexed { i, t ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Box(Modifier.size(28.dp).clip(CircleShape).background(if (i < done) cs.primary else cs.surfaceContainerHighest), contentAlignment = Alignment.Center) {
-                        if (i < done) Icon("check", null, Modifier.size(17.dp), tint = cs.onPrimary)
-                        else if (i == done) LoadingIndicator(Modifier.size(24.dp))
+                    val bgc by androidx.compose.animation.animateColorAsState(if (i < done) cs.primary else cs.surfaceContainerHighest, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "chk")
+                    Box(Modifier.size(28.dp).clip(CircleShape).background(bgc), contentAlignment = Alignment.Center) {
+                        PAnim(i < done, enter = androidx.compose.animation.scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                            Icon("check", null, Modifier.size(17.dp), tint = cs.onPrimary)
+                        }
+                        PAnim(i == done, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) { LoadingIndicator(Modifier.size(24.dp)) }
                     }
                     Text(t, color = if (i <= done) cs.onSurface else cs.onSurfaceVariant.copy(alpha = 0.6f))
                 }
             }
         }
-        PAnim(done == steps.size) { Text("All clean. Taking you back to Welcome…", Modifier.padding(top = 24.dp), color = cs.onSurfaceVariant) }
+        PAnim(done == steps.size) { Text("All clean. Closing Pebble…", Modifier.padding(top = 24.dp), color = cs.onSurfaceVariant) }
     }
 }

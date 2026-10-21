@@ -199,11 +199,11 @@ private fun DeviceControls() {
     val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
     Text("System volume", fontWeight = FontWeight.SemiBold)
-    Slider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, it.toInt(), 0) }, valueRange = 0f..maxVol.toFloat(), steps = (maxVol - 1).coerceAtLeast(0))
+    PebbleSlider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, it.toInt(), 0) }, valueRange = 0f..maxVol.toFloat(), steps = (maxVol - 1).coerceAtLeast(0))
 
     Text("System brightness", fontWeight = FontWeight.SemiBold)
     if (canWrite) {
-        Slider(bri, {
+        PebbleSlider(bri, {
             bri = it
             try {
                 Settings.System.putInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
