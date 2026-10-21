@@ -70,6 +70,8 @@ object K {
 
 class Store(context: Context) {
     private val ds = context.applicationContext.ds
+    /** Phones default to List, tablets (smallest width >= 600dp) to Grid. */
+    private val defLayout = if (context.resources.configuration.smallestScreenWidthDp >= 600) 0 else 1
 
     val prefs: Flow<Prefs> = ds.data.map { p ->
         Prefs(
@@ -78,7 +80,7 @@ class Store(context: Context) {
             theme = p[K.theme] ?: 0,
             dynamic = p[K.dyn] ?: true,
             accent = p[K.accent] ?: 0xFF7B61FF.toInt(),
-            layout = p[K.layout] ?: 0,
+            layout = p[K.layout] ?: defLayout,
             sort = p[K.sort] ?: 0,
             autoplay = p[K.autoplay] ?: true,
             resume = p[K.resume] ?: true,
