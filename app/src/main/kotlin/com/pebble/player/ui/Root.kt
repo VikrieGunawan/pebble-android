@@ -120,6 +120,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
+    var libFolder by remember { mutableStateOf<String?>(null) }
     var playing by remember { mutableStateOf<Video?>(null) }
     var queue by remember { mutableStateOf<List<Video>>(emptyList()) }
     var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, needPerm()) == PackageManager.PERMISSION_GRANTED) }
@@ -138,7 +139,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     val visible = remember(all, prefs.blacklist, prefs.sort) {
         val l = all.filter { it.path !in prefs.blacklist }
-        when (prefs.sort) { 1 -> l.sortedBy { it.name.lowercase() }; 2 -> l.sortedByDescending { it.dur }; else -> l }
+        when (prefs.sort) { 1 -> l.sortedBy { it.name.lowercase() }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
 
@@ -168,12 +169,9 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else when (t) {
-                    0 -> HomeTab(prefs, visible, { profileDialog = true }, { rescan++ }, ::play)
-                    1 -> LibraryTab(prefs, visible, ::play)
-                    2 -> {
-                        val l = visible.filter { it.uri.toString() in prefs.favs }
-                        VideoCollection(l, prefs, "No favorites yet", "Tap the heart on a video to keep it here.", { v -> play(v, l) })
-                    }
+                    0 -> HomeTab(prefs, visible, { profileDialog = true }, { rescan++ }, ::play, { tab = it }, { libFolder = it })
+                    1 -> LibraryTab(prefs, app.store, visible, libFolder, { libFolder = it }, ::play)
+                    2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {
                         val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
                         VideoCollection(l, prefs, "Nothing watched yet", "Videos you play will show up here.", { v -> play(v, l) })
@@ -201,59 +199,6 @@ private fun PermissionPrompt(onAsk: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         Button(onClick = onAsk, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(52.dp)) { Text("Allow access") }
     }
-}
-
-@Composable
-private fun HomeTab(prefs: Prefs, videos: List<Video>, onProfile: () -> Unit, onRefresh: () -> Unit, play: (Video, List<Video>) -> Unit) {
-    val cont = videos.filter { v -> prefs.progress[v.uri.toString()]?.let { it.dur > 0 && it.pos in 3000 until it.dur - 5000 } == true }
-        .sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }.take(10)
-    VideoCollection(
-        videos, prefs, "No videos found", "Add videos to your phone, then tap refresh.", { v -> play(v, videos) },
-        header = {
-            Column {
-                Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(greeting(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(prefs.profile.name.ifBlank { "Welcome back" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    IconButton(onClick = onRefresh) { Icon("sync", "Refresh") }
-                    Avatar(prefs.profile, 48.dp, Modifier.clickable(onClick = onProfile))
-                }
-                if (cont.isNotEmpty()) {
-                    Spacer(Modifier.height(20.dp))
-                    Text("Continue watching", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(10.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(cont, key = { it.id }) { v -> VideoCard(v, prefs, false, Modifier.width(220.dp)) { play(v, cont) } }
-                    }
-                }
-                if (videos.isNotEmpty()) {
-                    Spacer(Modifier.height(20.dp))
-                    Text("Recently added", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        },
-    )
-}
-
-@Composable
-private fun LibraryTab(prefs: Prefs, videos: List<Video>, play: (Video, List<Video>) -> Unit) {
-    var folder by remember { mutableStateOf<String?>(null) }
-    val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedBy { it.key.lowercase() } }
-    val list = if (folder == null) videos else videos.filter { it.folder == folder }
-    VideoCollection(
-        list, prefs, "No videos found", "Check Settings → Library for hidden folders.", { v -> play(v, list) },
-        header = {
-            Column {
-                Text("Library", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 10.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item { FilterChip(folder == null, { folder = null }, { Text("All (${videos.size})") }) }
-                    items(folders, key = { it.key }) { e -> FilterChip(folder == e.key, { folder = e.key }, { Text("${e.key} (${e.value})") }) }
-                }
-                Spacer(Modifier.height(6.dp))
-            }
-        },
-    )
 }
 
 @Composable

@@ -65,6 +65,13 @@ private val CP = mapOf(
     "close" to 0xe5cd,
     "contrast" to 0xeb37,
     "palette" to 0xe40a,
+    "search" to 0xef7a,
+    "shuffle" to 0xe043,
+    "folder" to 0xe2c7,
+    "schedule" to 0xefd6,
+    "sort" to 0xe164,
+    "movie" to 0xe404,
+    "delete_sweep" to 0xe16c,
 )
 
 @Composable

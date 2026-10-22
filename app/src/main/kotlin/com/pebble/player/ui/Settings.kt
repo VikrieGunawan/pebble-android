@@ -102,7 +102,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
                 SwatchGrid(prefs.accent, false) { put(K.accent, it) }
             }
             Choice("Layout", listOf("Grid", "List"), prefs.layout) { put(K.layout, it) }
-            Choice("Sort by", listOf("Newest", "Name", "Longest"), prefs.sort) { put(K.sort, it) }
+            Choice("Sort by", listOf("Newest", "Name", "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
         }
 
         Section("Playback") {
