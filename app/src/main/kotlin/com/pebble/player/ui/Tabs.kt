@@ -171,10 +171,10 @@ fun HomeTab(
         HeroCard(hero, prefs.progress[hero.uri.toString()], if (cont.isNotEmpty()) "Continue watching" else "Latest video") { play(hero, videos) }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button({ val l = videos.shuffled(); play(l.first(), l) }, Modifier.weight(1f).height(52.dp), shapes = ButtonDefaults.shapes()) {
+            Button({ val l = videos.shuffled(); play(l.first(), l) }, modifier = Modifier.weight(1f).height(52.dp), shapes = ButtonDefaults.shapes()) {
                 Icon("shuffle", null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text("Shuffle all")
             }
-            FilledTonalButton({ openTab(1) }, Modifier.weight(1f).height(52.dp), shapes = ButtonDefaults.shapes()) {
+            FilledTonalButton({ openTab(1) }, modifier = Modifier.weight(1f).height(52.dp), shapes = ButtonDefaults.shapes()) {
                 Icon("video_library", null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text("Library")
             }
         }
@@ -261,10 +261,10 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
                     if (favs.isNotEmpty()) IconButton({ confirm = true }) { Icon("delete_sweep", "Clear all", tint = Color.White) }
                 }
                 if (favs.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button({ play(favs.first(), favs) }, Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = cs.primary), shapes = ButtonDefaults.shapes()) {
+                    Button({ play(favs.first(), favs) }, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = cs.primary), shapes = ButtonDefaults.shapes()) {
                         Icon("play_arrow", null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text("Play all")
                     }
-                    FilledTonalButton({ val l = favs.shuffled(); play(l.first(), l) }, Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White.copy(alpha = 0.22f), contentColor = Color.White), shapes = ButtonDefaults.shapes()) {
+                    FilledTonalButton({ val l = favs.shuffled(); play(l.first(), l) }, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White.copy(alpha = 0.22f), contentColor = Color.White), shapes = ButtonDefaults.shapes()) {
                         Icon("shuffle", null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text("Shuffle")
                     }
                 }
