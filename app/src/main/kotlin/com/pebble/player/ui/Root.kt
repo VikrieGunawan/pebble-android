@@ -144,15 +144,15 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
 
     Box(Modifier.fillMaxSize()) {
+        val cfg = androidx.compose.ui.platform.LocalConfiguration.current
+        val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
+        BackHandler(tab == 4) { tab = 0 }
+        Row(Modifier.fillMaxSize()) {
+        if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
-            bottomBar = {
-                NavigationBar {
-                    val icons = listOf("home", "video_library", "favorite", "history", "settings")
-                    TABS.forEachIndexed { i, t ->
-                        NavigationBarItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(icons[i], t) }, label = { Text(t) })
-                    }
-                }
-            },
+            modifier = Modifier.weight(1f),
+            topBar = { if (!wide) PebbleTopBar(tab == 4) { tab = if (tab == 4) 0 else 4 } },
+            bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
         ) { pad ->
             val inSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
             val outSpec = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
@@ -178,6 +178,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     }
                 }
             }
+        }
         }
         playing?.let { v ->
             BackHandler { playing = null }

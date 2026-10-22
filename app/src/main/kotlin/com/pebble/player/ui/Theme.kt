@@ -11,6 +11,13 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.font.FontWeight
+import com.pebble.player.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
@@ -38,43 +45,60 @@ fun PebbleTheme(mode: Int, dynamic: Boolean, accent: Color, content: @Composable
     MaterialExpressiveTheme(
         colorScheme = scheme,
         motionScheme = MotionScheme.expressive(),
-        typography = Typography(),
+        typography = remember { pebbleTypography() },
         content = content,
     )
 }
 
 private fun on(c: Color) = if (c.luminance() > 0.5f) Color(0xFF111111) else Color.White
 
-/** Builds a Material-like tonal scheme from a single seed color (used when Material You is off). */
+/** Website palette (light/dark) tinted with the chosen accent, used when Material You is off. */
 private fun seedScheme(seed: Color, dark: Boolean): ColorScheme {
-    val neutral = if (dark) Color(0xFF16131C) else Color(0xFFFBF8FF)
-    val ink = if (dark) Color(0xFFE8E2EE) else Color(0xFF1C1A22)
-    val p = if (dark) lerp(seed, Color.White, 0.35f) else seed
-    val pc = if (dark) lerp(seed, Color.Black, 0.55f) else lerp(seed, Color.White, 0.80f)
-    val opc = if (dark) lerp(seed, Color.White, 0.85f) else lerp(seed, Color.Black, 0.65f)
-    val s = lerp(p, if (dark) Color(0xFFB0AAC0) else Color(0xFF6B6785), 0.6f)
-    val sc = if (dark) lerp(s, Color.Black, 0.6f) else lerp(s, Color.White, 0.8f)
-    val t = lerp(p, Color(0xFFE5336D), 0.5f)
-    val tc = if (dark) lerp(t, Color.Black, 0.6f) else lerp(t, Color.White, 0.8f)
-    fun tint(a: Float) = lerp(neutral, seed, a)
-    val variant = if (dark) tint(0.16f) else tint(0.10f)
+    val bg = if (dark) Color(0xFF120F1E) else Color(0xFFF4F2FA)
+    val surface = if (dark) Color(0xFF1C1830) else Color(0xFFFFFFFF)
+    val s2 = if (dark) Color(0xFF292346) else Color(0xFFECE9F6)
+    val ink = if (dark) Color(0xFFF2EFFF) else Color(0xFF1C1833)
+    val muted = if (dark) Color(0xFFA09BC0) else Color(0xFF6B6785)
+    val line = if (dark) Color(0xFF2F2951) else Color(0xFFDEDAEE)
+    val p = if (!dark && seed.luminance() > 0.5f) lerp(seed, Color.Black, 0.25f) else seed
+    val soft = if (dark) lerp(surface, seed, 0.16f) else lerp(Color.White, seed, 0.16f)
+    val t = lerp(p, Color(0xFF7B61FF), 0.5f)
+    val tc = if (dark) lerp(surface, t, 0.2f) else lerp(Color.White, t, 0.2f)
     return if (dark) darkColorScheme(
-        primary = p, onPrimary = on(p), primaryContainer = pc, onPrimaryContainer = opc,
-        secondary = s, onSecondary = on(s), secondaryContainer = sc, onSecondaryContainer = ink,
+        primary = p, onPrimary = on(p), primaryContainer = soft, onPrimaryContainer = p,
+        secondary = muted, onSecondary = bg, secondaryContainer = s2, onSecondaryContainer = ink,
         tertiary = t, onTertiary = on(t), tertiaryContainer = tc, onTertiaryContainer = ink,
-        background = tint(0.05f), onBackground = ink, surface = tint(0.05f), onSurface = ink,
-        surfaceVariant = variant, onSurfaceVariant = Color(0xFFC9C3D3),
-        surfaceContainerLowest = tint(0.03f), surfaceContainerLow = tint(0.07f),
-        surfaceContainer = tint(0.09f), surfaceContainerHigh = tint(0.12f), surfaceContainerHighest = tint(0.15f),
-        outline = Color(0xFF948E9E), outlineVariant = tint(0.22f),
+        background = bg, onBackground = ink, surface = bg, onSurface = ink,
+        surfaceVariant = s2, onSurfaceVariant = muted,
+        surfaceContainerLowest = bg, surfaceContainerLow = surface, surfaceContainer = surface,
+        surfaceContainerHigh = s2, surfaceContainerHighest = lerp(s2, ink, 0.06f),
+        outline = muted, outlineVariant = line,
     ) else lightColorScheme(
-        primary = p, onPrimary = on(p), primaryContainer = pc, onPrimaryContainer = opc,
-        secondary = s, onSecondary = on(s), secondaryContainer = sc, onSecondaryContainer = ink,
+        primary = p, onPrimary = on(p), primaryContainer = soft, onPrimaryContainer = p,
+        secondary = muted, onSecondary = Color.White, secondaryContainer = s2, onSecondaryContainer = ink,
         tertiary = t, onTertiary = on(t), tertiaryContainer = tc, onTertiaryContainer = ink,
-        background = tint(0.02f), onBackground = ink, surface = tint(0.02f), onSurface = ink,
-        surfaceVariant = variant, onSurfaceVariant = Color(0xFF48454F),
-        surfaceContainerLowest = Color.White, surfaceContainerLow = tint(0.04f),
-        surfaceContainer = tint(0.07f), surfaceContainerHigh = tint(0.10f), surfaceContainerHighest = tint(0.13f),
-        outline = Color(0xFF79747F), outlineVariant = tint(0.20f),
+        background = bg, onBackground = ink, surface = bg, onSurface = ink,
+        surfaceVariant = s2, onSurfaceVariant = muted,
+        surfaceContainerLowest = Color.White, surfaceContainerLow = surface, surfaceContainer = surface,
+        surfaceContainerHigh = s2, surfaceContainerHighest = lerp(s2, ink, 0.06f),
+        outline = muted, outlineVariant = line,
+    )
+}
+
+// Same fonts as the website: Nunito for text, Fredoka for headings.
+private fun fam(res: Int, ws: List<Int>) = FontFamily(ws.map { w -> Font(res, FontWeight(w), variationSettings = FontVariation.Settings(FontVariation.weight(w))) })
+private val NUNITO by lazy { fam(R.font.nunito, listOf(400, 500, 600, 700, 800)) }
+private val FREDOKA by lazy { fam(R.font.fredoka, listOf(500, 600, 700)) }
+
+private fun pebbleTypography(): Typography {
+    val b = Typography()
+    fun TextStyle.d() = copy(fontFamily = FREDOKA)
+    fun TextStyle.n() = copy(fontFamily = NUNITO, fontWeight = if (fontWeight == null || fontWeight == FontWeight.Normal) FontWeight.SemiBold else fontWeight)
+    return Typography(
+        displayLarge = b.displayLarge.d(), displayMedium = b.displayMedium.d(), displaySmall = b.displaySmall.d(),
+        headlineLarge = b.headlineLarge.d(), headlineMedium = b.headlineMedium.d(), headlineSmall = b.headlineSmall.d(),
+        titleLarge = b.titleLarge.d(), titleMedium = b.titleMedium.n(), titleSmall = b.titleSmall.n(),
+        bodyLarge = b.bodyLarge.n(), bodyMedium = b.bodyMedium.n(), bodySmall = b.bodySmall.n(),
+        labelLarge = b.labelLarge.n(), labelMedium = b.labelMedium.n(), labelSmall = b.labelSmall.n(),
     )
 }
