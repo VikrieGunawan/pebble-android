@@ -76,7 +76,8 @@ private fun PreviewCard(label: String, icon: String, selected: Boolean, modifier
     val cs = MaterialTheme.colorScheme
     val sc by animateFloatAsState(if (selected) 1f else 0.93f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "sc")
     val r = 20.dp
-    val bw by animateDpAsState(if (selected) 3.dp else 1.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "bw")
+    val bwRaw by animateDpAsState(if (selected) 3.dp else 1.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "bw")
+    val bw = bwRaw.coerceAtLeast(0.dp)
     Column(
         modifier.graphicsLayer { scaleX = sc; scaleY = sc },
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),

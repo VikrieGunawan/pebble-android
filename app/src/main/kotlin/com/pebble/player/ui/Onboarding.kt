@@ -117,7 +117,8 @@ fun Onboarding(prefs: Prefs, store: Store) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.weight(1f)) {
                         for (i in 0 until LAST) {
-                            val w by animateDpAsState(if (i == step) 22.dp else 8.dp, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "dot")
+                            val wRaw by animateDpAsState(if (i == step) 22.dp else 8.dp, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "dot")
+                            val w = wRaw.coerceAtLeast(0.dp)
                             val dotCol by androidx.compose.animation.animateColorAsState(
                 if (i == step) cs.primary else if (i < step) cs.primaryContainer else cs.outlineVariant,
                 MaterialTheme.motionScheme.defaultEffectsSpec(), label = "dotc",

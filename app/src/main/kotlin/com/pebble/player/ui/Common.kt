@@ -174,7 +174,8 @@ fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 5) {
                 EMOJIS.forEach { e ->
                     val sel = p.photo.isEmpty() && p.emoji == e
-                    val r by androidx.compose.animation.core.animateDpAsState(if (sel) 26.dp else 16.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
+                    val rRaw by androidx.compose.animation.core.animateDpAsState(if (sel) 26.dp else 16.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "r")
+                    val r = rRaw.coerceAtLeast(0.dp)
                     Box(
                         Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(r))
                             .background(if (sel) cs.primaryContainer else cs.surfaceContainerHigh)
@@ -220,7 +221,8 @@ fun SwatchGrid(selected: Int, autoOption: Boolean, enabled: Boolean = true, onPi
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 5) {
                 list.forEach { (name, c) ->
                     val sel = c == selected
-                    val ring by androidx.compose.animation.core.animateDpAsState(if (sel) 3.dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "ring")
+                    val ringRaw by androidx.compose.animation.core.animateDpAsState(if (sel) 3.dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "ring")
+                    val ring = ringRaw.coerceAtLeast(0.dp) // spring overshoot must never go negative
                     Column(
                         Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(enabled = enabled) { onPick(c) }.padding(vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp),
