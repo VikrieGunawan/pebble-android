@@ -25,7 +25,7 @@ data class Prefs(
     val onboarded: Boolean = false,
     val theme: Int = 0,            // 0 system, 1 light, 2 dark
     val dynamic: Boolean = true,   // Material You
-    val accent: Int = 0xFF7B61FF.toInt(),
+    val accent: Int = 0xFFE8502B.toInt(),
     val layout: Int = 0,           // 0 grid, 1 list
     val sort: Int = 0,             // 0 newest, 1 name, 2 longest
     val autoplay: Boolean = true,
@@ -79,7 +79,7 @@ class Store(context: Context) {
             onboarded = p[K.onb] ?: false,
             theme = p[K.theme] ?: 0,
             dynamic = p[K.dyn] ?: true,
-            accent = p[K.accent] ?: 0xFF7B61FF.toInt(),
+            accent = p[K.accent] ?: 0xFFE8502B.toInt(),
             layout = p[K.layout] ?: defLayout,
             sort = p[K.sort] ?: 0,
             autoplay = p[K.autoplay] ?: true,
