@@ -185,42 +185,55 @@ fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
                 }
             }
         }
-        PickCard("Color") { SwatchGrid(selected = p.color, autoOption = true, onPick = { onChange(p.copy(color = it)) }) }
+        SwatchGrid(selected = p.color, autoOption = true, onPick = { onChange(p.copy(color = it)) })
     }
 }
 
-/** Named color grid: shows the chosen color's name, and every swatch has a label. */
+/** Named color picker: a hero card with the chosen color + a labelled grid of swatches. */
 @Composable
-fun SwatchGrid(selected: Int, autoOption: Boolean, onPick: (Int) -> Unit) {
+fun SwatchGrid(selected: Int, autoOption: Boolean, enabled: Boolean = true, onPick: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val list = (if (autoOption) listOf("Auto" to 0) else emptyList()) + ACCENTS.drop(if (autoOption) 1 else 0)
     val cur = list.firstOrNull { it.second == selected } ?: list.first()
     fun col(c: Int) = if (c == 0) cs.primary else Color(c)
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(col(cur.second)))
-            Column {
-                Text("Selected", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
-                androidx.compose.animation.AnimatedContent(cur.first, label = "cname") { n -> Text(n, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+    fun onCol(c: Color) = if (c.luminance() > 0.55f) Color(0xFF111111) else Color.White
+    val hero by androidx.compose.animation.animateColorAsState(col(cur.second), MaterialTheme.motionScheme.defaultEffectsSpec(), label = "hero")
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(hero).padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Selected color", style = MaterialTheme.typography.labelMedium, color = onCol(hero).copy(alpha = 0.75f))
+                androidx.compose.animation.AnimatedContent(cur.first, label = "cname") { n ->
+                    Text(n, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = onCol(hero))
+                }
+            }
+            Box(Modifier.clip(RoundedCornerShape(50)).background(onCol(hero).copy(alpha = 0.18f)).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text("Aa", fontWeight = FontWeight.Bold, color = onCol(hero))
+            }
+            Box(Modifier.size(34.dp).clip(CircleShape).background(onCol(hero)), contentAlignment = Alignment.Center) {
+                Icon("check", null, Modifier.size(20.dp), tint = hero)
             }
         }
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 5) {
-            list.forEach { (name, c) ->
-                val sel = c == selected
-                val ring by androidx.compose.animation.core.animateDpAsState(if (sel) 3.dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "ring")
-                Column(
-                    Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable { onPick(c) }.padding(vertical = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Box(
-                        Modifier.fillMaxWidth(0.84f).aspectRatio(1f).clip(CircleShape).background(col(c)).border(ring, cs.onSurface, CircleShape),
-                        contentAlignment = Alignment.Center,
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(cs.surfaceContainer).padding(14.dp)) {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 5) {
+                list.forEach { (name, c) ->
+                    val sel = c == selected
+                    val ring by androidx.compose.animation.core.animateDpAsState(if (sel) 3.dp else 0.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "ring")
+                    Column(
+                        Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(enabled = enabled) { onPick(c) }.padding(vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
-                        PAnim(sel, enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) {
-                            Icon("check", name, Modifier.size(22.dp), tint = if (col(c).luminance() > 0.6f) Color.Black else Color.White)
+                        Box(Modifier.fillMaxWidth(0.86f).aspectRatio(1f).clip(CircleShape).border(ring, col(c), CircleShape).padding(ring * 2), contentAlignment = Alignment.Center) {
+                            Box(Modifier.fillMaxSize().clip(CircleShape).background(col(c)), contentAlignment = Alignment.Center) {
+                                PAnim(sel, enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) {
+                                    Icon("check", name, Modifier.size(20.dp), tint = onCol(col(c)))
+                                }
+                            }
                         }
+                        Text(name, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = if (sel) cs.onSurface else cs.onSurfaceVariant)
                     }
-                    Text(name, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = if (sel) cs.onSurface else cs.onSurfaceVariant)
                 }
             }
         }

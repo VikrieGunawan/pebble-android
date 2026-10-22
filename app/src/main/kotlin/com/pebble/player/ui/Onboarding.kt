@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -204,7 +205,7 @@ fun AppMark(size: Int) {
             Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)), Offset.Zero, Offset(n, n)),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(n * 0.354f),
         )
-        val k = 1.11f // same content scale as the adaptive launcher icon
+        val k = 0.93f // same content scale as the adaptive launcher icon
         withTransform({ scale(k, k, Offset(n / 2f, n / 2f)) }) {
             drawRoundRect(
                 Color.White.copy(alpha = 0.35f), Offset(n * 5f / 48f, n * 5f / 48f), androidx.compose.ui.geometry.Size(n * 38f / 48f, n * 38f / 48f),
@@ -264,21 +265,30 @@ private fun AvatarStep(p: Profile, onChange: (Profile) -> Unit) {
 @Composable
 private fun AccentStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
-    StepTitle("Pick your color", "It tints buttons and the whole look.")
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val cs = MaterialTheme.colorScheme
+    val canYou = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val you = canYou && prefs.dynamic
+    StepTitle("Pick your color", "Choose one color, or let your wallpaper decide.")
+    if (canYou) {
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(if (you) cs.primaryContainer else cs.surfaceContainer)
+                .clickable { scope.launch { store.put(K.dyn, !prefs.dynamic) } }.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            Icon("palette", null, Modifier.size(28.dp), tint = if (you) cs.onPrimaryContainer else cs.primary)
             Column(Modifier.weight(1f)) {
-                Text("Material You", fontWeight = FontWeight.SemiBold)
-                Text("Use colors from your wallpaper", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Material You", fontWeight = FontWeight.Bold)
+                Text(if (you) "Colors come from your wallpaper" else "Use colors from your wallpaper", style = MaterialTheme.typography.bodySmall, color = if (you) cs.onPrimaryContainer else cs.onSurfaceVariant)
             }
             PebbleSwitch(prefs.dynamic, { v -> scope.launch { store.put(K.dyn, v) } })
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(16.dp))
     }
-    SwatchGrid(selected = prefs.accent, autoOption = false) { c -> scope.launch { store.put(K.accent, c); store.put(K.dyn, false) } }
+    val a by animateFloatAsState(if (you) 0.38f else 1f, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "accA")
+    Column(Modifier.fillMaxWidth().graphicsLayer { alpha = a }) {
+        SwatchGrid(selected = prefs.accent, autoOption = false, enabled = !you) { c -> scope.launch { store.put(K.accent, c) } }
+    }
+    if (you) Text("Turn off Material You to pick a color.", Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
     Spacer(Modifier.height(16.dp))
 }
 
@@ -352,14 +362,12 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
     )
     var done by remember { mutableIntStateOf(0) }
     var finished by remember { mutableStateOf(false) }
-    var showSummary by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         store.saveProfile(profile)
         delay(700)
         for (i in labels.indices) { delay(800); done = i + 1 }
         delay(400); finished = true
-        delay(1300); showSummary = true
-        delay(2800); onFinished()
+        delay(2300); onFinished()
     }
     val progress by animateFloatAsState(done / labels.size.toFloat(), MaterialTheme.motionScheme.slowSpatialSpec(), label = "p")
     Box(Modifier.fillMaxWidth().heightIn(min = 600.dp), contentAlignment = Alignment.Center) {
@@ -385,10 +393,11 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                                 }
                                 PAnim(cur && !on, enter = fadeIn(), exit = fadeOut()) { LoadingIndicator(Modifier.size(26.dp)) }
                             }
-                            Column {
-                                Text(t, fontWeight = FontWeight.SemiBold, color = if (on || cur) cs.onSurface else cs.onSurfaceVariant.copy(alpha = 0.6f))
-                                val sa by animateFloatAsState(if (on) 1f else 0f, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sub")
-                                Text(v, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.graphicsLayer { alpha = sa })
+                            val ty by animateDpAsState(if (on) (-10).dp else 0.dp, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "ty")
+                            val sa by animateFloatAsState(if (on) 1f else 0f, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sub")
+                            Box(Modifier.weight(1f).height(40.dp), contentAlignment = Alignment.CenterStart) {
+                                Text(t, fontWeight = FontWeight.SemiBold, color = if (on || cur) cs.onSurface else cs.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.offset(y = ty))
+                                Text(v, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.offset(y = 11.dp).graphicsLayer { alpha = sa })
                             }
                         }
                     }
@@ -405,25 +414,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(if (profile.name.isBlank()) "You're all set" else "You're all set, ${profile.name}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                Text("Enjoy Pebble.", color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
-                PAnim(
-                    showSummary,
-                    enter = androidx.compose.animation.expandVertically(MaterialTheme.motionScheme.slowSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.slowEffectsSpec()),
-                    exit = fadeOut(),
-                ) {
-                    Column(
-                        Modifier.padding(top = 22.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text("Your customization", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = cs.primary)
-                        listOf("Profile", "Theme", "Color", "Layout", "Playback").forEachIndexed { i, k ->
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(k, Modifier.weight(1f), color = cs.onSurfaceVariant)
-                                Text(labels[i].second, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
-                            }
-                        }
-                    }
-                }
+                Text("Enjoy Pebble.", color = cs.onSurfaceVariant)
             }
         }
     }

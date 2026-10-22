@@ -64,6 +64,7 @@ private val CP = mapOf(
     "view_list" to 0xe8ef,
     "close" to 0xe5cd,
     "contrast" to 0xeb37,
+    "palette" to 0xe40a,
 )
 
 @Composable
