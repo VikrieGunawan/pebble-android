@@ -7,9 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.pebble.player.ui.CrashScreen
 import com.pebble.player.ui.PebbleRoot
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +23,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         openUri = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data
         val app = application as PebbleApp
-        setContent { PebbleRoot(app, openUri) { openUri = null } }
+        val crash = runCatching { app.crashFile.takeIf { it.exists() }?.readText() }.getOrNull()
+        setContent {
+            var report by remember { mutableStateOf(crash) }
+            if (report != null) CrashScreen(report!!) { runCatching { app.crashFile.delete() }; report = null }
+            else PebbleRoot(app, openUri) { openUri = null }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
