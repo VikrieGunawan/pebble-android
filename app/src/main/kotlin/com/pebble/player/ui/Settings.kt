@@ -12,6 +12,17 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -117,19 +128,32 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         Cat("about", "info", "About", "Pebble Player v1.0.0-beta"),
     )
     val cur = cats.firstOrNull { it.id == page }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+    val sc = rememberScrollState()
+    LaunchedEffect(page) { sc.scrollTo(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(sc).padding(horizontal = 16.dp)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (cur != null) Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { page = null }, contentAlignment = Alignment.Center) { Icon("arrow_back", "Back", Modifier.size(22.dp)) }
-            IconTile(cur?.icon ?: "tune", 52.dp, filled = true)
-            Column {
-                Text(cur?.title ?: "Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                Text(cur?.sub ?: "Make Pebble work the way you like", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            PAnim(cur != null, enter = fadeIn() + expandHorizontally() + scaleIn(), exit = fadeOut() + shrinkHorizontally() + scaleOut()) {
+                Row {
+                    Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { page = null }, contentAlignment = Alignment.Center) { Icon("arrow_back", "Back", Modifier.size(22.dp)) }
+                    Spacer(Modifier.width(14.dp))
+                }
+            }
+            AnimatedContent(cur, transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(120)) }, label = "setHead") { c ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    IconTile(c?.icon ?: "tune", 52.dp, filled = true)
+                    Column {
+                        Text(c?.title ?: "Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        Text(c?.sub ?: "Make Pebble work the way you like", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    }
+                }
             }
         }
-        if (page == null) {
+        AnimatedContent(page, transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "setPage") { p ->
+        Column {
+        if (p == null) {
             val shown = cats.filter { query.isBlank() || it.title.contains(query, true) || it.sub.contains(query, true) }
             Spacer(Modifier.height(14.dp))
             if (shown.isEmpty()) EmptyCard("info", "No results", "Try another word.")
@@ -146,7 +170,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             }
         }
 
-        if (page == "appearance") Section("Appearance") {
+        if (p == "appearance") Section("Appearance") {
             Choice("Theme", listOf("System", "Light", "Dark"), prefs.theme) { put(K.theme, it) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) SwitchRow("Material You", "Use colors from your wallpaper", prefs.dynamic) { put(K.dyn, it) }
             if (!prefs.dynamic || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -157,7 +181,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             Choice("Sort by", listOf("Newest", "Name", "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
         }
 
-        if (page == "playback") Section("Playback") {
+        if (p == "playback") Section("Playback") {
             SwitchRow("Autoplay", "Start as soon as a video opens", prefs.autoplay) { put(K.autoplay, it) }
             SwitchRow("Resume where you stopped", "Continue from your last position", prefs.resume) { put(K.resume, it) }
             SwitchRow("Keep screen on", "While a video is playing", prefs.wake) { put(K.wake, it) }
@@ -169,20 +193,22 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             Choice("If Bluetooth or headphones disconnect", listOf("Pause", "Keep playing"), prefs.onLost) { put(K.onLost, it) }
         }
 
-        if (page == "device") Section("Device") { DeviceControls() }
+        if (p == "device") Section("Device") { DeviceControls() }
 
-        if (page == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
+        if (p == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
 
-        if (page == "data") Section("Data") {
+        if (p == "data") Section("Data") {
             OutlinedButton({ confirm = "history" }, Modifier.fillMaxWidth()) { Text("Clear watch history") }
             OutlinedButton({ confirm = "favs" }, Modifier.fillMaxWidth()) { Text("Clear favorites") }
             OutlinedButton({ confirm = "reset" }, Modifier.fillMaxWidth()) { Text("Reset settings") }
             Button({ confirm = "all" }, Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) { Text("Clear app data") }
         }
 
-        if (page == "about") Section("About") {
+        if (p == "about") Section("About") {
             Text("Pebble Player", fontWeight = FontWeight.SemiBold)
             Text("v1.0.0-beta · Material 3 Expressive", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        }
         }
         Spacer(Modifier.height(32.dp))
     }

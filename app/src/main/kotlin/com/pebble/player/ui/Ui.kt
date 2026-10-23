@@ -3,6 +3,11 @@
 package com.pebble.player.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -66,6 +71,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pebble.player.data.Prefs
 import com.pebble.player.data.Video
+
+/** Smooth horizontal slide (like the website's page changes). dir = 1 → forward, -1 → back. */
+fun slideTransition(dir: Int): ContentTransform =
+    (slideInHorizontally(tween(340, easing = FastOutSlowInEasing)) { it * dir / 3 } + fadeIn(tween(260))) togetherWith
+        (slideOutHorizontally(tween(340, easing = FastOutSlowInEasing)) { -it * dir / 3 } + fadeOut(tween(160)))
 
 /** Opens the "more" bottom sheet for a video (provided by MainFlow). */
 val LocalVideoMenu = staticCompositionLocalOf<(Video) -> Unit> { {} }
@@ -148,6 +158,7 @@ fun VideoCollection(
     folders: List<Pair<String, Int>> = emptyList(), onFolder: (String) -> Unit = {},
 ) {
     val row = prefs.layout == 1
+    val gap by animateDpAsState(if (row) 0.dp else 14.dp, label = "gridGap")
     LazyVerticalGrid(
         columns = if (row) GridCells.Fixed(1) else GridCells.Adaptive(168.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -156,6 +167,7 @@ fun VideoCollection(
         modifier = Modifier.fillMaxSize(),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) { header() }
+        item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(gap.coerceAtLeast(0.dp))) }
         if (folders.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("folder", "Folders", folders.size) }
             items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first, f.second, row, Modifier.animateItem()) { onFolder(f.first) } }

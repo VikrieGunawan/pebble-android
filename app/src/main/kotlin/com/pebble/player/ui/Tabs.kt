@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -143,7 +144,7 @@ private fun ActionTile(icon: String, title: String, sub: String, filled: Boolean
 
 @Composable
 fun HomeTab(
-    prefs: Prefs, videos: List<Video>, onProfile: () -> Unit, onRefresh: () -> Unit,
+    prefs: Prefs, videos: List<Video>, onRefresh: () -> Unit,
     play: (Video, List<Video>) -> Unit, openTab: (Int) -> Unit, openFolder: (String?) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -159,8 +160,6 @@ fun HomeTab(
                 Text((greeting() + if (prefs.profile.name.isNotBlank()) ", ${prefs.profile.name}" else "").uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = cs.primary, letterSpacing = 1.5.sp)
                 Text("What are we watching today?", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             }
-            Spacer(Modifier.width(12.dp))
-            Avatar(prefs.profile, 48.dp, Modifier.clickable(onClick = onProfile))
         }
         Spacer(Modifier.height(12.dp))
         Row(Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHigh).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -212,7 +211,8 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
     var sortMenu by remember { mutableStateOf(false) }
     val sorts = listOf("Recently added", "Name", "Duration", "File size")
     val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedBy { it.key.lowercase() }.map { it.key to it.value } }
-    val list = videos.filter { (folder == null || it.folder == folder) && (query.isBlank() || it.name.contains(query, true)) }
+    AnimatedContent(folder, transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "libFolder") { f ->
+    val list = videos.filter { (f == null || it.folder == f) && (query.isBlank() || it.name.contains(query, true)) }
     VideoCollection(
         list, prefs, { v -> play(v, list) },
         header = {
@@ -232,14 +232,15 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
                     }
                     LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
                 }
-                if (query.isBlank()) LocationBar(folder, onFolder)
-                if (folder != null || query.isNotBlank()) SectionLabel("movie", "Videos", list.size)
+                if (query.isBlank()) LocationBar(f, onFolder)
+                if (f != null || query.isNotBlank()) SectionLabel("movie", "Videos", list.size)
             }
         },
         empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else "No results", if (query.isBlank()) "Check Settings → Library for hidden folders." else "Try another word.") },
-        folders = if (folder == null && query.isBlank()) folders else emptyList(),
+        folders = if (f == null && query.isBlank()) folders else emptyList(),
         onFolder = { onFolder(it) },
     )
+    }
     if (sortMenu) SortSheet(prefs.sort, { scope.launch { store.put(K.sort, it) } }, { sortMenu = false })
 }
 

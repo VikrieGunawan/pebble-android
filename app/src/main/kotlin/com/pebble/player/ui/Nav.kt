@@ -6,7 +6,16 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import com.pebble.player.data.Profile
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -109,11 +118,18 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
 }
 
 /** Header like the website's `.top`: logo, theme + settings pill, and the search pill. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun PebbleTopBar(
     showLogo: Boolean, query: String, onQuery: (String) -> Unit, placeholder: String,
     settingsOn: Boolean, onSettings: () -> Unit, dark: Boolean, onToggleTheme: () -> Unit,
+    profile: Profile, onProfile: () -> Unit,
 ) {
+    val focus = LocalFocusManager.current
+    val imeOn = WindowInsets.isImeVisible
+    var wasIme by remember { mutableStateOf(false) }
+    // leaving the keyboard (back / swipe down) also leaves the search field, so its highlight turns off
+    LaunchedEffect(imeOn) { if (wasIme && !imeOn) focus.clearFocus(); wasIme = imeOn }
     val cs = MaterialTheme.colorScheme
     @Composable
     fun roundBtn(icon: String, on: Boolean, label: String, onClick: () -> Unit) {
@@ -132,6 +148,8 @@ fun PebbleTopBar(
                 roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
                 roundBtn("settings", settingsOn, "Settings", onSettings)
             }
+            Spacer(Modifier.width(10.dp))
+            Avatar(profile, 42.dp, Modifier.clickable(onClick = onProfile))
         }
         var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
         val border by animateColorAsState(if (focused) cs.primary else cs.outlineVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sb")
@@ -144,6 +162,7 @@ fun PebbleTopBar(
                 if (query.isEmpty()) Text(placeholder, color = cs.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                 androidx.compose.foundation.text.BasicTextField(
                     query, onQuery, Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = cs.onSurface, fontWeight = FontWeight.SemiBold),
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(cs.primary),
                 )

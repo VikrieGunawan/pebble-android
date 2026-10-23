@@ -64,6 +64,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -161,16 +163,16 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     placeholder = if (tab == 4) "Search settings" else "Search your videos",
                     settingsOn = tab == 4, onSettings = { tab = if (tab == 4) 0 else 4 },
                     dark = dark, onToggleTheme = { scope.launch { app.store.put(K.theme, if (dark) 1 else 2) } },
+                    profile = prefs.profile, onProfile = { profileDialog = true },
                 )
             },
             bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
         ) { pad ->
-            val inSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-            val outSpec = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+            val focus = androidx.compose.ui.platform.LocalFocusManager.current
             AnimatedContent(
                 targetState = tab,
-                transitionSpec = { fadeIn(inSpec) togetherWith fadeOut(outSpec) },
-                modifier = Modifier.padding(pad).fillMaxSize(),
+                transitionSpec = { slideTransition(if (targetState > initialState) 1 else -1) },
+                modifier = Modifier.padding(pad).fillMaxSize().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } },
                 label = "tab",
             ) { t ->
                 if (t == 4) {
@@ -180,7 +182,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else when (t) {
-                    0 -> HomeTab(prefs, visible, { profileDialog = true }, { rescan++ }, ::play, { tab = it }, { libFolder = it })
+                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, { libFolder = it })
                     1 -> LibraryTab(prefs, app.store, visible, libFolder, { libFolder = it }, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {
