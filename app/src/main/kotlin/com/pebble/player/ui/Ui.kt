@@ -72,6 +72,35 @@ import androidx.compose.ui.unit.sp
 import com.pebble.player.data.Prefs
 import com.pebble.player.data.Video
 
+/** Natural name order: letters A–Z (a–z), then names starting with digits (1, 2, … 10), then symbols. */
+val NaturalOrder = Comparator<String> { a, b ->
+    fun grp(s: String) = s.firstOrNull()?.let { if (it.isLetter()) 0 else if (it.isDigit()) 1 else 2 } ?: 2
+    val ga = grp(a)
+    val gb = grp(b)
+    if (ga != gb) return@Comparator ga - gb
+    var i = 0
+    var j = 0
+    while (i < a.length && j < b.length) {
+        if (a[i].isDigit() && b[j].isDigit()) {
+            var ei = i
+            while (ei < a.length && a[ei].isDigit()) ei++
+            var ej = j
+            while (ej < b.length && b[ej].isDigit()) ej++
+            val na = a.substring(i, ei).trimStart('0')
+            val nb = b.substring(j, ej).trimStart('0')
+            val c = if (na.length != nb.length) na.length - nb.length else na.compareTo(nb)
+            if (c != 0) return@Comparator c
+            i = ei; j = ej
+        } else {
+            val c = a[i].lowercaseChar().compareTo(b[j].lowercaseChar())
+            if (c != 0) return@Comparator c
+            i++; j++
+        }
+    }
+    val c = (a.length - i) - (b.length - j)
+    if (c != 0) c else a.compareTo(b)
+}
+
 /** Smooth horizontal slide (like the website's page changes). dir = 1 → forward, -1 → back. */
 fun slideTransition(dir: Int): ContentTransform =
     (slideInHorizontally(tween(340, easing = FastOutSlowInEasing)) { it * dir / 3 } + fadeIn(tween(260))) togetherWith

@@ -245,7 +245,7 @@ private fun LibraryControls(prefs: Prefs, store: Store, all: List<Video>, onResc
     val scope = rememberCoroutineScope()
     val folders = remember(all, prefs.blacklist) {
         (all.map { it.path to it.folder } + prefs.blacklist.map { it to it.trimEnd('/').substringAfterLast('/') })
-            .distinctBy { it.first }.sortedBy { it.second.lowercase() }
+            .distinctBy { it.first }.sortedWith { x, y -> NaturalOrder.compare(x.second, y.second) }
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("${all.size} videos found", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)

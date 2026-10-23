@@ -210,7 +210,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
     val scope = rememberCoroutineScope()
     var sortMenu by remember { mutableStateOf(false) }
     val sorts = listOf("Recently added", "Name", "Duration", "File size")
-    val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedBy { it.key.lowercase() }.map { it.key to it.value } }
+    val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedWith { x, y -> NaturalOrder.compare(x.key, y.key) }.map { it.key to it.value } }
     AnimatedContent(folder, transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "libFolder") { f ->
     val list = videos.filter { (f == null || it.folder == f) && (query.isBlank() || it.name.contains(query, true)) }
     VideoCollection(

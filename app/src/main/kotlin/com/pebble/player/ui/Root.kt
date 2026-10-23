@@ -143,7 +143,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     val visible = remember(all, prefs.blacklist, prefs.sort) {
         val l = all.filter { it.path !in prefs.blacklist }
-        when (prefs.sort) { 1 -> l.sortedBy { it.name.lowercase() }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
+        when (prefs.sort) { 1 -> l.sortedWith { x, y -> NaturalOrder.compare(x.name, y.name) }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
 
