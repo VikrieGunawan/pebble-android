@@ -260,7 +260,11 @@ fun LocationBar(folder: String?, onFolder: (String?) -> Unit) {
             PAnim(folder != null, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon("chevron_right", null, Modifier.size(20.dp), tint = cs.onSurfaceVariant)
-                    Crumb("folder", folder ?: last, true) { }
+                    AnimatedContent(
+                        folder ?: last,
+                        transitionSpec = { slideTransition(if (NaturalOrder.compare(targetState, initialState) >= 0) 1 else -1) },
+                        label = "crumbFolder",
+                    ) { name -> Crumb("folder", name, true) { } }
                 }
             }
         }

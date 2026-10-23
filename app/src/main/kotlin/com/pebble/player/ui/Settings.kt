@@ -185,8 +185,8 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             SwitchRow("Autoplay", "Start as soon as a video opens", prefs.autoplay) { put(K.autoplay, it) }
             SwitchRow("Resume where you stopped", "Continue from your last position", prefs.resume) { put(K.resume, it) }
             SwitchRow("Keep screen on", "While a video is playing", prefs.wake) { put(K.wake, it) }
-            Choice("Skip step", listOf("5s", "10s", "15s", "30s"), listOf(5, 10, 15, 30).indexOf(prefs.skip).coerceAtLeast(1)) { put(K.skip, listOf(5, 10, 15, 30)[it]) }
-            Choice("Default speed", listOf("0.5x", "1x", "1.25x", "1.5x", "2x"), SPEEDS.indexOf(prefs.speed).coerceAtLeast(1)) { put(K.speed, SPEEDS[it]) }
+            Choice("Skip step", listOf("5s", "10s", "15s", "30s"), listOf(5, 10, 15, 30).indexOf(prefs.skip).let { if (it < 0) 1 else it }) { put(K.skip, listOf(5, 10, 15, 30)[it]) }
+            Choice("Default speed", listOf("0.5x", "1x", "1.25x", "1.5x", "2x"), SPEEDS.indexOf(prefs.speed).let { if (it < 0) 1 else it }) { put(K.speed, SPEEDS[it]) }
             Choice("Video fit", listOf("Fit", "Zoom", "Stretch"), prefs.fit) { put(K.fit, it) }
             SwitchRow("Rotate with the video", "Wide videos go landscape automatically", prefs.autoFs) { put(K.autoFs, it) }
             Choice("Screen rotation", listOf("Auto", "Portrait", "Landscape"), prefs.orient) { put(K.orient, it) }

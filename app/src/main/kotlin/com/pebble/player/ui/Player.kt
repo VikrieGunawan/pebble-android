@@ -192,6 +192,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             .build()
     }
 
+    val curPlayer by rememberUpdatedState(player)
     var firstLoad by remember(video.id) { mutableStateOf(true) }
     LaunchedEffect(player, subUri) {
         val keep = if (firstLoad) 0L else player.currentPosition
@@ -314,7 +315,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var hudTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(hudTick) { if (hudTick > 0) { delay(900); hud = null } }
     var seekFlash by remember { mutableStateOf("") }
-    LaunchedEffect(seekFlash) { if (seekFlash.isNotEmpty()) { delay(600); seekFlash = "" } }
+    var seekN by remember { mutableIntStateOf(0) }
+    LaunchedEffect(seekN) { if (seekFlash.isNotEmpty()) { delay(600); seekFlash = "" } }
 
     val pickSub = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { u ->
         if (u != null) {
@@ -377,11 +379,14 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     detectTapGestures(
                         onTap = { if (curPanel != null) panel = null else { show = !show; tick++ } },
                         onDoubleTap = { o ->
+                            val pl = curPlayer
+                            val step = curPrefs.skip * 1000L
                             val w = size.width
+                            val total = if (pl.duration > 0) pl.duration else Long.MAX_VALUE
                             when {
-                                o.x < w / 3f -> { player.seekTo((player.currentPosition - curPrefs.skip * 1000L).coerceAtLeast(0)); seekFlash = "r−${curPrefs.skip}s" }
-                                o.x > w * 2f / 3f -> { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); seekFlash = "f+${curPrefs.skip}s" }
-                                else -> if (player.isPlaying) player.pause() else player.play()
+                                o.x < w / 3f -> { pl.seekTo((pl.currentPosition - step).coerceAtLeast(0L)); seekFlash = "r−${curPrefs.skip}s"; seekN++ }
+                                o.x > w * 2f / 3f -> { pl.seekTo((pl.currentPosition + step).coerceAtMost(total)); seekFlash = "f+${curPrefs.skip}s"; seekN++ }
+                                else -> if (pl.isPlaying) pl.pause() else pl.play()
                             }
                         },
                     )

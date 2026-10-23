@@ -211,35 +211,37 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
     var sortMenu by remember { mutableStateOf(false) }
     val sorts = listOf("Recently added", "Name", "Duration", "File size")
     val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedWith { x, y -> NaturalOrder.compare(x.key, y.key) }.map { it.key to it.value } }
-    AnimatedContent(folder, transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "libFolder") { f ->
-    val list = videos.filter { (f == null || it.folder == f) && (query.isBlank() || it.name.contains(query, true)) }
-    VideoCollection(
-        list, prefs, { v -> play(v, list) },
-        header = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                PageHeader("video_library", "Library", "${list.size} videos · ${fmtLong(list.sumOf { it.dur })} · ${fmtSize(list.sumOf { it.size })}")
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        Modifier.weight(1f).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).clickable { sortMenu = true }.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon("sort", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
-                        Column(Modifier.weight(1f)) {
-                            Text("SORT BY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
-                            Text(sorts[prefs.sort.coerceIn(0, 3)], fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                        Icon("expand_more", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+    val shown = videos.filter { (folder == null || it.folder == folder) && (query.isBlank() || it.name.contains(query, true)) }
+    Column(Modifier.fillMaxSize()) {
+        // fixed part: stays put while the folder content below animates
+        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            PageHeader("video_library", "Library", "${shown.size} videos · ${fmtLong(shown.sumOf { it.dur })} · ${fmtSize(shown.sumOf { it.size })}")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    Modifier.weight(1f).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).clickable { sortMenu = true }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon("sort", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                    Column(Modifier.weight(1f)) {
+                        Text("SORT BY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
+                        Text(sorts[prefs.sort.coerceIn(0, 3)], fontWeight = FontWeight.Bold, maxLines = 1)
                     }
-                    LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
+                    Icon("expand_more", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 }
-                if (query.isBlank()) LocationBar(f, onFolder)
-                if (f != null || query.isNotBlank()) SectionLabel("movie", "Videos", list.size)
+                LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
             }
-        },
-        empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else "No results", if (query.isBlank()) "Check Settings → Library for hidden folders." else "Try another word.") },
-        folders = if (f == null && query.isBlank()) folders else emptyList(),
-        onFolder = { onFolder(it) },
-    )
+            if (query.isBlank()) LocationBar(folder, onFolder)
+        }
+        AnimatedContent(folder, Modifier.weight(1f), transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "libFolder") { f ->
+            val list = videos.filter { (f == null || it.folder == f) && (query.isBlank() || it.name.contains(query, true)) }
+            VideoCollection(
+                list, prefs, { v -> play(v, list) },
+                header = { if (f != null || query.isNotBlank()) SectionLabel("movie", "Videos", list.size) },
+                empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else "No results", if (query.isBlank()) "Check Settings → Library for hidden folders." else "Try another word.") },
+                folders = if (f == null && query.isBlank()) folders else emptyList(),
+                onFolder = { onFolder(it) },
+            )
+        }
     }
     if (sortMenu) SortSheet(prefs.sort, { scope.launch { store.put(K.sort, it) } }, { sortMenu = false })
 }
