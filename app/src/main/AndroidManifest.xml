@@ -20,6 +20,7 @@
         android:theme="@style/Theme.Pebble.Starting">
 
         <activity
+            android:supportsPictureInPicture="true"
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|keyboard|navigation|density|uiMode|fontScale"
