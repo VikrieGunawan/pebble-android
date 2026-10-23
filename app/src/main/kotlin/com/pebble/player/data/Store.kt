@@ -127,6 +127,10 @@ class Store(context: Context) {
         it[K.bl] = s
     }
 
+    suspend fun removeProgress(uri: String) = ds.edit {
+        val o = readJson(it[K.prog]); o.remove(uri); it[K.prog] = o.toString()
+    }
+
     suspend fun clearHistory() = ds.edit { it.remove(K.prog) }
     suspend fun clearFavs() = ds.edit { it.remove(K.favs) }
 

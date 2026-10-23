@@ -18,6 +18,7 @@ data class Video(
     val dur: Long,
     val size: Long,
     val added: Long,
+    val ext: String = "",
 )
 
 class MediaRepo(private val c: Context) {
@@ -54,6 +55,7 @@ class MediaRepo(private val c: Context) {
                         dur = q.getLong(iDur),
                         size = q.getLong(iSize),
                         added = q.getLong(iAdd),
+                        ext = (q.getString(iName) ?: "").substringAfterLast('.', "").uppercase().take(5),
                     )
                 }
             }
