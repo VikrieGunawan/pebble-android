@@ -27,7 +27,7 @@ data class Prefs(
     val dynamic: Boolean = true,   // Material You
     val accent: Int = 0xFFE8502B.toInt(),
     val layout: Int = 0,           // 0 grid, 1 list
-    val sort: Int = 0,             // 0 newest, 1 name, 2 longest
+    val sort: Int = 1,             // 0 newest, 1 name, 2 longest
     val autoplay: Boolean = true,
     val resume: Boolean = true,
     val autoFs: Boolean = true,
@@ -81,7 +81,7 @@ class Store(context: Context) {
             dynamic = p[K.dyn] ?: true,
             accent = p[K.accent] ?: 0xFFE8502B.toInt(),
             layout = p[K.layout] ?: defLayout,
-            sort = p[K.sort] ?: 0,
+            sort = p[K.sort] ?: 1,
             autoplay = p[K.autoplay] ?: true,
             resume = p[K.resume] ?: true,
             autoFs = p[K.autoFs] ?: true,
