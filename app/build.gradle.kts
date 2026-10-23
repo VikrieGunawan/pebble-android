@@ -15,6 +15,8 @@ android {
         targetSdk = 36       // Android 16
         versionCode = 1
         versionName = "1.0.0-beta"
+        // 64-bit only: no armeabi-v7a libs, so 64-bit-only phones (zygote64) can start the app.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
     buildTypes {
