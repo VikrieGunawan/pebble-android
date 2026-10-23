@@ -31,6 +31,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -273,7 +276,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val c = w?.let { WindowInsetsControllerCompat(it, it.decorView) }
         c?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         c?.hide(WindowInsetsCompat.Type.systemBars())
+        // always draw into the cutout area, then keep the player out of it (black border around the notch)
+        w?.let { win -> win.attributes = win.attributes.also { a -> a.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES } }
         onDispose {
+            w?.let { win -> win.attributes = win.attributes.also { a -> a.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT } }
             c?.show(WindowInsetsCompat.Type.systemBars())
             act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             w?.let { win -> win.attributes = win.attributes.also { a -> a.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } }
@@ -337,7 +343,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     }
 
     val cs = MaterialTheme.colorScheme
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black).windowInsetsPadding(WindowInsets.displayCutout)) {
         val land = maxWidth > maxHeight
         val endPad by animateDpAsState(if (land && panel != null) 384.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit

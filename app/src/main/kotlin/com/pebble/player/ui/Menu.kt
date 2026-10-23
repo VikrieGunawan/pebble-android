@@ -136,3 +136,44 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
         dismissButton = { TextButton({ confirmDel = false }) { Text("Cancel") } },
     )
 }
+
+
+private val SORT_OPTS = listOf(
+    Triple("schedule", "Recently added", 0),
+    Triple("sort_by_alpha", "Name", 1),
+    Triple("timer", "Duration", 2),
+    Triple("hard_drive", "File size", 3),
+)
+
+/** Bottom sheet like the website's "Sort by" menu. */
+@Composable
+fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
+        Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconTile("sort", 46.dp, filled = true)
+                Column {
+                    Text("Sort by", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Library order", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                }
+            }
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh).padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SORT_OPTS.forEach { (ic, label, i) ->
+                    val on = current == i
+                    val bg by androidx.compose.animation.animateColorAsState(if (on) cs.primaryContainer else androidx.compose.ui.graphics.Color.Transparent, label = "sortBg")
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(bg).clickable { onPick(i); onDismiss() }.padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Icon(ic, null, Modifier.size(24.dp), tint = if (on) cs.primary else cs.onSurfaceVariant)
+                        Text(label, Modifier.weight(1f), fontWeight = if (on) FontWeight.ExtraBold else FontWeight.SemiBold)
+                        PAnim(on, enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) {
+                            Icon("check", null, Modifier.size(24.dp), tint = cs.primary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

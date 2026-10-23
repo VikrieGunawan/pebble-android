@@ -210,8 +210,8 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var sortMenu by remember { mutableStateOf(false) }
-    val sorts = listOf("Recently added", "Name", "Longest", "Largest")
-    val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedBy { it.key.lowercase() } }
+    val sorts = listOf("Recently added", "Name", "Duration", "File size")
+    val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedBy { it.key.lowercase() }.map { it.key to it.value } }
     val list = videos.filter { (folder == null || it.folder == folder) && (query.isBlank() || it.name.contains(query, true)) }
     VideoCollection(
         list, prefs, { v -> play(v, list) },
@@ -219,41 +219,29 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 PageHeader("video_library", "Library", "${list.size} videos · ${fmtLong(list.sumOf { it.dur })} · ${fmtSize(list.sumOf { it.size })}")
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.weight(1f)) {
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(cs.surfaceContainer).clickable { sortMenu = true }.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Icon("sort", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
-                            Column(Modifier.weight(1f)) {
-                                Text("SORT BY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
-                                Text(sorts[prefs.sort.coerceIn(0, 3)], fontWeight = FontWeight.Bold)
-                            }
-                            Icon("expand_more", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                    Row(
+                        Modifier.weight(1f).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).clickable { sortMenu = true }.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon("sort", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                        Column(Modifier.weight(1f)) {
+                            Text("SORT BY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
+                            Text(sorts[prefs.sort.coerceIn(0, 3)], fontWeight = FontWeight.Bold, maxLines = 1)
                         }
-                        androidx.compose.material3.DropdownMenu(sortMenu, { sortMenu = false }) {
-                            sorts.forEachIndexed { i, s ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(s, fontWeight = FontWeight.SemiBold) }, onClick = { sortMenu = false; scope.launch { store.put(K.sort, i) } },
-                                    trailingIcon = { if (prefs.sort == i) Icon("check", null, Modifier.size(20.dp), tint = cs.primary) },
-                                )
-                            }
-                        }
+                        Icon("expand_more", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                     }
                     LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
                 }
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    FilterChip(folder == null, { onFolder(null) }, { Text("All (${videos.size})") }, leadingIcon = { Icon("folder", null, Modifier.size(18.dp)) })
-                    folders.forEach { e -> FilterChip(folder == e.key, { onFolder(e.key) }, { Text("${e.key} (${e.value})") }) }
-                }
-                SectionLabel("movie", "Videos", list.size)
+                if (query.isBlank()) LocationBar(folder, onFolder)
+                if (folder != null || query.isNotBlank()) SectionLabel("movie", "Videos", list.size)
             }
         },
         empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else "No results", if (query.isBlank()) "Check Settings → Library for hidden folders." else "Try another word.") },
+        folders = if (folder == null && query.isBlank()) folders else emptyList(),
+        onFolder = { onFolder(it) },
     )
+    if (sortMenu) SortSheet(prefs.sort, { scope.launch { store.put(K.sort, it) } }, { sortMenu = false })
 }
-
-// ---------------------------------------------------------------- Favorites
 
 @Composable
 fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, List<Video>) -> Unit) {

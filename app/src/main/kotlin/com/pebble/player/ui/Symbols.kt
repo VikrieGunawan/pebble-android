@@ -114,6 +114,9 @@ private val CP = mapOf(
     "subtitles" to 0xe048,
     "crop" to 0xe3be,
     "format_size" to 0xe245,
+    "sort_by_alpha" to 0xe053,
+    "hard_drive" to 0xf80e,
+    "arrow_upward" to 0xe5d8,
 )
 
 @Composable
