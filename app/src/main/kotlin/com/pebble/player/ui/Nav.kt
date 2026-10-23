@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -105,18 +107,47 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     }
 }
 
-/** Phone header like the website's `.top`: logo on the left, settings button on the right. */
+/** Header like the website's `.top`: logo, theme + settings pill, and the search pill. */
 @Composable
-fun PebbleTopBar(settingsOn: Boolean, onSettings: () -> Unit) {
+fun PebbleTopBar(
+    showLogo: Boolean, query: String, onQuery: (String) -> Unit, placeholder: String,
+    settingsOn: Boolean, onSettings: () -> Unit, dark: Boolean, onToggleTheme: () -> Unit,
+) {
     val cs = MaterialTheme.colorScheme
-    val tint by animateColorAsState(if (settingsOn) cs.primary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "gear")
-    val bg by animateColorAsState(if (settingsOn) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "gearbg")
-    Row(Modifier.fillMaxWidth().background(cs.background).statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        LogoMark(38.dp)
-        Spacer(Modifier.width(10.dp))
-        Text("Pebble", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        Box(Modifier.size(42.dp).clip(CircleShape).background(bg).clickable(onClick = onSettings), contentAlignment = Alignment.Center) {
-            Icon("settings", "Settings", Modifier.size(24.dp), tint = tint)
+    @Composable
+    fun roundBtn(icon: String, on: Boolean, label: String, onClick: () -> Unit) {
+        val tint by animateColorAsState(if (on) cs.primary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tb")
+        val bg by animateColorAsState(if (on) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tbbg")
+        Box(Modifier.size(42.dp).clip(CircleShape).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(22.dp), tint = tint) }
+    }
+    Column(Modifier.fillMaxWidth().background(cs.background).statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (showLogo) {
+                LogoMark(38.dp); Spacer(Modifier.width(10.dp))
+                Text("Pebble", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.weight(1f))
+            Row(Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
+                roundBtn("settings", settingsOn, "Settings", onSettings)
+            }
+        }
+        var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        val border by animateColorAsState(if (focused) cs.primary else cs.outlineVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sb")
+        Row(
+            Modifier.fillMaxWidth().height(48.dp).clip(CircleShape).background(cs.surfaceContainer).border(1.5.dp, border, CircleShape).padding(start = 8.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(32.dp).clip(CircleShape).background(cs.primaryContainer), contentAlignment = Alignment.Center) { Icon("search", null, Modifier.size(18.dp), tint = cs.primary) }
+            Box(Modifier.weight(1f).padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+                if (query.isEmpty()) Text(placeholder, color = cs.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                androidx.compose.foundation.text.BasicTextField(
+                    query, onQuery, Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }, singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = cs.onSurface, fontWeight = FontWeight.SemiBold),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(cs.primary),
+                )
+            }
+            if (query.isNotEmpty()) Box(Modifier.size(36.dp).clip(CircleShape).clickable { onQuery("") }, contentAlignment = Alignment.Center) { Icon("close", "Clear", Modifier.size(20.dp), tint = cs.onSurfaceVariant) }
         }
     }
 }

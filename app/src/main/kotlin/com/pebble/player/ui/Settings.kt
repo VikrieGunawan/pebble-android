@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -57,16 +58,23 @@ import com.pebble.player.data.Store
 import com.pebble.player.data.Video
 import kotlinx.coroutines.launch
 
+private val ICONS = mapOf(
+    "Theme" to "contrast", "Material You" to "palette", "Accent color" to "palette", "Layout" to "grid_view", "Sort by" to "sort",
+    "Autoplay" to "play_circle", "Resume where you stopped" to "history", "Keep screen on" to "smartphone", "Skip step" to "forward_10",
+    "Default speed" to "speed", "Video fit" to "aspect_ratio", "Rotate with the video" to "screen_rotation", "Screen rotation" to "screen_rotation",
+    "If Bluetooth or headphones disconnect" to "headphones",
+)
+
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Text(title, style = MaterialTheme.typography.titleSmall, color = cs.primary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, top = 22.dp, bottom = 8.dp))
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(cs.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
+    Column(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(28.dp)).background(cs.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
 }
 
 @Composable
 private fun SwitchRow(title: String, sub: String, v: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onChange(!v) }, verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable { onChange(!v) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        IconTile(ICONS[title] ?: "tune", 38.dp)
         Column(Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -77,24 +85,67 @@ private fun SwitchRow(title: String, sub: String, v: Boolean, onChange: (Boolean
 
 @Composable
 private fun Choice(title: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(title, fontWeight = FontWeight.SemiBold)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconTile(ICONS[title] ?: "tune", 38.dp)
+            Text(title, fontWeight = FontWeight.Bold)
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEachIndexed { i, o -> FilterChip(selected == i, { onSelect(i) }, { Text(o) }) }
         }
     }
 }
 
+data class Cat(val id: String, val icon: String, val title: String, val sub: String)
+
 @Composable
-fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Unit, onClearAll: () -> Unit) {
+fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Unit, onClearAll: () -> Unit, query: String = "") {
     val scope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf<String?>(null) }
     fun <T> put(k: androidx.datastore.preferences.core.Preferences.Key<T>, v: T) { scope.launch { store.put(k, v) } }
 
+    var page by remember { mutableStateOf<String?>(null) }
+    androidx.activity.compose.BackHandler(page != null) { page = null }
+    val cs = MaterialTheme.colorScheme
+    val cats = listOf(
+        Cat("playback", "play_circle", "Playback", "Autoplay, skipping and controls"),
+        Cat("appearance", "palette", "Appearance", "Theme, colors and layout"),
+        Cat("device", "smartphone", "Device", "Brightness, volume and Bluetooth"),
+        Cat("library", "video_library", "Library", "Scanning and hidden folders"),
+        Cat("data", "database", "Data", "History, favorites and reset"),
+        Cat("about", "info", "About", "Pebble Player v1.0.0-beta"),
+    )
+    val cur = cats.firstOrNull { it.id == page }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-        Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            if (cur != null) Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { page = null }, contentAlignment = Alignment.Center) { Icon("arrow_back", "Back", Modifier.size(22.dp)) }
+            IconTile(cur?.icon ?: "tune", 52.dp, filled = true)
+            Column {
+                Text(cur?.title ?: "Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text(cur?.sub ?: "Make Pebble work the way you like", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            }
+        }
+        if (page == null) {
+            val shown = cats.filter { query.isBlank() || it.title.contains(query, true) || it.sub.contains(query, true) }
+            Spacer(Modifier.height(14.dp))
+            if (shown.isEmpty()) EmptyCard("info", "No results", "Try another word.")
+            shown.chunked(2).forEach { r ->
+                Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    r.forEach { c ->
+                        Column(Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).background(cs.surfaceContainer).clickable { page = c.id }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            IconTile(c.icon, 46.dp, filled = true)
+                            Column { Text(c.title, fontWeight = FontWeight.ExtraBold); Text(c.sub, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, minLines = 2) }
+                        }
+                    }
+                    if (r.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
 
-        Section("Appearance") {
+        if (page == "appearance") Section("Appearance") {
             Choice("Theme", listOf("System", "Light", "Dark"), prefs.theme) { put(K.theme, it) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) SwitchRow("Material You", "Use colors from your wallpaper", prefs.dynamic) { put(K.dyn, it) }
             if (!prefs.dynamic || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -105,7 +156,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             Choice("Sort by", listOf("Newest", "Name", "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
         }
 
-        Section("Playback") {
+        if (page == "playback") Section("Playback") {
             SwitchRow("Autoplay", "Start as soon as a video opens", prefs.autoplay) { put(K.autoplay, it) }
             SwitchRow("Resume where you stopped", "Continue from your last position", prefs.resume) { put(K.resume, it) }
             SwitchRow("Keep screen on", "While a video is playing", prefs.wake) { put(K.wake, it) }
@@ -117,18 +168,18 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             Choice("If Bluetooth or headphones disconnect", listOf("Pause", "Keep playing"), prefs.onLost) { put(K.onLost, it) }
         }
 
-        Section("Device") { DeviceControls() }
+        if (page == "device") Section("Device") { DeviceControls() }
 
-        Section("Library") { LibraryControls(prefs, store, all, onRescan) }
+        if (page == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
 
-        Section("Data") {
+        if (page == "data") Section("Data") {
             OutlinedButton({ confirm = "history" }, Modifier.fillMaxWidth()) { Text("Clear watch history") }
             OutlinedButton({ confirm = "favs" }, Modifier.fillMaxWidth()) { Text("Clear favorites") }
             OutlinedButton({ confirm = "reset" }, Modifier.fillMaxWidth()) { Text("Reset settings") }
             Button({ confirm = "all" }, Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) { Text("Clear app data") }
         }
 
-        Section("About") {
+        if (page == "about") Section("About") {
             Text("Pebble Player", fontWeight = FontWeight.SemiBold)
             Text("v1.0.0-beta · Material 3 Expressive", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

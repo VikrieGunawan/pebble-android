@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pebble.player.PebbleApp
+import com.pebble.player.data.K
 import com.pebble.player.data.Prefs
 import com.pebble.player.data.Profile
 import com.pebble.player.data.Video
@@ -113,7 +114,6 @@ fun PebbleRoot(app: PebbleApp, openUri: Uri?, onOpenConsumed: () -> Unit) {
 private fun needPerm() =
     if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_VIDEO else Manifest.permission.READ_EXTERNAL_STORAGE
 
-private val TABS = listOf("Home", "Library", "Favorites", "History", "Settings")
 
 @Composable
 private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed: () -> Unit, startClear: () -> Unit) {
@@ -121,6 +121,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     var libFolder by remember { mutableStateOf<String?>(null) }
+    var query by remember { mutableStateOf("") }
+    var menuFor by remember { mutableStateOf<Video?>(null) }
     var playing by remember { mutableStateOf<Video?>(null) }
     var queue by remember { mutableStateOf<List<Video>>(emptyList()) }
     var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, needPerm()) == PackageManager.PERMISSION_GRANTED) }
@@ -147,11 +149,20 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
         BackHandler(tab == 4) { tab = 0 }
+        val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
+        CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }) {
         Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
             modifier = Modifier.weight(1f),
-            topBar = { if (!wide) PebbleTopBar(tab == 4) { tab = if (tab == 4) 0 else 4 } },
+            topBar = {
+                PebbleTopBar(
+                    showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
+                    placeholder = if (tab == 4) "Search settings" else "Search your videos",
+                    settingsOn = tab == 4, onSettings = { tab = if (tab == 4) 0 else 4 },
+                    dark = dark, onToggleTheme = { scope.launch { app.store.put(K.theme, if (dark) 1 else 2) } },
+                )
+            },
             bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
         ) { pad ->
             val inSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
@@ -163,22 +174,26 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 label = "tab",
             ) { t ->
                 if (t == 4) {
-                    SettingsScreen(prefs, app.store, all, { rescan++ }, startClear)
+                    SettingsScreen(prefs, app.store, all, { rescan++ }, startClear, query)
                 } else if (!granted) {
                     PermissionPrompt { ask.launch(needPerm()) }
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else when (t) {
                     0 -> HomeTab(prefs, visible, { profileDialog = true }, { rescan++ }, ::play, { tab = it }, { libFolder = it })
-                    1 -> LibraryTab(prefs, app.store, visible, libFolder, { libFolder = it }, ::play)
+                    1 -> LibraryTab(prefs, app.store, visible, libFolder, { libFolder = it }, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {
                         val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
-                        VideoCollection(l, prefs, "Nothing watched yet", "Videos you play will show up here.", { v -> play(v, l) })
+                        HistoryTab(prefs, app.store, l, ::play)
                     }
                 }
             }
         }
+        }
+        }
+        menuFor?.let { v ->
+            VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
         }
         playing?.let { v ->
             BackHandler { playing = null }
@@ -199,83 +214,6 @@ private fun PermissionPrompt(onAsk: () -> Unit) {
         Text("Pebble only reads video files on this device. Nothing is uploaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         Button(onClick = onAsk, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(52.dp)) { Text("Allow access") }
-    }
-}
-
-@Composable
-fun VideoCollection(
-    videos: List<Video>, prefs: Prefs, emptyTitle: String, emptySub: String, onClick: (Video) -> Unit,
-    header: @Composable () -> Unit = {},
-) {
-    LazyVerticalGrid(
-        columns = if (prefs.layout == 1) GridCells.Fixed(1) else GridCells.Adaptive(168.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) { header() }
-        if (videos.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
-            Column(Modifier.fillMaxWidth().padding(vertical = 64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(emptyTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(6.dp))
-                Text(emptySub, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        items(videos, key = { it.id }) { v -> VideoCard(v, prefs, prefs.layout == 1, Modifier) { onClick(v) } }
-    }
-}
-
-@Composable
-fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val app = LocalApp.current
-    val scope = rememberCoroutineScope()
-    val cs = MaterialTheme.colorScheme
-    val fav = v.uri.toString() in prefs.favs
-    val prog = prefs.progress[v.uri.toString()]
-    val bmp by produceState(ThumbCache.get(v.id), v.id) {
-        if (value == null) withContext(Dispatchers.IO) { app.media.thumb(v)?.asImageBitmap() }?.let { ThumbCache.put(v.id, it); value = it }
-    }
-    val thumb: @Composable (Modifier) -> Unit = { m ->
-        Box(m.aspectRatio(16f / 9f).clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainerHigh)) {
-            bmp?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                ?: Icon("play_arrow", null, Modifier.align(Alignment.Center).size(36.dp), tint = cs.onSurfaceVariant)
-            if (v.dur > 0) Text(
-                fmt(v.dur), color = Color.White, style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-            if (prog != null && prog.dur > 0) LinearProgressIndicator(
-                progress = { (prog.pos.toFloat() / prog.dur).coerceIn(0f, 1f) },
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp),
-                color = cs.primary, trackColor = Color.Transparent, drawStopIndicator = {},
-            )
-        }
-    }
-    val heart: @Composable () -> Unit = {
-        IconButton(onClick = { scope.launch { app.store.toggleFav(v.uri.toString()) } }) {
-            Icon("favorite", "Favorite", fill = fav, tint = if (fav) cs.primary else cs.onSurfaceVariant)
-        }
-    }
-    if (row) {
-        Row(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            thumb(Modifier.width(150.dp))
-            Column(Modifier.weight(1f)) {
-                Text(v.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
-                Text(v.folder, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            heart()
-        }
-    } else {
-        Column(modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick)) {
-            thumb(Modifier.fillMaxWidth())
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f).padding(start = 4.dp, top = 6.dp)) {
-                    Text(v.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
-                    Text(v.folder, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                heart()
-            }
-        }
     }
 }
 
