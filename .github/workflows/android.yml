@@ -22,9 +22,10 @@ jobs:
           gradle-version: 9.6.0
 
       - name: Build APKs
-        run: gradle assembleDebug assembleRelease --stacktrace
+        run: gradle assembleRelease --stacktrace
 
       - uses: actions/upload-artifact@v5
         with:
           name: PebblePlayer-v1.0.0-beta
-          path: app/build/outputs/apk/**/*.apk
+          path: app/build/outputs/apk/release/*.apk
+
