@@ -1,12 +1,8 @@
 {
-  "version": "1.0.1-beta",
+  "version": "1.0.2-beta",
   "notes": [
-    "New: YouTube. Add videos and Shorts from a link. Playback needs your localhost or tunnel server (Settings > YouTube).",
-    "Fixed: the Library folder bar now follows the folder you open or tap.",
-    "Fixed: the back-gesture animation now moves only the page, not the search bar, header or navigation.",
-    "Fixed: in the player, the video now slides to the left when a side menu opens.",
-    "New: choose the video quality (resolution) for YouTube videos."
+    "Fixed: YouTube videos no longer play as a blank screen with sound only. Pebble's own player controls are back, with a quality menu that slides in from the right."
   ],
-  "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.0.1-beta/PebblePlayer.apk",
+  "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.0.2-beta/PebblePlayer.apk",
   "size": 0
 }
