@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0-beta",
+  "notes": [
+    "Describe what's new here, one line per item.",
+    "Another change."
+  ],
+  "apk": "https://raw.githubusercontent.com/VikrieGunawan/pebble-android/main/releases/PebblePlayer.apk",
+  "size": 0
+}
