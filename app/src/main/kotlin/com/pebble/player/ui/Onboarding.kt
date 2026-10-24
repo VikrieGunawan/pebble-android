@@ -103,7 +103,7 @@ private val STEP_TITLES = mapOf(
     6 to ("Playback and feel" to "Switch on what you like."),
 )
 
-private const val LAST // processing step index
+private const val LAST = 7 // processing step index
 
 @Composable
 fun Onboarding(prefs: Prefs, store: Store) {

@@ -281,7 +281,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(if (total > 0) "${fmtSize(done)} / ${fmtSize(total)}" else fmtSize(done), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                                 Text(
-                                    if (bps > 0) "%.1f MB/s".format(bps / 1048576.0) + if (total > done) " · ${eta((total - done) / bps)}" else "",
+                                    if (bps > 0) "%.1f MB/s".format(bps / 1048576.0) + (if (total > done) " · ${eta((total - done) / bps)}" else "") else "",
                                     style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
                                 )
                             }
