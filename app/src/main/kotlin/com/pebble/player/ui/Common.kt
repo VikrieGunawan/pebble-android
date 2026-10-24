@@ -81,6 +81,9 @@ object ThumbCache {
     fun get(id: Long): ImageBitmap? = c.get(id)
     fun put(id: Long, b: ImageBitmap) { c.put(id, b) }
     fun clear() = c.evictAll()
+    /** Bumped whenever a cover image changes, so thumbnails reload. */
+    val ver = androidx.compose.runtime.mutableIntStateOf(0)
+    fun invalidate(id: Long) { c.remove(id); ver.intValue++ }
 }
 
 fun fmt(ms: Long): String {

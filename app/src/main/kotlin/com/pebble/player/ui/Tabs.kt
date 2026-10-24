@@ -69,8 +69,13 @@ private fun fmtLong(ms: Long): String { val m = ms / 60000; val h = m / 60; retu
 @Composable
 fun rememberThumb(v: Video): ImageBitmap? {
     val app = LocalApp.current
-    val bmp by produceState(ThumbCache.get(v.id), v.id) {
-        if (value == null) withContext(Dispatchers.IO) { app.media.thumb(v)?.asImageBitmap() }?.let { ThumbCache.put(v.id, it); value = it }
+    val ver = ThumbCache.ver.intValue
+    val bmp by produceState(ThumbCache.get(v.id), v.id, ver) {
+        val cached = ThumbCache.get(v.id)
+        if (cached != null) value = cached else {
+            val b = withContext(Dispatchers.IO) { app.media.thumb(v)?.asImageBitmap() }
+            if (b != null) { ThumbCache.put(v.id, b); value = b } else value = null
+        }
     }
     return bmp
 }
@@ -152,7 +157,7 @@ fun HomeTab(
         .sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
     val recent = videos.sortedByDescending { it.added }.take(12)
     val favs = videos.filter { it.uri.toString() in prefs.favs }
-    val folders = videos.groupingBy { it.folder }.eachCount().entries.sortedByDescending { it.value }.take(10)
+    val folders = videos.groupingBy { it.path }.eachCount().entries.sortedByDescending { it.value }.take(10)
     val hero = cont.firstOrNull() ?: recent.firstOrNull()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.Top) {
@@ -194,7 +199,7 @@ fun HomeTab(
         if (folders.size > 1) {
             SectionHeader("Folders")
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(folders, key = { it.key }) { e -> FolderCard(e.key, e.value) { openFolder(e.key); openTab(1) } }
+                items(folders, key = { it.key }) { e -> FolderCard(e.key.trimEnd('/').substringAfterLast('/').ifBlank { "Videos" }, e.value) { openFolder(e.key.ifBlank { null }); openTab(1) } }
             }
         }
         if (favs.isNotEmpty()) { SectionHeader("Your favorites", "See all") { openTab(2) }; VideoRow(favs.take(12), prefs) { play(it, favs) } }
@@ -204,14 +209,34 @@ fun HomeTab(
 
 // ---------------------------------------------------------------- Library
 
+private fun segsOf(p: String?): List<String> = p?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+
+/** One level of the folder tree: sub-folders (path to count, recursive) and the videos that sit directly in this folder. */
+private fun treeAt(videos: List<Video>, at: String?): Pair<List<Pair<String, Int>>, List<Video>> {
+    val base = segsOf(at)
+    val d = base.size
+    val kids = LinkedHashMap<String, Int>()
+    val direct = ArrayList<Video>()
+    for (v in videos) {
+        val s = segsOf(v.path)
+        if (s.size < d || s.subList(0, d) != base) continue
+        if (s.size == d) direct += v else {
+            val k = s.subList(0, d + 1).joinToString("/") + "/"
+            kids[k] = (kids[k] ?: 0) + 1
+        }
+    }
+    val sorted = kids.entries.sortedWith { x, y -> NaturalOrder.compare(x.key.trimEnd('/').substringAfterLast('/'), y.key.trimEnd('/').substringAfterLast('/')) }
+    return sorted.map { it.key to it.value } to direct
+}
+
 @Composable
-fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?, onFolder: (String?) -> Unit, query: String, play: (Video, List<Video>) -> Unit) {
+fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?, trail: String?, onFolder: (String?) -> Unit, query: String, play: (Video, List<Video>) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var sortMenu by remember { mutableStateOf(false) }
     val sorts = listOf("Recently added", "Name", "Duration", "File size")
-    val folders = remember(videos) { videos.groupingBy { it.folder }.eachCount().entries.sortedWith { x, y -> NaturalOrder.compare(x.key, y.key) }.map { it.key to it.value } }
-    val shown = videos.filter { (folder == null || it.folder == folder) && (query.isBlank() || it.name.contains(query, true)) }
+    val base = segsOf(folder)
+    val shown = videos.filter { v -> if (query.isNotBlank()) v.name.contains(query, true) else segsOf(v.path).let { s -> s.size >= base.size && s.subList(0, base.size) == base } }
     Column(Modifier.fillMaxSize()) {
         // fixed part: stays put while the folder content below animates
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -230,15 +255,16 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
                 }
                 LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
             }
-            if (query.isBlank()) LocationBar(folder, onFolder)
+            if (query.isBlank()) LocationBar(folder, trail, onFolder)
         }
-        AnimatedContent(folder, Modifier.weight(1f), transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "libFolder") { f ->
-            val list = videos.filter { (f == null || it.folder == f) && (query.isBlank() || it.name.contains(query, true)) }
+        AnimatedContent(folder, Modifier.weight(1f), transitionSpec = { slideTransition(if (segsOf(targetState).size >= segsOf(initialState).size) 1 else -1) }, label = "libFolder") { f ->
+            val (kids, direct) = treeAt(videos, f)
+            val list = if (query.isNotBlank()) videos.filter { it.name.contains(query, true) } else direct
             VideoCollection(
                 list, prefs, { v -> play(v, list) },
-                header = { if (f != null || query.isNotBlank()) SectionLabel("movie", "Videos", list.size) },
+                header = { },
                 empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else "No results", if (query.isBlank()) "Check Settings → Library for hidden folders." else "Try another word.") },
-                folders = if (f == null && query.isBlank()) folders else emptyList(),
+                folders = if (query.isBlank()) kids else emptyList(),
                 onFolder = { onFolder(it) },
             )
         }
@@ -258,10 +284,10 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
                 PageHeader("favorite", "Favorites", "${favs.size} pinned videos") {
                     if (favs.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", "Clear all", Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (favs.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
                     Spacer(Modifier.weight(1f))
-                    if (favs.isNotEmpty()) {
+                    run {
                         FilledTonalButton({ val l = favs.shuffled(); play(l.first(), l) }, shapes = ButtonDefaults.shapes()) { Icon("shuffle", null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Shuffle") }
                         Button({ play(favs.first(), favs) }, shapes = ButtonDefaults.shapes()) { Icon("play_arrow", null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Play all") }
                     }
@@ -291,7 +317,7 @@ fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List
                 PageHeader("history", "History", "Videos you started watching") {
                     if (list.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", "Clear history", Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
                 }
-                LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
+                if (list.isNotEmpty()) LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
             }
         },
         empty = { EmptyCard("history", "Nothing here yet", "Start a video and it will appear in your history.") },

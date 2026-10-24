@@ -1,6 +1,16 @@
 package com.pebble.player.ui
 
 import android.app.Activity
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.OutlinedTextField
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.content.Intent
 import android.os.Build
 import android.provider.MediaStore
@@ -86,6 +96,64 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
     val delLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
         if (r.resultCode == Activity.RESULT_OK) { onRescan(); onDismiss() }
     }
+    val app = LocalApp.current
+    val coverFile = app.media.coverFile(v.id)
+    val coverVer = ThumbCache.ver.intValue
+    val hasCover = remember(coverVer) { coverFile.exists() }
+    var renaming by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf(v.name) }
+    var busy by remember { mutableStateOf<String?>(null) }
+    var copyMode by remember { mutableStateOf(true) }
+    var afterWrite by remember { mutableStateOf<(() -> Unit)?>(null) }
+    fun toast(s: String) = Toast.makeText(ctx, s, Toast.LENGTH_SHORT).show()
+    fun realName(): String {
+        val n = try {
+            ctx.contentResolver.query(v.uri, arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
+        } catch (_: Exception) { null }
+        return n ?: (v.name + "." + v.ext.lowercase())
+    }
+    val writeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
+        if (r.resultCode == Activity.RESULT_OK) afterWrite?.invoke()
+        afterWrite = null
+    }
+    fun renameNow(cv: android.content.ContentValues) {
+        try {
+            if (ctx.contentResolver.update(v.uri, cv, null, null) > 0) { toast("Renamed"); onRescan(); onDismiss() } else toast("Couldn't rename")
+        } catch (e: SecurityException) {
+            try {
+                val sender = if (Build.VERSION.SDK_INT >= 30) MediaStore.createWriteRequest(ctx.contentResolver, listOf(v.uri)).intentSender
+                else (e as? android.app.RecoverableSecurityException)?.userAction?.actionIntent?.intentSender
+                if (sender == null) toast("Couldn't rename") else {
+                    afterWrite = { renameNow(cv) }
+                    writeLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(sender).build())
+                }
+            } catch (_: Exception) { toast("Couldn't rename") }
+        } catch (_: Exception) { toast("Couldn't rename") }
+    }
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
+        if (u != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) { saveCover(ctx, u, coverFile) }
+            if (ok) { ThumbCache.invalidate(v.id); toast("Cover image updated") } else toast("Couldn't use that image")
+        }
+    }
+    val destPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+        if (tree != null) scope.launch {
+            val name = realName()
+            busy = if (copyMode) "Copying…" else "Moving…"
+            val ok = withContext(Dispatchers.IO) { copyToTree(ctx, v.uri, tree, name) }
+            busy = null
+            if (!ok) toast("Couldn't copy the video")
+            else if (copyMode) { toast("Copied"); onRescan(); onDismiss() }
+            else if (Build.VERSION.SDK_INT >= 30) {
+                toast("Copied — confirm to remove the original")
+                try { delLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(MediaStore.createDeleteRequest(ctx.contentResolver, listOf(v.uri)).intentSender).build()) }
+                catch (_: Exception) { toast("Copied, but couldn't remove the original") }
+            } else {
+                try { ctx.contentResolver.delete(v.uri, null, null); toast("Moved") } catch (_: Exception) { toast("Copied, but couldn't remove the original") }
+                onRescan(); onDismiss()
+            }
+        }
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -107,6 +175,13 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
                 }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
+                SheetRow("edit", "Rename") { newName = v.name; renaming = true }
+                SheetRow("image", "Cover image") { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                if (hasCover) SheetRow("delete", "Remove cover image") { coverFile.delete(); ThumbCache.invalidate(v.id) }
+                SheetRow("content_copy", "Copy to folder…") { copyMode = true; destPicker.launch(null) }
+                SheetRow("drive_file_move", "Move to folder…") { copyMode = false; destPicker.launch(null) }
+            }
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
                 SheetRow("info", "Details") { details = true }
                 if (v.path.isNotEmpty()) SheetRow("visibility_off", "Hide this folder") { scope.launch { store.toggleBlacklist(v.path) }; onDismiss() }
                 if (inHistory) SheetRow("history", "Remove from history") { scope.launch { store.removeProgress(v.uri.toString()) }; onDismiss() }
@@ -117,6 +192,27 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
         }
     }
 
+    if (renaming) AlertDialog(
+        onDismissRequest = { renaming = false }, title = { Text("Rename video") },
+        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text("Name") }) },
+        confirmButton = {
+            TextButton({
+                renaming = false
+                val clean = newName.trim().replace(Regex("[\\\\/:*?\"<>|]"), "")
+                if (clean.isNotEmpty()) {
+                    val ext = realName().substringAfterLast('.', v.ext.lowercase())
+                    renameNow(android.content.ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, "$clean.$ext") })
+                }
+            }) { Text("Rename") }
+        },
+        dismissButton = { TextButton({ renaming = false }) { Text("Cancel") } },
+    )
+    busy?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { }, confirmButton = { }, title = { Text(msg) },
+            text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(48.dp)) } },
+        )
+    }
     if (details) AlertDialog(
         onDismissRequest = { details = false }, title = { Text(v.name) },
         text = { Text("Format: ${v.ext.ifEmpty { "-" }}\nSize: ${fmtSize(v.size)}\nDuration: ${fmt(v.dur)}\nFolder: ${v.path.ifEmpty { v.folder }}") },
@@ -177,3 +273,29 @@ fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
         }
     }
 }
+
+
+private fun saveCover(ctx: Context, src: Uri, out: java.io.File): Boolean = try {
+    val bmp = ImageDecoder.decodeBitmap(ImageDecoder.createSource(ctx.contentResolver, src)) { dec, info, _ ->
+        dec.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        dec.setTargetSampleSize(maxOf(1, maxOf(info.size.width, info.size.height) / 1280))
+    }
+    val w = bmp.width
+    val h = bmp.height
+    val tw = if (w * 9 > h * 16) h * 16 / 9 else w
+    val th = if (w * 9 > h * 16) h else w * 9 / 16
+    val crop = Bitmap.createBitmap(bmp, (w - tw) / 2, (h - th) / 2, tw, th)
+    out.parentFile?.mkdirs()
+    out.outputStream().use { crop.compress(Bitmap.CompressFormat.JPEG, 90, it) }
+    true
+} catch (_: Exception) { false }
+
+private fun copyToTree(ctx: Context, src: Uri, tree: Uri, name: String): Boolean = try {
+    val cr = ctx.contentResolver
+    val parent = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+    val dest = DocumentsContract.createDocument(cr, parent, cr.getType(src) ?: "video/*", name)
+    if (dest == null) false else {
+        cr.openInputStream(src)!!.use { i -> cr.openOutputStream(dest)!!.use { o -> i.copyTo(o) } }
+        true
+    }
+} catch (_: Exception) { false }

@@ -113,11 +113,9 @@ data class Cat(val id: String, val icon: String, val title: String, val sub: Str
 @Composable
 fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Unit, onClearAll: () -> Unit, query: String = "") {
     val scope = rememberCoroutineScope()
-    var confirm by remember { mutableStateOf<String?>(null) }
     fun <T> put(k: androidx.datastore.preferences.core.Preferences.Key<T>, v: T) { scope.launch { store.put(k, v) } }
 
     var page by remember { mutableStateOf<String?>(null) }
-    androidx.activity.compose.BackHandler(page != null) { page = null }
     val cs = MaterialTheme.colorScheme
     val cats = listOf(
         Cat("playback", "play_circle", "Playback", "Autoplay, skipping and controls"),
@@ -130,6 +128,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
     val cur = cats.firstOrNull { it.id == page }
     val sc = rememberScrollState()
     LaunchedEffect(page) { sc.scrollTo(0) }
+    PredictiveBack(page != null, { page = null }) {
     Column(Modifier.fillMaxSize().verticalScroll(sc).padding(horizontal = 16.dp)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
@@ -197,44 +196,17 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
 
         if (p == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
 
-        if (p == "data") Section("Data") {
-            OutlinedButton({ confirm = "history" }, Modifier.fillMaxWidth()) { Text("Clear watch history") }
-            OutlinedButton({ confirm = "favs" }, Modifier.fillMaxWidth()) { Text("Clear favorites") }
-            OutlinedButton({ confirm = "reset" }, Modifier.fillMaxWidth()) { Text("Reset settings") }
-            Button({ confirm = "all" }, Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) { Text("Clear app data") }
-        }
+        if (p == "data") DataPage(prefs, store, all, onClearAll)
 
         if (p == "about") Section("About") {
             Text("Pebble Player", fontWeight = FontWeight.SemiBold)
-            Text("v1.0.0-beta · Material 3 Expressive", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("v${currentVersion(LocalContext.current)} · Material 3 Expressive", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            UpdateRow()
         }
         }
         }
         Spacer(Modifier.height(32.dp))
     }
-
-    confirm?.let { c ->
-        val (t, d) = when (c) {
-            "history" -> "Clear watch history?" to "Your resume positions will be removed."
-            "favs" -> "Clear favorites?" to "All hearts will be removed."
-            "reset" -> "Reset settings?" to "Playback and appearance go back to defaults."
-            else -> "Clear app data?" to "Everything is wiped and you go back to Welcome."
-        }
-        AlertDialog(
-            onDismissRequest = { confirm = null }, title = { Text(t) }, text = { Text(d) },
-            confirmButton = {
-                TextButton({
-                    confirm = null
-                    when (c) {
-                        "history" -> scope.launch { store.clearHistory() }
-                        "favs" -> scope.launch { store.clearFavs() }
-                        "reset" -> scope.launch { store.resetSettings() }
-                        else -> onClearAll()
-                    }
-                }) { Text("Confirm") }
-            },
-            dismissButton = { TextButton({ confirm = null }) { Text("Cancel") } },
-        )
     }
 }
 

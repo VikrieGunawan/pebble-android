@@ -123,6 +123,9 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     var libFolder by remember { mutableStateOf<String?>(null) }
+    var libTrail by remember { mutableStateOf<String?>(null) }
+    // the folders you opened stay in the location bar (dimmed when you go up), like the website
+    val openFolder: (String?) -> Unit = { p -> libFolder = p; if (p != null && libTrail?.startsWith(p) != true) libTrail = p }
     var query by remember { mutableStateOf("") }
     var menuFor by remember { mutableStateOf<Video?>(null) }
     var playing by remember { mutableStateOf<Video?>(null) }
@@ -132,6 +135,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var scanned by remember { mutableStateOf(false) }
     var rescan by remember { mutableIntStateOf(0) }
     var profileDialog by remember { mutableStateOf(false) }
+    var update by remember { mutableStateOf<UpdateInfo?>(null) }
+    LaunchedEffect(Unit) { update = checkUpdateAuto(ctx) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
 
     LaunchedEffect(granted, rescan) {
@@ -150,9 +155,12 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
-        BackHandler(tab == 4) { tab = 0 }
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }) {
+        PredictiveBack(tab != 0, {
+            val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+            if (tab == 1 && segs.isNotEmpty()) openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/") else tab = 0
+        }) {
         Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
@@ -182,8 +190,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else when (t) {
-                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, { libFolder = it })
-                    1 -> LibraryTab(prefs, app.store, visible, libFolder, { libFolder = it }, query, ::play)
+                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder)
+                    1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {
                         val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
@@ -194,15 +202,18 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         }
         }
         }
+        }
         menuFor?.let { v ->
             VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
         }
         playing?.let { v ->
-            BackHandler { playing = null }
-            PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
+            PredictiveBack(true, { playing = null }) {
+                PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
+            }
         }
     }
 
+    update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }
 

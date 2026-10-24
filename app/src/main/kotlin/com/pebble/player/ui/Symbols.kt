@@ -117,6 +117,18 @@ private val CP = mapOf(
     "sort_by_alpha" to 0xe053,
     "hard_drive" to 0xf80e,
     "arrow_upward" to 0xe5d8,
+    "edit" to 0xf097,
+    "image" to 0xe3f4,
+    "content_copy" to 0xe14d,
+    "drive_file_move" to 0xe9a1,
+    "heart_broken" to 0xeac2,
+    "hide_image" to 0xf022,
+    "cleaning_services" to 0xf0ff,
+    "warning" to 0xf083,
+    "refresh" to 0xe5d5,
+    "system_update" to 0xf2cd,
+    "download" to 0xf090,
+    "error" to 0xf8b6,
 )
 
 @Composable

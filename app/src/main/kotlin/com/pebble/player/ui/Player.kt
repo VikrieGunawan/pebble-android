@@ -234,7 +234,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var dur by remember { mutableLongStateOf(0L) }
     var pos by remember { mutableLongStateOf(0L) }
     var buffering by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember(video.id) { mutableStateOf<PlaybackException?>(null) }
     var speed by remember { mutableFloatStateOf(prefs.speed) }
     var fit by remember { mutableIntStateOf(prefs.fit) }
     var orient by remember { mutableIntStateOf(prefs.orient) }
@@ -255,7 +255,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             override fun onVideoSizeChanged(v: VideoSize) { vSize = v }
             override fun onTracksChanged(t: Tracks) { tracks = t }
             override fun onCues(cueGroup: CueGroup) { cueText = cueGroup.cues.mapNotNull { it.text?.toString() }.joinToString("\n").trim() }
-            override fun onPlayerError(e: PlaybackException) { error = "Can't play this video" }
+            override fun onPlayerError(e: PlaybackException) { error = e }
         }
         player.addListener(l)
         onDispose {
@@ -440,13 +440,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 Text("${(v * 100).roundToInt()}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
-        error?.let {
-            Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon("info", null, Modifier.size(40.dp), tint = Color.White)
-                Text(it, color = Color.White, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
-                TextButton(onClose) { Text("Go back") }
-            }
-        }
+        error?.let { e -> PlayerErrorScreen(e, video, { error = null; player.prepare(); player.play() }, onClose) }
 
         if (subs && cueText.isNotBlank()) {
             val subBottom by animateDpAsState(if (show) 118.dp else 34.dp, label = "subBottom")

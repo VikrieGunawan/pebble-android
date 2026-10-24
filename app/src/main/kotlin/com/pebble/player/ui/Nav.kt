@@ -59,12 +59,7 @@ private data class NavItem(val id: Int, val label: String, val icon: String)
 private val NAV = listOf(NavItem(0, "Home", "home"), NavItem(1, "Library", "video_library"), NavItem(2, "Favorites", "favorite"), NavItem(3, "History", "history"))
 
 @Composable
-fun LogoMark(size: Dp) {
-    Box(
-        Modifier.size(size).clip(RoundedCornerShape(size * 0.34f)).background(Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)))),
-        contentAlignment = Alignment.Center,
-    ) { Icon("play_arrow", null, Modifier.size(size * 0.58f), tint = Color.White) }
-}
+fun LogoMark(size: Dp) = StaticMark(size)
 
 /** The website's `.nv`: an icon in a soft pill, with a bold label under it. */
 @Composable

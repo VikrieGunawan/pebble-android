@@ -21,6 +21,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -199,10 +201,10 @@ fun VideoCollection(
         item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(gap.coerceAtLeast(0.dp))) }
         if (folders.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("folder", "Folders", folders.size) }
-            items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first, f.second, row, Modifier.animateItem()) { onFolder(f.first) } }
-            item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("movie", "All videos", videos.size) }
+            items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first.trimEnd('/').substringAfterLast('/'), f.second, row, Modifier.animateItem()) { onFolder(f.first) } }
+            if (videos.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("movie", "Videos", videos.size) }
         }
-        if (videos.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { empty() }
+        if (videos.isEmpty() && folders.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { empty() }
         items(videos, key = { it.id }) { v -> VideoCard(v, prefs, row, Modifier.animateItem()) { onClick(v) } }
     }
 }
@@ -239,32 +241,41 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onCli
     }
 }
 
-/** The website's location bar: up button + breadcrumb pills. */
+/** The website's location bar: up button + one pill per folder level. Levels you opened and then left stay visible (dimmed). */
 @Composable
-fun LocationBar(folder: String?, onFolder: (String?) -> Unit) {
+fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
     val cs = MaterialTheme.colorScheme
-    var last by remember { mutableStateOf("") }
-    LaunchedEffect(folder) { if (folder != null) last = folder }
-    val upA by animateFloatAsState(if (folder != null) 1f else 0.35f, label = "up")
+    val cur = remember(path) { path?.split('/')?.filter { it.isNotBlank() } ?: emptyList() }
+    val segs = remember(path, trail) {
+        val t = trail?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+        if (t.size >= cur.size && t.take(cur.size) == cur) t else cur
+    }
+    val upA by animateFloatAsState(if (cur.isNotEmpty()) 1f else 0.35f, label = "up")
+    val scroll = rememberScrollState()
+    LaunchedEffect(segs.size) { delay(60); scroll.animateScrollTo(scroll.maxValue) }
     val shape = RoundedCornerShape(22.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(cs.surfaceContainer).border(1.dp, cs.outlineVariant, shape).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
-            Modifier.size(40.dp).alpha(upA).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHigh).clickable(enabled = folder != null) { onFolder(null) },
+            Modifier.size(40.dp).alpha(upA).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHigh)
+                .clickable(enabled = cur.isNotEmpty()) { onPath(if (cur.size <= 1) null else cur.dropLast(1).joinToString("/") + "/") },
             contentAlignment = Alignment.Center,
         ) { Icon("arrow_upward", "Up one level", Modifier.size(22.dp)) }
-        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Crumb("video_library", "Library", folder == null) { onFolder(null) }
-            PAnim(folder != null, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon("chevron_right", null, Modifier.size(20.dp), tint = cs.onSurfaceVariant)
-                    AnimatedContent(
-                        folder ?: last,
-                        transitionSpec = { slideTransition(if (NaturalOrder.compare(targetState, initialState) >= 0) 1 else -1) },
-                        label = "crumbFolder",
-                    ) { name -> Crumb("folder", name, true) { } }
+        Row(Modifier.weight(1f).horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Crumb("video_library", "Library", cur.isEmpty(), false) { onPath(null) }
+            segs.forEachIndexed { i, name ->
+                val target = segs.take(i + 1).joinToString("/") + "/"
+                key(target) {
+                    var shown by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { shown = true }
+                    PAnim(shown, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon("chevron_right", null, Modifier.size(20.dp), tint = cs.onSurfaceVariant)
+                            Crumb("folder", name, i == cur.lastIndex, i >= cur.size) { onPath(target) }
+                        }
+                    }
                 }
             }
         }
@@ -272,12 +283,12 @@ fun LocationBar(folder: String?, onFolder: (String?) -> Unit) {
 }
 
 @Composable
-private fun Crumb(icon: String, label: String, cur: Boolean, onClick: () -> Unit) {
+private fun Crumb(icon: String, label: String, cur: Boolean, dim: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val bg by animateColorAsState(if (cur) cs.primary else Color.Transparent, label = "crumbBg")
     val fg by animateColorAsState(if (cur) cs.onPrimary else cs.onSurfaceVariant, label = "crumbFg")
     Row(
-        Modifier.height(36.dp).clip(RoundedCornerShape(14.dp)).background(bg).clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp),
+        Modifier.height(36.dp).alpha(if (dim) 0.5f else 1f).clip(RoundedCornerShape(14.dp)).background(bg).clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(icon, null, Modifier.size(19.dp), tint = fg)

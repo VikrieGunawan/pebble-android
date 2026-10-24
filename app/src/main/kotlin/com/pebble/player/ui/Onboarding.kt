@@ -2,6 +2,13 @@ package com.pebble.player.ui
 
 import android.os.Build
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.ui.unit.Dp
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -85,7 +92,18 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-private const val LAST = 7 // processing step index
+val LocalWide = compositionLocalOf { false }
+
+private val STEP_TITLES = mapOf(
+    1 to ("What should we call you?" to "Your name shows in the greeting. You can skip this."),
+    2 to ("Pick your avatar" to "Choose an emoji and a color."),
+    3 to ("Light or dark?" to "Tap a preview. The whole app follows right away."),
+    4 to ("Pick your color" to "Choose one color, or let your wallpaper decide."),
+    5 to ("How do you browse?" to "Pick how your videos are laid out."),
+    6 to ("Playback and feel" to "Switch on what you like."),
+)
+
+private const val LAST // processing step index
 
 @Composable
 fun Onboarding(prefs: Prefs, store: Store) {
@@ -103,6 +121,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
 
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val kb = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    PredictiveBack(step in 1 until LAST, { go(step - 1) }) {
     Box(Modifier.fillMaxSize().background(cs.background).pointerInput(Unit) {
         detectTapGestures(onTap = { focus.clearFocus(); kb?.hide() })
     }) {
@@ -132,30 +151,54 @@ fun Onboarding(prefs: Prefs, store: Store) {
             val spSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
             val spSpec2 = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntSize>()
             val efSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                AnimatedContent(
-                    targetState = step,
-                    transitionSpec = {
-                        val dir = if (back) -1 else 1
-                        (slideInHorizontally(spSpec) { dir * it / 3 } + fadeIn(efSpec)) togetherWith
-                            (slideOutHorizontally(spSpec) { -dir * it / 3 } + fadeOut(efSpec))
-                    },
-                    label = "step",
-                ) { s ->
-                    Column(
-                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = if (s == 0 || s == 3 || s == 5 || s == 7) Arrangement.Center else Arrangement.Top,
-                    ) {
-                        when (s) {
-                            0 -> WelcomeStep()
-                            1 -> NameStep(profile) { profile = it }
-                            2 -> AvatarStep(profile) { profile = it }
-                            3 -> ThemeStep(prefs, store)
-                            4 -> AccentStep(prefs, store)
-                            5 -> LayoutStep(prefs, store)
-                            6 -> PlaybackStep(prefs, store)
-                            else -> ProcessingStep(prefs, profile, store) { finish() }
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val wide = maxWidth >= 600.dp && maxWidth > maxHeight
+                val two = wide && step in 1 until LAST
+                Row(Modifier.fillMaxSize()) {
+                    PAnim(two, enter = fadeIn(efSpec), exit = fadeOut(efSpec), modifier = Modifier.weight(0.4f).fillMaxHeight()) {
+                        Column(Modifier.fillMaxSize().padding(start = 40.dp, end = 16.dp), verticalArrangement = Arrangement.Center) {
+                            StaticMark(88.dp, Modifier)
+                            Spacer(Modifier.height(24.dp))
+                            Crossfade(STEP_TITLES[step], label = "wideTitle") { t ->
+                                if (t != null) Column {
+                                    Text(t.first, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+                                    Spacer(Modifier.height(10.dp))
+                                    Text(t.second, style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
+                                }
+                            }
+                            Spacer(Modifier.height(20.dp))
+                            Text("Step $step of ${LAST - 1}", style = MaterialTheme.typography.labelLarge, color = cs.primary, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    AnimatedContent(
+                        targetState = step,
+                        modifier = Modifier.weight(if (two) 0.6f else 1f).fillMaxHeight(),
+                        transitionSpec = {
+                            val dir = if (back) -1 else 1
+                            (slideInHorizontally(spSpec) { dir * it / 3 } + fadeIn(efSpec)) togetherWith
+                                (slideOutHorizontally(spSpec) { -dir * it / 3 } + fadeOut(efSpec))
+                        },
+                        label = "step",
+                    ) { s ->
+                        CompositionLocalProvider(LocalWide provides (wide && s in 1 until LAST)) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                                Column(
+                                    Modifier.fillMaxHeight().widthIn(max = if (wide) 560.dp else Dp.Unspecified).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = if (s == 0 || s == 3 || s == 5 || s == 7 || (wide && s in 1 until LAST)) Arrangement.Center else Arrangement.Top,
+                                ) {
+                                    when (s) {
+                                        0 -> WelcomeStep()
+                                        1 -> NameStep(profile) { profile = it }
+                                        2 -> AvatarStep(profile) { profile = it }
+                                        3 -> ThemeStep(prefs, store)
+                                        4 -> AccentStep(prefs, store)
+                                        5 -> LayoutStep(prefs, store)
+                                        6 -> PlaybackStep(prefs, store)
+                                        else -> ProcessingStep(prefs, profile, store) { finish() }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -181,10 +224,12 @@ fun Onboarding(prefs: Prefs, store: Store) {
             }
         }
     }
+    }
 }
 
 @Composable
 fun StepTitle(title: String, sub: String) {
+    if (LocalWide.current) return // wide layouts show the title in the left pane
     Spacer(Modifier.height(8.dp))
     Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
     Spacer(Modifier.height(6.dp))
@@ -200,7 +245,13 @@ private val PLAY_PATH = androidx.compose.ui.graphics.vector.PathParser()
 fun AppMark(size: Int) {
     val sc = remember { Animatable(0.6f) }
     LaunchedEffect(Unit) { sc.animateTo(1f, androidx.compose.animation.core.spring(0.45f, 220f)) }
-    androidx.compose.foundation.Canvas(Modifier.size(size.dp).scale(sc.value)) {
+    StaticMark(size.dp, Modifier.scale(sc.value))
+}
+
+/** The launcher icon's artwork (gradient + frame + play), also used as the in-app logo. */
+@Composable
+fun StaticMark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(modifier.size(size)) {
         val n = this.size.width
         drawRoundRect(
             Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)), Offset.Zero, Offset(n, n)),
