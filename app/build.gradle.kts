@@ -17,13 +17,22 @@ android {
         versionName = "1.0.0-beta"
     }
 
+    // One fixed key for every build, so updates install over the old version.
+    signingConfigs {
+        create("pebble") {
+            storeFile = file("pebble.jks")
+            storePassword = "pebble123"
+            keyAlias = "pebble"
+            keyPassword = "pebble123"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Beta: signed with the debug key so the APK installs directly.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("pebble")
         }
     }
 
