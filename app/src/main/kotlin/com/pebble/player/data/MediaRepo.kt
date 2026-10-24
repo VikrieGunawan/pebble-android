@@ -69,6 +69,7 @@ class MediaRepo(private val c: Context) {
     fun thumb(v: Video): Bitmap? {
         val f = coverFile(v.id)
         if (f.exists()) android.graphics.BitmapFactory.decodeFile(f.path)?.let { return it }
+        if (v.ext == "YouTube") return kotlinx.coroutines.runBlocking { YtStore.thumb(YtStore.idOf(v)) }
         return try { c.contentResolver.loadThumbnail(v.uri, Size(480, 270), null) } catch (e: Exception) { null }
     }
 
