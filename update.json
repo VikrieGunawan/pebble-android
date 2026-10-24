@@ -4,6 +4,6 @@
     "Describe what's new here, one line per item.",
     "Another change."
   ],
-  "apk": "https://raw.githubusercontent.com/VikrieGunawan/pebble-android/main/releases/PebblePlayer.apk",
+  "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.0.0-beta/PebblePlayer.apk",
   "size": 0
 }
