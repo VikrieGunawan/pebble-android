@@ -63,9 +63,14 @@ class MediaRepo(private val c: Context) {
         out
     }
 
-    fun thumb(v: Video): Bitmap? = try {
-        c.contentResolver.loadThumbnail(v.uri, Size(480, 270), null)
-    } catch (e: Exception) { null }
+    /** A user-chosen cover image for this video (saved in the app's own folder). */
+    fun coverFile(id: Long) = java.io.File(c.filesDir, "covers/$id.jpg")
+
+    fun thumb(v: Video): Bitmap? {
+        val f = coverFile(v.id)
+        if (f.exists()) android.graphics.BitmapFactory.decodeFile(f.path)?.let { return it }
+        return try { c.contentResolver.loadThumbnail(v.uri, Size(480, 270), null) } catch (e: Exception) { null }
+    }
 
     /** A video opened from outside the app (Intent.ACTION_VIEW). */
     fun fromUri(uri: Uri): Video {
