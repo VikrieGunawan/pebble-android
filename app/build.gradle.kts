@@ -39,6 +39,11 @@ android {
     }
 }
 
+// Release only: the debug variant is switched off.
+androidComponents {
+    beforeVariants { variant -> if (variant.buildType == "debug") variant.enable = false }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
