@@ -214,9 +214,12 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             else VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
         }
         playing?.let { v ->
-            PredictiveBack(true, { playing = null }) {
-                if (v.ext == "YouTube") YouTubeScreen(v) { playing = null }
-                else PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
+            if (v.ext == "YouTube") {
+                // plain back: a video layer inside a transformed (predictive back) layer can render blank
+                BackHandler { playing = null }
+                YouTubeScreen(v) { playing = null }
+            } else PredictiveBack(true, { playing = null }) {
+                PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
             }
         }
     }

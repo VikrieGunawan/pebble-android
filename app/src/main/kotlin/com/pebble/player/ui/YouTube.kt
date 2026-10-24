@@ -1,6 +1,16 @@
 package com.pebble.player.ui
 
 import android.content.ClipboardManager
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.animateDpAsState
+import androidx.activity.compose.BackHandler
 import android.content.Context
 import android.os.Build
 import android.os.Handler
@@ -73,10 +83,13 @@ private val YT_ERRORS = mapOf(
     153 to "YouTube player configuration error: it does not accept this page address.",
 )
 
-private class YtBridge(private val cb: (Int) -> Unit, private val q: (List<String>, String) -> Unit) {
+private class YtBridge(
+    private val cb: (Int) -> Unit, private val q: (List<String>, String) -> Unit, private val st: (Int, Double, Double) -> Unit,
+) {
     private val h = Handler(Looper.getMainLooper())
     @JavascriptInterface fun error(code: Int) { h.post { cb(code) } }
     @JavascriptInterface fun quality(levels: String, cur: String) { h.post { q(levels.split(',').filter { it.isNotBlank() }, cur) } }
+    @JavascriptInterface fun state(s: Int, t: Double, d: Double) { h.post { st(s, t, d) } }
 }
 
 /** YouTube's quality ids -> (label, hint), highest first. */
@@ -87,46 +100,57 @@ private val YT_Q = linkedMapOf(
 
 private fun ytHtml(id: String, origin: String) = """
 <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style></head>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p,iframe{width:100%;height:100%;border:0}</style></head>
 <body><div id="p"></div><script src="https://www.youtube.com/iframe_api"></script><script>
 var P,sel='auto';
+function tick(){try{Android.state(P.getPlayerState(),P.getCurrentTime()||0,P.getDuration()||0)}catch(x){}}
 function rep(){try{Android.quality(P.getAvailableQualityLevels().join(','),P.getPlaybackQuality())}catch(x){}}
 function lock(){if(sel=='auto')return;try{P.setPlaybackQualityRange(sel,sel);P.setPlaybackQuality(sel)}catch(x){}}
 function setQ(q){sel=q;if(q=='auto'){try{P.setPlaybackQualityRange('tiny','highres')}catch(x){}}else{lock();setTimeout(lock,800)}setTimeout(rep,1200)}
-setInterval(function(){lock();rep()},2000);
+var n=0;setInterval(function(){tick();if(++n%5==0){lock();rep()}},400);
 function onYouTubeIframeAPIReady(){P=new YT.Player('p',{width:'100%',height:'100%',videoId:'$id',
-playerVars:{playsinline:1,autoplay:1,rel:0,modestbranding:1,fs:0,iv_load_policy:3,origin:'$origin'},
+playerVars:{controls:0,disablekb:1,playsinline:1,autoplay:1,rel:0,modestbranding:1,fs:0,iv_load_policy:3,origin:'$origin'},
 events:{onError:function(e){Android.error(e.data)},onReady:rep,onPlaybackQualityChange:rep}})}
 </script></body></html>"""
 
 @Composable
-private fun YtWebView(id: String, server: String, onError: (Int) -> Unit, onQuality: (List<String>, String) -> Unit, onWeb: (WebView) -> Unit) {
+private fun YtWebView(
+    id: String, server: String, modifier: Modifier,
+    onError: (Int) -> Unit, onQuality: (List<String>, String) -> Unit, onState: (Int, Double, Double) -> Unit, onWeb: (WebView) -> Unit,
+) {
     val cb by rememberUpdatedState(onError)
     val qb by rememberUpdatedState(onQuality)
+    val sb by rememberUpdatedState(onState)
     AndroidView(
         factory = { c ->
             val w = WebView(c)
-            w.setBackgroundColor(android.graphics.Color.BLACK)
+            w.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
             w.settings.javaScriptEnabled = true
             w.settings.domStorageEnabled = true
             w.settings.mediaPlaybackRequiresUserGesture = false
             w.webChromeClient = WebChromeClient()
             w.webViewClient = WebViewClient()
-            w.addJavascriptInterface(YtBridge({ code -> cb(code) }, { l, c -> qb(l, c) }), "Android")
+            w.addJavascriptInterface(YtBridge({ code -> cb(code) }, { l, c2 -> qb(l, c2) }, { s, t, d -> sb(s, t, d) }), "Android")
             onWeb(w)
             // The server address is the page origin YouTube sees, exactly like opening the website from it.
             w.loadDataWithBaseURL("$server/", ytHtml(id, YtStore.origin(server)), "text/html", "utf-8", null)
             w
         },
         onRelease = { it.destroy() },
-        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
+        modifier = modifier,
     )
 }
 
-/** Plays a YouTube video. Needs the user's server (localhost / tunnel) to be reachable; otherwise shows the error screen. */
+private fun clock(s: Double): String {
+    val t = s.toInt().coerceAtLeast(0)
+    return if (t >= 3600) "%d:%02d:%02d".format(t / 3600, t % 3600 / 60, t % 60) else "%d:%02d".format(t / 60, t % 60)
+}
+
+/** Plays a YouTube video with Pebble's own controls. Needs the user's server (localhost / tunnel) to be reachable. */
 @Composable
 fun YouTubeScreen(v: Video, onClose: () -> Unit) {
     val ctx = LocalContext.current
+    val cs = MaterialTheme.colorScheme
     val id = YtStore.idOf(v)
     val server = YtStore.server
     var attempt by remember { mutableIntStateOf(0) }
@@ -135,29 +159,115 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
     LaunchedEffect(attempt) { state = if (YtStore.ping(server)) 1 else 2 }
     var web by remember { mutableStateOf<WebView?>(null) }
     var levels by remember(attempt) { mutableStateOf<List<String>>(emptyList()) }
-    var playing by remember(attempt) { mutableStateOf("") }
+    var qNow by remember(attempt) { mutableStateOf("") }
     var qsel by remember(attempt) { mutableStateOf("auto") }
-    var qOpen by remember { mutableStateOf(false) }
+    var ps by remember(attempt) { mutableIntStateOf(-1) }
+    var pos by remember(attempt) { mutableStateOf(0.0) }
+    var dur by remember(attempt) { mutableStateOf(0.0) }
+    var drag by remember { mutableStateOf<Float?>(null) }
+    var speed by remember { mutableStateOf(1f) }
+    var show by remember { mutableStateOf(true) }
+    var tick by remember { mutableIntStateOf(0) }
+    var panel by remember { mutableStateOf<String?>(null) }
+    var lastPanel by remember { mutableStateOf("quality") }
+    LaunchedEffect(panel) { panel?.let { lastPanel = it } }
+    val playing = ps == 1
+    val ok = state == 1 && ytErr == 0
+    LaunchedEffect(show, playing, panel, tick) { if (show && playing && panel == null) { delay(3200); show = false } }
+    BackHandler(panel != null) { panel = null }
+    fun js(s: String) { web?.evaluateJavascript(s, null) }
+    fun seekBy(d: Int) { js("P.seekTo(Math.max(0,P.getCurrentTime()+($d)),true)"); tick++ }
     val base = listOf(
         "Video" to v.name, "Video ID" to id, "Server" to server.ifBlank { "(not set)" },
         "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", "Device" to "${Build.MANUFACTURER} ${Build.MODEL}", "App" to currentVersion(ctx),
     )
-    Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures { } }) {
-        if (state == 1 && ytErr == 0) YtWebView(id, server, { ytErr = it }, { l, c -> levels = l; playing = c }, { web = it })
-        if (state == 0) LoadingIndicator(Modifier.align(Alignment.Center).size(56.dp))
-        if (state == 1 && ytErr == 0) Box(
-            Modifier.statusBarsPadding().padding(10.dp).size(44.dp).clip(CircleShape).background(Color(0x66000000)).clickable(onClick = onClose),
-            contentAlignment = Alignment.Center,
-        ) { Icon("arrow_back", "Back", Modifier.size(24.dp), tint = Color.White) }
-        if (state == 1 && ytErr == 0) Row(
-            Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(10.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color(0x66000000))
-                .clickable { qOpen = true }.padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon("high_quality", "Video quality", Modifier.size(22.dp), tint = Color.White)
-            Text(YT_Q[playing]?.first ?: "Auto", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures { } }) {
+        val land = maxWidth > maxHeight
+        val side by animateDpAsState(if (land && panel != null) 340.dp else 0.dp, label = "ytSide")
+        val endPad = side.coerceAtLeast(0.dp)
+        if (ok) Box(Modifier.fillMaxSize().padding(end = endPad).statusBarsPadding().navigationBarsPadding()) {
+            YtWebView(id, server, Modifier.fillMaxSize(), { ytErr = it }, { l, c -> levels = l; qNow = c }, { s, t, d -> ps = s; if (drag == null) pos = t; dur = d }, { web = it })
+            // taps: show/hide controls, double-tap to skip 10 s
+            Box(
+                Modifier.fillMaxSize().pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { if (panel != null) panel = null else { show = !show; tick++ } },
+                        onDoubleTap = { o -> seekBy(if (o.x < size.width / 2) -10 else 10); show = true },
+                    )
+                },
+            )
         }
-        if (qOpen) QualitySheet(levels, playing, qsel, { q -> qsel = q; web?.evaluateJavascript("setQ('$q')", null); qOpen = false }) { qOpen = false }
+        if (state == 0 || (ok && ps == 3)) LoadingIndicator(Modifier.align(Alignment.Center).padding(end = endPad).size(56.dp))
+        PAnim(ok && show, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
+            Box(Modifier.fillMaxSize()) {
+                Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(110.dp).background(Brush.verticalGradient(listOf(Color(0x99000000), Color.Transparent))))
+                Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(170.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xB3000000)))))
+                Row(
+                    Modifier.align(Alignment.TopStart).fillMaxWidth().statusBarsPadding().padding(start = 8.dp, end = 8.dp + endPad, top = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    YBtn("arrow_back", "Back", 44.dp, onClick = onClose)
+                    Text(v.name, Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Row(Modifier.align(Alignment.Center).padding(end = endPad), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    YBtn("replay_10", "Back 10 seconds", 48.dp) { seekBy(-10) }
+                    YBtn(if (playing) "pause" else "play_arrow", if (playing) "Pause" else "Play", 68.dp, bg = cs.primary, tint = cs.onPrimary) {
+                        if (ps == 0) js("P.seekTo(0,true);P.playVideo()") else js(if (playing) "P.pauseVideo()" else "P.playVideo()"); tick++
+                    }
+                    YBtn("forward_10", "Forward 10 seconds", 48.dp) { seekBy(10) }
+                }
+                Column(
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp + endPad, bottom = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(clock(if (drag != null) drag!! * dur else pos), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        PebbleSlider(
+                            drag ?: if (dur > 0) (pos / dur).toFloat().coerceIn(0f, 1f) else 0f,
+                            { drag = it; tick++ }, Modifier.weight(1f),
+                            onValueChangeFinished = { drag?.let { js("P.seekTo(${it * dur},true)"); pos = it * dur }; drag = null },
+                        )
+                        Text(clock(dur), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        YPill("speed", if (speed != 1f) "${speed}×".replace(".0×", "×") else "Speed", panel == "speed") { panel = if (panel == "speed") null else "speed"; tick++ }
+                        Spacer(Modifier.width(8.dp))
+                        YPill("high_quality", YT_Q[qNow]?.first ?: "Quality", panel == "quality") { panel = if (panel == "quality") null else "quality"; tick++ }
+                    }
+                }
+            }
+        }
+        // menu from the right, like the website's other player menus
+        PAnim(
+            ok && panel != null, Modifier.align(Alignment.CenterEnd),
+            enter = slideInHorizontally { it } + fadeIn(), exit = slideOutHorizontally { it } + fadeOut(),
+        ) {
+            Column(
+                Modifier.width(if (land) 340.dp else maxWidth * 0.86f).fillMaxHeight().clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp))
+                    .background(Color(0xF00B0814)).pointerInput(Unit) { detectTapGestures { } }.statusBarsPadding().navigationBarsPadding().padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    IconTile(if (lastPanel == "speed") "speed" else "high_quality", 40.dp, filled = true)
+                    Column(Modifier.weight(1f)) {
+                        Text(if (lastPanel == "speed") "Playback speed" else "Video quality", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        if (lastPanel != "speed") Text(if (qNow.isNotEmpty()) "Now playing ${YT_Q[qNow]?.first ?: qNow}" else "Start playing to load the list", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                    }
+                    YBtn("close", "Close", 36.dp) { panel = null }
+                }
+                Column(Modifier.weight(1f).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (lastPanel == "speed") listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f).forEach { r ->
+                        YRow(if (r == 1f) "Normal" else "${r}×", if (r == 1f) "1×" else "", speed == r, false) { speed = r; js("P.setPlaybackRate($r)") }
+                    } else (listOf("auto") + YT_Q.keys.filter { it in levels }).forEach { q ->
+                        YRow(
+                            if (q == "auto") "Auto" else YT_Q[q]?.first ?: q, if (q == "auto") "Best for your connection" else YT_Q[q]?.second ?: "",
+                            qsel == q, q == qNow,
+                        ) { qsel = q; js("setQ('$q')") }
+                    }
+                    if (lastPanel != "speed") Text("YouTube only offers the sizes this video has.", color = Color(0xB3FFFFFF), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+        }
         if (state == 2) ErrorPage(
             "YT_SERVER_OFFLINE", "0",
             if (server.isBlank()) "No server is set. YouTube only plays while the app is connected to your localhost or tunnel (Settings → YouTube)."
@@ -170,6 +280,41 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
             else YT_ERRORS[ytErr] ?: "YouTube reported error $ytErr.",
             base, { attempt++ }, onClose,
         )
+    }
+}
+
+@Composable
+private fun YBtn(icon: String, desc: String, size: androidx.compose.ui.unit.Dp, bg: Color = Color(0x55000000), tint: Color = Color.White, onClick: () -> Unit) {
+    Box(Modifier.size(size).clip(CircleShape).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, desc, Modifier.size(size * 0.5f), tint = tint)
+    }
+}
+
+@Composable
+private fun YPill(icon: String, label: String, on: Boolean, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(if (on) cs.primary else Color(0x55000000)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = if (on) cs.onPrimary else Color.White)
+        Text(label, color = if (on) cs.onPrimary else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun YRow(title: String, sub: String, sel: Boolean, playing: Boolean, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (sel) cs.primaryContainer else Color(0x14FFFFFF)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.ExtraBold, color = if (sel) cs.onPrimaryContainer else Color.White)
+            if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = if (sel) cs.onPrimaryContainer else Color(0xB3FFFFFF))
+        }
+        if (playing) Text("Playing", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = cs.onPrimary, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 3.dp))
+        if (sel) Icon("check", null, Modifier.size(20.dp), tint = cs.onPrimaryContainer)
     }
 }
 
@@ -297,40 +442,5 @@ fun YoutubePage() {
             Text("Any server works: localhost, Cloudflare, Serveo and others. If the server is off, YouTube videos won't play.", style = MaterialTheme.typography.bodyMedium)
         }
         Spacer(Modifier.height(4.dp))
-    }
-}
-
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-@Composable
-private fun QualitySheet(levels: List<String>, playing: String, sel: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val known = YT_Q.keys.filter { it in levels }
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
-        Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IconTile("high_quality", 46.dp, filled = true)
-                Column {
-                    Text("Video quality", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text(if (playing.isNotEmpty()) "Now playing ${YT_Q[playing]?.first ?: playing}" else "Start playing to load the list", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                }
-            }
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh).padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                (listOf("auto") + known).forEach { q ->
-                    val on = sel == q
-                    Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (on) cs.primaryContainer else Color.Transparent).clickable { onPick(q) }.padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(if (q == "auto") "Auto" else YT_Q[q]?.first ?: q, fontWeight = FontWeight.ExtraBold, color = if (on) cs.onPrimaryContainer else cs.onSurface)
-                            Text(if (q == "auto") "Best for your connection" else YT_Q[q]?.second ?: "", style = MaterialTheme.typography.bodySmall, color = if (on) cs.onPrimaryContainer else cs.onSurfaceVariant)
-                        }
-                        if (q == playing) Text("Playing", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = cs.onPrimary, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 3.dp))
-                        if (on) Icon("check", null, Modifier.size(20.dp), tint = cs.onPrimaryContainer)
-                    }
-                }
-            }
-            Text("Your choice is kept while the video plays. YouTube only offers the sizes this video has.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-        }
     }
 }

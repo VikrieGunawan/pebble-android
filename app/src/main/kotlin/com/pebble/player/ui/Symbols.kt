@@ -136,6 +136,7 @@ private val CP = mapOf(
     "cloud_off" to 0xe2c1,
     "check_circle" to 0xf0be,
     "high_quality" to 0xe024,
+    "open_in_new" to 0xe89e,
 )
 
 @Composable

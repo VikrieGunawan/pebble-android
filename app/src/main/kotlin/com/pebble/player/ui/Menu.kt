@@ -301,19 +301,33 @@ private fun copyToTree(ctx: Context, src: Uri, tree: Uri, name: String): Boolean
     }
 } catch (_: Exception) { false }
 
-/** Menu for YouTube items (nothing here touches device files). */
+/** Menu for YouTube items: same layout as the local video menu (nothing here touches device files). */
 @Composable
 fun YtMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onDismiss: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val id = YtStore.idOf(v)
+    val link = "https://youtu.be/$id"
     val fav = v.uri.toString() in prefs.favs
     val bmp = rememberThumb(v)
+    val app = LocalApp.current
+    val coverFile = app.media.coverFile(v.id)
+    val coverVer = ThumbCache.ver.intValue
+    val hasCover = remember(coverVer) { coverFile.exists() }
+    val inHistory = v.uri.toString() in prefs.progress
     var renaming by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(v.name) }
+    var details by remember { mutableStateOf(false) }
+    fun toast(m: String) = Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show()
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
+        if (u != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) { saveCover(ctx, u, coverFile) }
+            if (ok) { ThumbCache.invalidate(v.id); toast("Cover image updated") } else toast("Couldn't use that image")
+        }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
-        Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.width(84.dp).height(48.dp).clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainerHigh)) {
                     bmp?.let { Image(it, null, Modifier.fillMaxWidth().height(48.dp), contentScale = ContentScale.Crop) }
@@ -327,12 +341,26 @@ fun YtMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onDism
                 SheetAction("play_arrow", "Play", true, false, Modifier.weight(1f)) { onDismiss(); onPlay() }
                 SheetAction("favorite", if (fav) "Unfavorite" else "Favorite", false, fav, Modifier.weight(1f)) { scope.launch { store.toggleFav(v.uri.toString()) } }
                 SheetAction("share", "Share", false, false, Modifier.weight(1f)) {
-                    val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "https://youtu.be/$id") }
+                    val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, link) }
                     ctx.startActivity(Intent.createChooser(i, "Share link"))
                 }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
                 SheetRow("edit", "Rename") { newName = v.name; renaming = true }
+                SheetRow("image", "Cover image") { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                if (hasCover) SheetRow("delete", "Remove cover image") { coverFile.delete(); ThumbCache.invalidate(v.id) }
+                SheetRow("content_copy", "Copy link") {
+                    (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("YouTube link", link))
+                    toast("Link copied")
+                }
+                SheetRow("open_in_new", "Open on YouTube") {
+                    try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) { toast("Couldn't open the link") }
+                }
+            }
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
+                SheetRow("info", "Details") { details = true }
+                SheetRow("visibility_off", "Hide this folder") { scope.launch { store.toggleBlacklist(v.path) }; onDismiss() }
+                if (inHistory) SheetRow("history", "Remove from history") { scope.launch { store.removeProgress(v.uri.toString()) }; onDismiss() }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.errorContainer.copy(alpha = 0.35f))) {
                 SheetRow("delete", "Remove from library", danger = true) { YtStore.remove(ctx, id); scope.launch { store.removeProgress(v.uri.toString()) }; onDismiss() }
@@ -344,5 +372,10 @@ fun YtMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onDism
         text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text("Name") }) },
         confirmButton = { TextButton({ renaming = false; if (newName.isNotBlank()) YtStore.rename(ctx, id, newName.trim()); onDismiss() }) { Text("Rename") } },
         dismissButton = { TextButton({ renaming = false }) { Text("Cancel") } },
+    )
+    if (details) AlertDialog(
+        onDismissRequest = { details = false }, title = { Text(v.name) },
+        text = { Text("Source: YouTube\nVideo ID: $id\nLink: $link\nFolder: ${v.folder}\nAdded: ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(v.added))}") },
+        confirmButton = { TextButton({ details = false }) { Text("Close") } },
     )
 }
