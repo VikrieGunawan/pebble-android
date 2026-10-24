@@ -235,6 +235,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var pos by remember { mutableLongStateOf(0L) }
     var buffering by remember { mutableStateOf(true) }
     var error by remember(video.id) { mutableStateOf<PlaybackException?>(null) }
+    var failing by remember(video.id) { mutableStateOf<PlaybackException?>(null) } // error seen, screen still waiting
     var speed by remember { mutableFloatStateOf(prefs.speed) }
     var fit by remember { mutableIntStateOf(prefs.fit) }
     var orient by remember { mutableIntStateOf(prefs.orient) }
@@ -255,7 +256,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             override fun onVideoSizeChanged(v: VideoSize) { vSize = v }
             override fun onTracksChanged(t: Tracks) { tracks = t }
             override fun onCues(cueGroup: CueGroup) { cueText = cueGroup.cues.mapNotNull { it.text?.toString() }.joinToString("\n").trim() }
-            override fun onPlayerError(e: PlaybackException) { error = e }
+            override fun onPlayerError(e: PlaybackException) { failing = e }
         }
         player.addListener(l)
         onDispose {
@@ -422,7 +423,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 },
         )
 
-        if (buffering && error == null) androidx.compose.material3.LoadingIndicator(Modifier.align(Alignment.Center).size(56.dp))
+        if ((buffering || failing != null) && error == null) androidx.compose.material3.LoadingIndicator(Modifier.align(Alignment.Center).size(56.dp))
         if (seekFlash.isNotEmpty()) Row(
             Modifier.align(Alignment.Center).clip(RoundedCornerShape(28.dp)).background(Color(0x99000000)).padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -440,8 +441,6 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 Text("${(v * 100).roundToInt()}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
-        error?.let { e -> PlayerErrorScreen(e, video, { error = null; player.prepare(); player.play() }, onClose) }
-
         if (subs && cueText.isNotBlank()) {
             val subBottom by animateDpAsState(if (show) 118.dp else 34.dp, label = "subBottom")
             val sp = listOf(14, 16, 19, 24)[subSize].sp
@@ -642,6 +641,13 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 }
             }
         }
+
+        // Error found: keep "buffering" and freeze the controls for a moment, then show the error.
+        failing?.let { f ->
+            LaunchedEffect(f) { delay(1800); error = f }
+            if (error == null) Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { } })
+        }
+        error?.let { e -> PlayerErrorScreen(e, video, { error = null; failing = null; player.prepare(); player.play() }, onClose) }
     }
 
     if (audioDlg) AudioOutputDialog(am, player, prefs.onLost) { audioDlg = false }
