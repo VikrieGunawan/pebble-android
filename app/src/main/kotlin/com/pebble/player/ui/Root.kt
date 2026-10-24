@@ -81,6 +81,7 @@ import com.pebble.player.data.K
 import com.pebble.player.data.Prefs
 import com.pebble.player.data.Profile
 import com.pebble.player.data.Video
+import com.pebble.player.data.YtStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -136,7 +137,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var rescan by remember { mutableIntStateOf(0) }
     var profileDialog by remember { mutableStateOf(false) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    LaunchedEffect(Unit) { update = checkUpdateAuto(ctx) }
+    var addYt by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { YtStore.load(ctx); update = checkUpdateAuto(ctx) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
 
     LaunchedEffect(granted, rescan) {
@@ -146,21 +148,19 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         if (openUri != null) { playing = app.media.fromUri(openUri); queue = emptyList(); onOpenConsumed() }
     }
 
-    val visible = remember(all, prefs.blacklist, prefs.sort) {
-        val l = all.filter { it.path !in prefs.blacklist }
+    val ytItems = YtStore.items
+    val visible = remember(all, ytItems, prefs.blacklist, prefs.sort) {
+        val l = (all + ytItems.map(YtStore::toVideo)).filter { it.path !in prefs.blacklist }
         when (prefs.sort) { 1 -> l.sortedWith { x, y -> NaturalOrder.compare(x.name, y.name) }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
-    fun play(v: Video, list: List<Video>) { playing = v; queue = list }
+    fun play(v: Video, list: List<Video>) { playing = v; queue = list.filter { it.ext != "YouTube" } }
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }) {
-        PredictiveBack(tab != 0, {
-            val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
-            if (tab == 1 && segs.isNotEmpty()) openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/") else tab = 0
-        }) {
+        run {
         Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
@@ -177,10 +177,15 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
         ) { pad ->
             val focus = androidx.compose.ui.platform.LocalFocusManager.current
+            // Back animation moves only the page content, not the search bar, header or navigation.
+            PredictiveBack(tab != 0, {
+                val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+                if (tab == 1 && segs.isNotEmpty()) openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/") else tab = 0
+            }, Modifier.padding(pad).fillMaxSize()) {
             AnimatedContent(
                 targetState = tab,
                 transitionSpec = { slideTransition(if (targetState > initialState) 1 else -1) },
-                modifier = Modifier.padding(pad).fillMaxSize().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } },
+                modifier = Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } },
                 label = "tab",
             ) { t ->
                 if (t == 4) {
@@ -190,7 +195,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else when (t) {
-                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder)
+                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder) { addYt = true }
                     1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {
@@ -199,20 +204,24 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     }
                 }
             }
+            }
         }
         }
         }
         }
         menuFor?.let { v ->
-            VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
+            if (v.ext == "YouTube") YtMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onDismiss = { menuFor = null })
+            else VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
         }
         playing?.let { v ->
             PredictiveBack(true, { playing = null }) {
-                PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
+                if (v.ext == "YouTube") YouTubeScreen(v) { playing = null }
+                else PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
             }
         }
     }
 
+    if (addYt) AddYoutubeDialog { addYt = false }
     update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }

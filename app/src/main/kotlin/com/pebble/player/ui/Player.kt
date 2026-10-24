@@ -356,7 +356,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val endPad by animateDpAsState(if (land && panel != null) 340.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit
 
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().padding(end = endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
             AndroidView(
                 factory = { PlayerView(it).apply { useController = false; setShutterBackgroundColor(android.graphics.Color.BLACK) } },
                 update = {

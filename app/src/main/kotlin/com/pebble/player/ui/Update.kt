@@ -307,7 +307,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
 private fun eta(s: Long) = if (s >= 60) "${s / 60} min ${s % 60} s left" else "$s s left"
 
 @Composable
-private fun Btn(label: String, icon: String?, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun Btn(label: String, icon: String?, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
         modifier.fillMaxWidth().clip(RoundedCornerShape(if (primary) 18.dp else 16.dp)).background(if (primary) cs.primary else cs.surfaceContainer)

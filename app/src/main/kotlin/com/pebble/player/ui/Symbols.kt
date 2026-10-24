@@ -129,6 +129,13 @@ private val CP = mapOf(
     "system_update" to 0xf2cd,
     "download" to 0xf090,
     "error" to 0xf8b6,
+    "smart_display" to 0xf06a,
+    "link" to 0xe250,
+    "content_paste" to 0xe14f,
+    "dns" to 0xe875,
+    "cloud_off" to 0xe2c1,
+    "check_circle" to 0xf0be,
+    "high_quality" to 0xe024,
 )
 
 @Composable

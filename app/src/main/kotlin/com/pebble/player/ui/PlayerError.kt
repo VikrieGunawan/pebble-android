@@ -45,7 +45,6 @@ import com.pebble.player.data.Video
 @Composable
 fun PlayerErrorScreen(e: PlaybackException, v: Video, onRetry: () -> Unit, onClose: () -> Unit) {
     val ctx = LocalContext.current
-    val cs = MaterialTheme.colorScheme
     val appVer = remember { currentVersion(ctx) }
     val cause = e.cause?.let { "${it.javaClass.simpleName}: ${it.message ?: "-"}" } ?: "-"
     val details = listOf(
@@ -54,6 +53,13 @@ fun PlayerErrorScreen(e: PlaybackException, v: Video, onRetry: () -> Unit, onClo
         "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", "Device" to "${Build.MANUFACTURER} ${Build.MODEL}",
         "Player" to "Media3 ${MediaLibraryInfo.VERSION}", "App" to appVer,
     )
+    ErrorPage(e.errorCodeName, e.errorCode.toString(), e.message, details, onRetry, onClose)
+}
+
+/** Same screen for any source (local file, YouTube...). */
+@Composable
+fun ErrorPage(name: String, code: String, message: String?, details: List<Pair<String, String>>, onRetry: () -> Unit, onClose: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
     val dim = Color(0xB3FFFFFF)
 
     val head: @Composable () -> Unit = {
@@ -63,9 +69,9 @@ fun PlayerErrorScreen(e: PlaybackException, v: Video, onRetry: () -> Unit, onClo
             }
             Spacer(Modifier.height(4.dp))
             Text("An Error has Occurred", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-            Text(e.errorCodeName, color = cs.primary, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
-            Text("Error code: ${e.errorCode}", color = dim, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            if (!e.message.isNullOrBlank()) Text(e.message ?: "", color = dim, fontSize = 13.sp, textAlign = TextAlign.Center)
+            Text(name, color = cs.primary, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
+            Text("Error code: $code", color = dim, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            if (!message.isNullOrBlank()) Text(message, color = dim, fontSize = 13.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(

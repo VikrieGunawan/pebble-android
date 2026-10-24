@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.pebble.player.data.Prefs
 import com.pebble.player.data.Store
 import com.pebble.player.data.Video
+import com.pebble.player.data.YtStore
 import kotlinx.coroutines.launch
 
 @Composable
@@ -299,3 +300,49 @@ private fun copyToTree(ctx: Context, src: Uri, tree: Uri, name: String): Boolean
         true
     }
 } catch (_: Exception) { false }
+
+/** Menu for YouTube items (nothing here touches device files). */
+@Composable
+fun YtMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onDismiss: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val id = YtStore.idOf(v)
+    val fav = v.uri.toString() in prefs.favs
+    val bmp = rememberThumb(v)
+    var renaming by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf(v.name) }
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
+        Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.width(84.dp).height(48.dp).clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainerHigh)) {
+                    bmp?.let { Image(it, null, Modifier.fillMaxWidth().height(48.dp), contentScale = ContentScale.Crop) }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(v.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("YouTube · ${v.folder}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SheetAction("play_arrow", "Play", true, false, Modifier.weight(1f)) { onDismiss(); onPlay() }
+                SheetAction("favorite", if (fav) "Unfavorite" else "Favorite", false, fav, Modifier.weight(1f)) { scope.launch { store.toggleFav(v.uri.toString()) } }
+                SheetAction("share", "Share", false, false, Modifier.weight(1f)) {
+                    val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "https://youtu.be/$id") }
+                    ctx.startActivity(Intent.createChooser(i, "Share link"))
+                }
+            }
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
+                SheetRow("edit", "Rename") { newName = v.name; renaming = true }
+            }
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.errorContainer.copy(alpha = 0.35f))) {
+                SheetRow("delete", "Remove from library", danger = true) { YtStore.remove(ctx, id); scope.launch { store.removeProgress(v.uri.toString()) }; onDismiss() }
+            }
+        }
+    }
+    if (renaming) AlertDialog(
+        onDismissRequest = { renaming = false }, title = { Text("Rename video") },
+        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text("Name") }) },
+        confirmButton = { TextButton({ renaming = false; if (newName.isNotBlank()) YtStore.rename(ctx, id, newName.trim()); onDismiss() }) { Text("Rename") } },
+        dismissButton = { TextButton({ renaming = false }) { Text("Cancel") } },
+    )
+}

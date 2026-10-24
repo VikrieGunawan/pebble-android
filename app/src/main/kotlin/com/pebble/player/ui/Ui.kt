@@ -30,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -252,7 +254,9 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
     }
     val upA by animateFloatAsState(if (cur.isNotEmpty()) 1f else 0.35f, label = "up")
     val scroll = rememberScrollState()
-    LaunchedEffect(segs.size) { delay(60); scroll.animateScrollTo(scroll.maxValue) }
+    // Follow the active crumb: keep it in view while crumbs animate in/out, on every folder change.
+    val active = remember { BringIntoViewRequester() }
+    LaunchedEffect(path, segs) { repeat(14) { delay(45); active.bringIntoView() } }
     val shape = RoundedCornerShape(22.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(cs.surfaceContainer).border(1.dp, cs.outlineVariant, shape).padding(6.dp),
@@ -264,7 +268,7 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
             contentAlignment = Alignment.Center,
         ) { Icon("arrow_upward", "Up one level", Modifier.size(22.dp)) }
         Row(Modifier.weight(1f).horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Crumb("video_library", "Library", cur.isEmpty(), false) { onPath(null) }
+            Crumb("video_library", "Library", cur.isEmpty(), false, if (cur.isEmpty()) Modifier.bringIntoViewRequester(active) else Modifier) { onPath(null) }
             segs.forEachIndexed { i, name ->
                 val target = segs.take(i + 1).joinToString("/") + "/"
                 key(target) {
@@ -273,7 +277,7 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
                     PAnim(shown, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon("chevron_right", null, Modifier.size(20.dp), tint = cs.onSurfaceVariant)
-                            Crumb("folder", name, i == cur.lastIndex, i >= cur.size) { onPath(target) }
+                            Crumb("folder", name, i == cur.lastIndex, i >= cur.size, if (i == cur.lastIndex) Modifier.bringIntoViewRequester(active) else Modifier) { onPath(target) }
                         }
                     }
                 }
@@ -283,12 +287,12 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
 }
 
 @Composable
-private fun Crumb(icon: String, label: String, cur: Boolean, dim: Boolean, onClick: () -> Unit) {
+private fun Crumb(icon: String, label: String, cur: Boolean, dim: Boolean, extra: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val bg by animateColorAsState(if (cur) cs.primary else Color.Transparent, label = "crumbBg")
     val fg by animateColorAsState(if (cur) cs.onPrimary else cs.onSurfaceVariant, label = "crumbFg")
     Row(
-        Modifier.height(36.dp).alpha(if (dim) 0.5f else 1f).clip(RoundedCornerShape(14.dp)).background(bg).clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp),
+        extra.height(36.dp).alpha(if (dim) 0.5f else 1f).clip(RoundedCornerShape(14.dp)).background(bg).clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(icon, null, Modifier.size(19.dp), tint = fg)
@@ -327,7 +331,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (v.ext.isNotEmpty()) Text(v.ext, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
                         modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer).padding(horizontal = 8.dp, vertical = 3.dp))
-                    Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
+                    if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
                 }
             }
             val more: @Composable () -> Unit = {
@@ -344,7 +348,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                 }
             } else {
                 // no clipped corners here, so the format pill and ⋮ button never get cut off
-                Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = 6.dp)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).clickable(onClick = onClick).padding(8.dp)) {
                     thumb(Modifier.fillMaxWidth())
                     Row(Modifier.padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
