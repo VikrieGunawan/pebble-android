@@ -67,6 +67,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("io.github.kyant0:backdrop:2.0.1") // Liquid Glass
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
