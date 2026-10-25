@@ -122,7 +122,6 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         Cat("appearance", "palette", "Appearance", "Theme, colors and layout"),
         Cat("device", "smartphone", "Device", "Brightness, volume and Bluetooth"),
         Cat("library", "video_library", "Library", "Scanning and hidden folders"),
-        Cat("youtube", "smart_display", "YouTube", "Server and connection"),
         Cat("data", "database", "Data", "History, favorites and reset"),
         Cat("about", "info", "About", "Pebble Player"),
     )
@@ -196,8 +195,6 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         if (p == "device") Section("Device") { DeviceControls() }
 
         if (p == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
-
-        if (p == "youtube") Section("YouTube") { YoutubePage() }
 
         if (p == "data") DataPage(prefs, store, all, onClearAll)
 

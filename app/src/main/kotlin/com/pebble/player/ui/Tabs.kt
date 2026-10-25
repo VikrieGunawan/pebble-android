@@ -150,7 +150,7 @@ private fun ActionTile(icon: String, title: String, sub: String, filled: Boolean
 @Composable
 fun HomeTab(
     prefs: Prefs, videos: List<Video>, onRefresh: () -> Unit,
-    play: (Video, List<Video>) -> Unit, openTab: (Int) -> Unit, openFolder: (String?) -> Unit, onYoutube: () -> Unit,
+    play: (Video, List<Video>) -> Unit, openTab: (Int) -> Unit, openFolder: (String?) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     val cont = videos.filter { v -> prefs.progress[v.uri.toString()]?.let { it.dur > 0 && it.pos in 3000 until it.dur - 5000 } == true }
@@ -181,8 +181,7 @@ fun HomeTab(
             ActionTile("favorite", "Favorites", "${favs.size} pinned", false, Modifier.weight(1f)) { openTab(2) }
             ActionTile("history", "History", "Pick up again", false, Modifier.weight(1f)) { openTab(3) }
         }
-        Spacer(Modifier.height(12.dp))
-        ActionTile("smart_display", "YouTube", "Paste a link to add a video", false, Modifier.fillMaxWidth(), onYoutube)
+
         if (videos.isEmpty() || hero == null) {
             EmptyCard("movie", "No videos found", "Add videos to your phone, then tap Scan again.")
             return@Column

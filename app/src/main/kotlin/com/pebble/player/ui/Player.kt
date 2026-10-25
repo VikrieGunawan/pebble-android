@@ -466,9 +466,11 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 ) {
                     PBtn("arrow_back", "Back", 40.dp, onClick = onClose)
                     Text(video.name, Modifier.weight(1f).padding(horizontal = 4.dp), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    PBtn("screen_rotation", "Rotate", 40.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else Color.White,
+                    Row(Modifier.clip(RoundedCornerShape(22.dp)).background(Color(0x33FFFFFF)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PBtn("screen_rotation", "Rotate", 40.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else Color.White,
                         onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
-                    PBtn("queue_music", "Queue", 40.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else Color.White, onClick = { togglePanel("queue") })
+                        PBtn("queue_music", "Queue", 40.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else Color.White, onClick = { togglePanel("queue") })
+                    }
                 }
 
                 Row(Modifier.align(Alignment.Center).padding(end = endPad.coerceAtLeast(0.dp)), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -484,8 +486,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 }
 
                 Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xD9000000))))
-                        .navigationBarsPadding().padding(start = 16.dp, end = 16.dp + endPad.coerceAtLeast(0.dp), top = 24.dp, bottom = 4.dp),
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
+                        .padding(start = 10.dp, end = 10.dp + endPad.coerceAtLeast(0.dp), bottom = 8.dp)
+                        .clip(RoundedCornerShape(30.dp)).background(Color(0xB8140F28)).padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -497,14 +501,19 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         )
                         Text(fmt(dur), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
+                    // two groups instead of one long row: what you hear/watch on the left, how it plays on the right
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
-                        IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
-                        IBtn("closed_caption", "Subtitles", panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
-                        IBtn("repeat", "Loop", loop) { loop = !loop }
-                        IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
-                        IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
-                        IBtn("aspect_ratio", "Video ratio", panel == "ratio") { togglePanel("ratio") }
+                        Row(Modifier.clip(RoundedCornerShape(22.dp)).background(Color(0x1FFFFFFF)).padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
+                            IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
+                            IBtn("closed_caption", "Subtitles", panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
+                        }
+                        Row(Modifier.clip(RoundedCornerShape(22.dp)).background(Color(0x1FFFFFFF)).padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IBtn("repeat", "Loop", loop) { loop = !loop }
+                            IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
+                            IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
+                            IBtn("aspect_ratio", "Video ratio", panel == "ratio") { togglePanel("ratio") }
+                        }
                     }
                 }
             }

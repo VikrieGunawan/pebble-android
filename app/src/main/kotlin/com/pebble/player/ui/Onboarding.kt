@@ -251,10 +251,13 @@ fun AppMark(size: Int) {
 /** The launcher icon's artwork (gradient + frame + play), also used as the in-app logo. */
 @Composable
 fun StaticMark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    // same colors as the launcher icon: the wallpaper's Material You accents on Android 12+
+    val c1 = if (Build.VERSION.SDK_INT >= 31) androidx.compose.ui.res.colorResource(android.R.color.system_accent1_500) else Color(0xFFFF8A5C)
+    val c2 = if (Build.VERSION.SDK_INT >= 31) androidx.compose.ui.res.colorResource(android.R.color.system_accent3_600) else Color(0xFF7B61FF)
     androidx.compose.foundation.Canvas(modifier.size(size)) {
         val n = this.size.width
         drawRoundRect(
-            Brush.linearGradient(listOf(Color(0xFFFF8A5C), Color(0xFF7B61FF)), Offset.Zero, Offset(n, n)),
+            Brush.linearGradient(listOf(c1, c2), Offset.Zero, Offset(n, n)),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(n * 0.354f),
         )
         val k = 0.93f // same content scale as the adaptive launcher icon

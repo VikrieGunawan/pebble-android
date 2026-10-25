@@ -59,7 +59,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -82,7 +81,6 @@ import com.pebble.player.data.K
 import com.pebble.player.data.Prefs
 import com.pebble.player.data.Profile
 import com.pebble.player.data.Video
-import com.pebble.player.data.YtStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -136,10 +134,10 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var all by remember { mutableStateOf<List<Video>>(emptyList()) }
     var scanned by remember { mutableStateOf(false) }
     var rescan by remember { mutableIntStateOf(0) }
+    var folderMenu by remember { mutableStateOf<String?>(null) }
     var profileDialog by remember { mutableStateOf(false) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    var addYt by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { YtStore.load(ctx); update = checkUpdateAuto(ctx) }
+    LaunchedEffect(Unit) { update = checkUpdateAuto(ctx) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
 
     LaunchedEffect(granted, rescan) {
@@ -149,18 +147,17 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         if (openUri != null) { playing = app.media.fromUri(openUri); queue = emptyList(); onOpenConsumed() }
     }
 
-    val ytItems = YtStore.items
-    val visible = remember(all, ytItems, prefs.blacklist, prefs.sort) {
-        val l = (all + ytItems.map(YtStore::toVideo)).filter { it.path !in prefs.blacklist }
+    val visible = remember(all, prefs.blacklist, prefs.sort) {
+        val l = all.filter { it.path !in prefs.blacklist }
         when (prefs.sort) { 1 -> l.sortedWith { x, y -> NaturalOrder.compare(x.name, y.name) }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
-    fun play(v: Video, list: List<Video>) { playing = v; queue = list.filter { it.ext != "YouTube" } }
+    fun play(v: Video, list: List<Video>) { playing = v; queue = list }
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
-        CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }) {
+        CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {
         Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
@@ -196,7 +193,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else when (t) {
-                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder) { addYt = true }
+                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder)
                     1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {
@@ -210,22 +207,19 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         }
         }
         }
+        folderMenu?.let { p ->
+            FolderMenuSheet(p, visible, prefs, app.store, onPlay = ::play, onOpen = { openFolder(p); tab = 1 }, onDismiss = { folderMenu = null })
+        }
         menuFor?.let { v ->
-            if (v.ext == "YouTube") YtMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onDismiss = { menuFor = null })
-            else VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
+            VideoMenuSheet(v, prefs, app.store, onPlay = { play(v, visible) }, onRescan = { rescan++ }, onDismiss = { menuFor = null })
         }
         playing?.let { v ->
-            if (v.ext == "YouTube") {
-                // plain back: a video layer inside a transformed (predictive back) layer can render blank
-                BackHandler { playing = null }
-                key(v.id) { YouTubeScreen(v, visible.filter { it.ext == "YouTube" }, prefs, { playing = it }) { playing = null } }
-            } else PredictiveBack(true, { playing = null }) {
+            PredictiveBack(true, { playing = null }) {
                 PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
             }
         }
     }
 
-    if (addYt) AddYoutubeDialog { addYt = false }
     update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }

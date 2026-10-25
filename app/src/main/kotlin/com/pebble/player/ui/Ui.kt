@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -111,6 +112,7 @@ fun slideTransition(dir: Int): ContentTransform =
         (slideOutHorizontally(tween(340, easing = FastOutSlowInEasing)) { -it * dir / 3 } + fadeOut(tween(160)))
 
 /** Opens the "more" bottom sheet for a video (provided by MainFlow). */
+val LocalFolderMenu = staticCompositionLocalOf<(String) -> Unit> { {} }
 val LocalVideoMenu = staticCompositionLocalOf<(Video) -> Unit> { {} }
 
 fun fmtSize(b: Long): String = if (b >= 1_073_741_824L) "%.1f GB".format(b / 1073741824.0) else "%.1f MB".format(b / 1048576.0)
@@ -190,6 +192,7 @@ fun VideoCollection(
     header: @Composable () -> Unit = {}, empty: @Composable () -> Unit = {},
     folders: List<Pair<String, Int>> = emptyList(), onFolder: (String) -> Unit = {},
 ) {
+    val folderMenu = LocalFolderMenu.current
     val row = prefs.layout == 1
     val gap by animateDpAsState(if (row) 0.dp else 14.dp, label = "gridGap")
     LazyVerticalGrid(
@@ -203,7 +206,7 @@ fun VideoCollection(
         item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(gap.coerceAtLeast(0.dp))) }
         if (folders.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("folder", "Folders", folders.size) }
-            items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first.trimEnd('/').substringAfterLast('/'), f.second, row, Modifier.animateItem()) { onFolder(f.first) } }
+            items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first.trimEnd('/').substringAfterLast('/'), f.second, row, Modifier.animateItem(), { folderMenu(f.first) }) { onFolder(f.first) } }
             if (videos.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("movie", "Videos", videos.size) }
         }
         if (videos.isEmpty() && folders.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { empty() }
@@ -213,8 +216,13 @@ fun VideoCollection(
 
 /** Folder card (grid) / folder row (list) that morphs between the two layouts. */
 @Composable
-fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onClick: () -> Unit) {
+fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMore: (() -> Unit)? = null, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val more: @Composable () -> Unit = {
+        if (onMore != null) Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
+            Icon("more_vert", "Folder menu", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+        }
+    }
     SharedTransitionLayout(modifier) {
         val sc = this
         AnimatedContent(row, transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(160)) using SizeTransform(clip = false) }, label = "folder") { r ->
@@ -228,12 +236,16 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onCli
                     Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
-                Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                if (onMore != null) more() else Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
             } else Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).clickable(onClick = onClick).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                IconTile("folder", 52.dp, modifier = tile)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                    IconTile("folder", 52.dp, modifier = tile)
+                    Spacer(Modifier.weight(1f))
+                    Box(Modifier.offset(x = 8.dp, y = (-8).dp)) { more() }
+                }
                 Column {
                     Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)

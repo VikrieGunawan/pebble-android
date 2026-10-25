@@ -8,7 +8,6 @@ import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -267,9 +266,14 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                         }
                     }
                 }
-                Column(Modifier.padding(20.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AnimatedContent(
+                    phase, Modifier.padding(20.dp),
+                    transitionSpec = { fadeIn(tween(120)) togetherWith fadeOut(tween(70)) using androidx.compose.animation.SizeTransform(clip = false) { _, _ -> tween(160) } },
+                    label = "updBody",
+                ) { phaseNow ->
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        when (phase) { Phase.Idle -> "Update available"; Phase.Loading -> "Downloading update"; Phase.Ready -> "Ready to install"; Phase.Failed -> "Download failed" },
+                        when (phaseNow) { Phase.Idle -> "Update available"; Phase.Loading -> "Downloading update"; Phase.Ready -> "Ready to install"; Phase.Failed -> "Download failed" },
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -278,7 +282,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                         Chip(info.version, true)
                         if (total > 0) Text(fmtSize(total), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
-                    when (phase) {
+                    when (phaseNow) {
                         Phase.Idle -> {
                             if (info.notes.isNotEmpty()) Column(
                                 Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainer).padding(14.dp),
@@ -334,6 +338,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                             Btn("Close", null, false, Modifier, onLater)
                         }
                     }
+                }
                 }
             }
         }
