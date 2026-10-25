@@ -71,7 +71,30 @@ import java.net.URL
  */
 const val UPDATE_JSON = "https://raw.githubusercontent.com/VikrieGunawan/pebble-android/main/update.json"
 
-data class UpdateInfo(val version: String, val notes: String, val apkUrl: String, val size: Long)
+/** notes: sections such as "Fixed" / "New", each with its bullet lines. */
+data class UpdateInfo(val version: String, val notes: List<Pair<String, List<String>>>, val apkUrl: String, val size: Long)
+
+private fun parseNotes(n: Any?): List<Pair<String, List<String>>> = when (n) {
+    is JSONObject -> n.keys().asSequence().map { k ->
+        val a = n.optJSONArray(k)
+        k to (if (a != null) (0 until a.length()).map { a.getString(it) } else listOf(n.optString(k)))
+    }.toList()
+    is org.json.JSONArray -> groupNotes((0 until n.length()).map { n.getString(it) })
+    is String -> groupNotes(n.lines())
+    else -> emptyList()
+}
+
+/** Flat lines like "Fixed: ..." / "New: ..." are grouped by their label, in order of first appearance. */
+private fun groupNotes(lines: List<String>): List<Pair<String, List<String>>> {
+    val re = Regex("^\\s*(Fixed|New|Improved|Changed|Removed)\\s*:\\s*(.+)$", RegexOption.IGNORE_CASE)
+    val out = linkedMapOf<String, MutableList<String>>()
+    lines.filter { it.isNotBlank() }.forEach { l ->
+        val m = re.find(l)
+        val k = m?.groupValues?.get(1)?.lowercase()?.replaceFirstChar { it.uppercase() } ?: ""
+        out.getOrPut(k) { mutableListOf() }.add((m?.groupValues?.get(2) ?: l).trim())
+    }
+    return out.map { it.key to it.value }
+}
 
 fun currentVersion(ctx: Context): String = try {
     val pm = ctx.packageManager
@@ -106,9 +129,7 @@ suspend fun fetchUpdate(ctx: Context): Result<UpdateInfo?> = withContext(Dispatc
             val j = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
             val v = j.getString("version")
             if (!newer(v, currentVersion(ctx))) null else {
-                val n = j.opt("notes")
-                val notes = if (n is org.json.JSONArray) (0 until n.length()).joinToString("\n") { "• " + n.getString(it) } else j.optString("notes")
-                UpdateInfo(v.removePrefix("v"), notes, j.getString("apk"), j.optLong("size"))
+                UpdateInfo(v.removePrefix("v"), parseNotes(j.opt("notes")), j.getString("apk"), j.optLong("size"))
             }
         } finally { c.disconnect() }
     }
@@ -259,8 +280,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                     }
                     when (phase) {
                         Phase.Idle -> {
-                            val notes = info.notes.trim()
-                            if (notes.isNotEmpty()) Column(
+                            if (info.notes.isNotEmpty()) Column(
                                 Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainer).padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
@@ -268,7 +288,23 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     Icon("info", null, Modifier.size(18.dp), tint = cs.primary)
                                     Text("WHAT'S NEW", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 0.8.sp)
                                 }
-                                Text(notes, Modifier.heightIn(max = 150.dp).verticalScroll(rememberScrollState()), style = MaterialTheme.typography.bodyMedium)
+                                Column(Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    info.notes.forEach { (title, lines) ->
+                                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                            if (title.isNotBlank()) Text(
+                                                title, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
+                                                color = if (title.equals("New", true)) cs.onTertiaryContainer else cs.onPrimaryContainer,
+                                                modifier = Modifier.clip(RoundedCornerShape(50)).background(if (title.equals("New", true)) cs.tertiaryContainer else cs.primaryContainer).padding(horizontal = 10.dp, vertical = 3.dp),
+                                            )
+                                            lines.forEach { l ->
+                                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    Text("•", color = cs.primary, fontWeight = FontWeight.ExtraBold)
+                                                    Text(l, style = MaterialTheme.typography.bodyMedium)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             Btn("Download update", "download", true) { start() }
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

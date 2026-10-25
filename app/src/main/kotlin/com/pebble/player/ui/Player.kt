@@ -112,19 +112,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-private val GLASS = Color(0xE0181330)
-private val SOFT = Color(0x1FFFFFFF)
+internal val GLASS = Color(0xE0181330)
+internal val SOFT = Color(0x1FFFFFFF)
 private val RATIOS = listOf(0f to "Auto", (16f / 9f) to "16:9", (4f / 3f) to "4:3", (21f / 9f) to "21:9", 1f to "1:1", (9f / 16f) to "9:16")
-private val PRESETS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
+internal val PRESETS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
 private val FITS = listOf("Fit", "Crop", "Stretch", "Width")
-private val ORIENTS = listOf("Auto", "Portrait", "Landscape")
+internal val ORIENTS = listOf("Auto", "Portrait", "Landscape")
 
-private fun fmtSpeed(v: Float): String = String.format(java.util.Locale.US, "%.2f", v).trimEnd('0').trimEnd('.') + "×"
+internal fun fmtSpeed(v: Float): String = String.format(java.util.Locale.US, "%.2f", v).trimEnd('0').trimEnd('.') + "×"
 
 private fun trackLabel(f: Format, i: Int, kind: String): String =
     f.label ?: f.language?.takeIf { it != "und" }?.let { java.util.Locale.forLanguageTag(it).displayLanguage.ifBlank { it } } ?: "$kind ${i + 1}"
 
-private tailrec fun Context.activity(): Activity? = when (this) {
+internal tailrec fun Context.activity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.activity()
     else -> null
@@ -654,7 +654,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
 }
 
 @Composable
-private fun PBtn(icon: String, desc: String, size: Dp, modifier: Modifier = Modifier, enabled: Boolean = true, bg: Color = Color.Transparent, tint: Color = Color.White, onClick: () -> Unit) {
+internal fun PBtn(icon: String, desc: String, size: Dp, modifier: Modifier = Modifier, enabled: Boolean = true, bg: Color = Color.Transparent, tint: Color = Color.White, onClick: () -> Unit) {
     Box(
         modifier.size(size).clip(CircleShape).background(bg).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -662,7 +662,7 @@ private fun PBtn(icon: String, desc: String, size: Dp, modifier: Modifier = Modi
 }
 
 @Composable
-private fun IBtn(icon: String, desc: String, on: Boolean, badge: String? = null, onClick: () -> Unit) {
+internal fun IBtn(icon: String, desc: String, on: Boolean, badge: String? = null, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Box(Modifier.size(40.dp).clip(CircleShape).background(if (on) cs.primary else Color.Transparent).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, desc, Modifier.size(22.dp), tint = if (on) cs.onPrimary else Color.White)
@@ -671,7 +671,7 @@ private fun IBtn(icon: String, desc: String, on: Boolean, badge: String? = null,
 }
 
 @Composable
-private fun Sl(icon: String, text: String) {
+internal fun Sl(icon: String, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
         Icon(icon, null, Modifier.size(18.dp), tint = Color(0xB3FFFFFF))
         Text(text.uppercase(), color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp)
@@ -679,7 +679,7 @@ private fun Sl(icon: String, text: String) {
 }
 
 @Composable
-private fun Chips(opts: List<String>, sel: Int, cols: Int = 4, onSel: (Int) -> Unit) {
+internal fun Chips(opts: List<String>, sel: Int, cols: Int = 4, onSel: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         opts.withIndex().chunked(cols).forEach { r ->
@@ -696,7 +696,7 @@ private fun Chips(opts: List<String>, sel: Int, cols: Int = 4, onSel: (Int) -> U
 }
 
 @Composable
-private fun Wide(icon: String, text: String, onClick: () -> Unit) {
+internal fun Wide(icon: String, text: String, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(16.dp)).background(SOFT).clickable(onClick = onClick),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
@@ -707,7 +707,7 @@ private fun Wide(icon: String, text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Opt(icon: String, text: String, sel: Boolean, onClick: () -> Unit) {
+internal fun Opt(icon: String, text: String, sel: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else SOFT).clickable(onClick = onClick).padding(10.dp),
@@ -720,7 +720,7 @@ private fun Opt(icon: String, text: String, sel: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Toggle(icon: String, text: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+internal fun Toggle(icon: String, text: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
         modifier.height(40.dp).clip(RoundedCornerShape(14.dp)).background(if (on) cs.primary else SOFT).clickable(onClick = onClick),

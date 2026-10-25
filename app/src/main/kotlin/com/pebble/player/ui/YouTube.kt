@@ -1,6 +1,19 @@
 package com.pebble.player.ui
 
 import android.content.ClipboardManager
+import kotlin.math.roundToInt
+import com.pebble.player.data.Prefs
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import android.os.SystemClock
+import android.media.AudioManager
+import android.content.pm.ActivityInfo
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -124,7 +137,6 @@ private fun YtWebView(
     AndroidView(
         factory = { c ->
             val w = WebView(c)
-            w.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
             w.settings.javaScriptEnabled = true
             w.settings.domStorageEnabled = true
             w.settings.mediaPlaybackRequiresUserGesture = false
@@ -146,13 +158,18 @@ private fun clock(s: Double): String {
     return if (t >= 3600) "%d:%02d:%02d".format(t / 3600, t % 3600 / 60, t % 60) else "%d:%02d".format(t / 60, t % 60)
 }
 
-/** Plays a YouTube video with Pebble's own controls. Needs the user's server (localhost / tunnel) to be reachable. */
+/** Plays a YouTube video with the same controls and menus as the local player. Needs the user's server (localhost / tunnel) to be reachable. */
 @Composable
-fun YouTubeScreen(v: Video, onClose: () -> Unit) {
+fun YouTubeScreen(v: Video, queue: List<Video>, prefs: Prefs, onSelect: (Video) -> Unit, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val cs = MaterialTheme.colorScheme
+    val act = remember { ctx.activity() }
+    val am = remember { ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val id = YtStore.idOf(v)
     val server = YtStore.server
+    val idx = queue.indexOfFirst { it.id == v.id }
+    val prev = queue.getOrNull(idx - 1)
+    val next = queue.getOrNull(idx + 1)
     var attempt by remember { mutableIntStateOf(0) }
     var state by remember(attempt) { mutableIntStateOf(0) } // 0 checking, 1 connected, 2 not connected
     var ytErr by remember(attempt) { mutableIntStateOf(0) }
@@ -164,8 +181,13 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
     var ps by remember(attempt) { mutableIntStateOf(-1) }
     var pos by remember(attempt) { mutableStateOf(0.0) }
     var dur by remember(attempt) { mutableStateOf(0.0) }
-    var drag by remember { mutableStateOf<Float?>(null) }
+    var scrub by remember { mutableStateOf<Float?>(null) }
     var speed by remember { mutableStateOf(1f) }
+    var loop by remember { mutableStateOf(false) }
+    var muted by remember { mutableStateOf(false) }
+    var orient by remember { mutableIntStateOf(0) }
+    var sleepEnd by remember { mutableLongStateOf(0L) }
+    var nowMs by remember { mutableLongStateOf(0L) }
     var show by remember { mutableStateOf(true) }
     var tick by remember { mutableIntStateOf(0) }
     var panel by remember { mutableStateOf<String?>(null) }
@@ -173,10 +195,34 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
     LaunchedEffect(panel) { panel?.let { lastPanel = it } }
     val playing = ps == 1
     val ok = state == 1 && ytErr == 0
-    LaunchedEffect(show, playing, panel, tick) { if (show && playing && panel == null) { delay(3200); show = false } }
-    BackHandler(panel != null) { panel = null }
     fun js(s: String) { web?.evaluateJavascript(s, null) }
     fun seekBy(d: Int) { js("P.seekTo(Math.max(0,P.getCurrentTime()+($d)),true)"); tick++ }
+    fun togglePanel(p: String) { panel = if (panel == p) null else p; tick++ }
+    fun applySpeed(x: Float) { val s = ((x.coerceIn(0.25f, 2f)) * 4).roundToInt() / 4f; speed = s; js("P.setPlaybackRate($s)") }
+    fun enterPip() {
+        try {
+            show = false; panel = null
+            act?.enterPictureInPictureMode(android.app.PictureInPictureParams.Builder().setAspectRatio(android.util.Rational(16, 9)).build())
+        } catch (_: Exception) { Toast.makeText(ctx, "Picture-in-picture isn't available", Toast.LENGTH_SHORT).show() }
+    }
+    LaunchedEffect(show, playing, panel, tick) { if (show && playing && panel == null) { delay(3200); show = false } }
+    LaunchedEffect(orient) {
+        act?.requestedOrientation = when (orient) { 1 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT; 2 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE; else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
+    DisposableEffect(Unit) { onDispose { act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED } }
+    LaunchedEffect(ps) {
+        if (ps == 0) {
+            if (loop) js("P.seekTo(0,true);P.playVideo()") else if (prefs.autoplay) next?.let(onSelect)
+        }
+    }
+    LaunchedEffect(sleepEnd) {
+        while (sleepEnd > 0) {
+            nowMs = SystemClock.elapsedRealtime()
+            if (nowMs >= sleepEnd) { js("P.pauseVideo()"); sleepEnd = 0L; Toast.makeText(ctx, "Sleep timer ended", Toast.LENGTH_SHORT).show(); break }
+            delay(1000)
+        }
+    }
+    BackHandler(panel != null) { panel = null }
     val base = listOf(
         "Video" to v.name, "Video ID" to id, "Server" to server.ifBlank { "(not set)" },
         "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", "Device" to "${Build.MANUFACTURER} ${Build.MODEL}", "App" to currentVersion(ctx),
@@ -186,13 +232,13 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
         val side by animateDpAsState(if (land && panel != null) 340.dp else 0.dp, label = "ytSide")
         val endPad = side.coerceAtLeast(0.dp)
         if (ok) Box(Modifier.fillMaxSize().padding(end = endPad).statusBarsPadding().navigationBarsPadding()) {
-            YtWebView(id, server, Modifier.fillMaxSize(), { ytErr = it }, { l, c -> levels = l; qNow = c }, { s, t, d -> ps = s; if (drag == null) pos = t; dur = d }, { web = it })
-            // taps: show/hide controls, double-tap to skip 10 s
+            YtWebView(id, server, Modifier.fillMaxSize(), { ytErr = it }, { l, c -> levels = l; qNow = c }, { s, t, d -> ps = s; if (scrub == null) pos = t; dur = d }, { web = it })
+            // taps: show/hide controls, double-tap to skip
             Box(
                 Modifier.fillMaxSize().pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { if (panel != null) panel = null else { show = !show; tick++ } },
-                        onDoubleTap = { o -> seekBy(if (o.x < size.width / 2) -10 else 10); show = true },
+                        onDoubleTap = { o -> seekBy(if (o.x < size.width / 2) -prefs.skip else prefs.skip); show = true },
                     )
                 },
             )
@@ -200,71 +246,145 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
         if (state == 0 || (ok && ps == 3)) LoadingIndicator(Modifier.align(Alignment.Center).padding(end = endPad).size(56.dp))
         PAnim(ok && show, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
             Box(Modifier.fillMaxSize()) {
-                Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(110.dp).background(Brush.verticalGradient(listOf(Color(0x99000000), Color.Transparent))))
-                Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(170.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xB3000000)))))
                 Row(
-                    Modifier.align(Alignment.TopStart).fillMaxWidth().statusBarsPadding().padding(start = 8.dp, end = 8.dp + endPad, top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent)))
+                        .statusBarsPadding().padding(start = 8.dp, end = 8.dp + endPad, top = 6.dp, bottom = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    YBtn("arrow_back", "Back", 44.dp, onClick = onClose)
-                    Text(v.name, Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    PBtn("arrow_back", "Back", 40.dp, onClick = onClose)
+                    Text(v.name, Modifier.weight(1f).padding(horizontal = 4.dp), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    PBtn("screen_rotation", "Rotate", 40.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else Color.White,
+                        onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
+                    PBtn("queue_music", "Queue", 40.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else Color.White, onClick = { togglePanel("queue") })
                 }
-                Row(Modifier.align(Alignment.Center).padding(end = endPad), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    YBtn("replay_10", "Back 10 seconds", 48.dp) { seekBy(-10) }
-                    YBtn(if (playing) "pause" else "play_arrow", if (playing) "Pause" else "Play", 68.dp, bg = cs.primary, tint = cs.onPrimary) {
-                        if (ps == 0) js("P.seekTo(0,true);P.playVideo()") else js(if (playing) "P.pauseVideo()" else "P.playVideo()"); tick++
-                    }
-                    YBtn("forward_10", "Forward 10 seconds", 48.dp) { seekBy(10) }
+                Row(Modifier.align(Alignment.Center).padding(end = endPad), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    PBtn("skip_previous", "Previous", 40.dp, enabled = prev != null, onClick = { prev?.let(onSelect) })
+                    PBtn("replay_10", "Back", 44.dp, onClick = { seekBy(-prefs.skip) })
+                    Box(
+                        Modifier.padding(horizontal = 6.dp).size(58.dp).clip(RoundedCornerShape(if (playing) 20.dp else 29.dp)).background(cs.primary)
+                            .clickable { if (ps == 0) js("P.seekTo(0,true);P.playVideo()") else js(if (playing) "P.pauseVideo()" else "P.playVideo()"); tick++ },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(if (playing) "pause" else "play_arrow", "Play or pause", Modifier.size(32.dp), tint = cs.onPrimary) }
+                    PBtn("forward_10", "Forward", 44.dp, onClick = { seekBy(prefs.skip) })
+                    PBtn("skip_next", "Next", 40.dp, enabled = next != null, onClick = { next?.let(onSelect) })
                 }
                 Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp + endPad, bottom = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xD9000000))))
+                        .navigationBarsPadding().padding(start = 16.dp, end = 16.dp + endPad, top = 24.dp, bottom = 4.dp),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(clock(if (drag != null) drag!! * dur else pos), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(clock(scrub?.let { it * dur } ?: pos), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         PebbleSlider(
-                            drag ?: if (dur > 0) (pos / dur).toFloat().coerceIn(0f, 1f) else 0f,
-                            { drag = it; tick++ }, Modifier.weight(1f),
-                            onValueChangeFinished = { drag?.let { js("P.seekTo(${it * dur},true)"); pos = it * dur }; drag = null },
+                            value = scrub ?: if (dur > 0) (pos / dur).toFloat().coerceIn(0f, 1f) else 0f,
+                            onValueChange = { scrub = it; tick++ },
+                            onValueChangeFinished = { scrub?.let { js("P.seekTo(${it * dur},true)"); pos = it * dur }; scrub = null },
+                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                         )
                         Text(clock(dur), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        YPill("speed", if (speed != 1f) "${speed}×".replace(".0×", "×") else "Speed", panel == "speed") { panel = if (panel == "speed") null else "speed"; tick++ }
-                        Spacer(Modifier.width(8.dp))
-                        YPill("high_quality", YT_Q[qNow]?.first ?: "Quality", panel == "quality") { panel = if (panel == "quality") null else "quality"; tick++ }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
+                        IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
+                        IBtn("repeat", "Loop", loop) { loop = !loop }
+                        IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
+                        IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
+                        IBtn("high_quality", "Video quality", panel == "quality", YT_Q[qNow]?.first) { togglePanel("quality") }
                     }
                 }
             }
         }
-        // menu from the right, like the website's other player menus
         PAnim(
-            ok && panel != null, Modifier.align(Alignment.CenterEnd),
-            enter = slideInHorizontally { it } + fadeIn(), exit = slideOutHorizontally { it } + fadeOut(),
+            ok && panel != null,
+            Modifier.align(if (land) Alignment.CenterEnd else Alignment.BottomCenter),
+            enter = if (land) slideInHorizontally { it } + fadeIn() else slideInVertically { it } + fadeIn(),
+            exit = if (land) slideOutHorizontally { it } + fadeOut() else slideOutVertically { it } + fadeOut(),
         ) {
+            val shown = panel ?: lastPanel
+            val (pIcon, pTitle, pSub) = when (shown) {
+                "speed" -> Triple("speed", "Playback speed", if (speed == 1f) "Normal" else fmtSpeed(speed))
+                "audio" -> Triple("graphic_eq", "Audio", "Volume and sound")
+                "queue" -> Triple("queue_music", "Up next", "${queue.size} videos")
+                "quality" -> Triple("high_quality", "Video quality", if (qNow.isNotEmpty()) "Now playing ${YT_Q[qNow]?.first ?: qNow}" else "Start playing to load the list")
+                else -> Triple("timer", "Sleep timer", if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else "Off")
+            }
             Column(
-                Modifier.width(if (land) 340.dp else maxWidth * 0.86f).fillMaxHeight().clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp))
-                    .background(Color(0xF00B0814)).pointerInput(Unit) { detectTapGestures { } }.statusBarsPadding().navigationBarsPadding().padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                (if (land) Modifier.statusBarsPadding().navigationBarsPadding().padding(12.dp).width(320.dp).fillMaxHeight()
+                else Modifier.fillMaxWidth().navigationBarsPadding().padding(8.dp).heightIn(max = maxHeight * 0.6f))
+                    .clip(RoundedCornerShape(28.dp)).background(GLASS)
+                    .pointerInput(Unit) { detectTapGestures { } }.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    IconTile(if (lastPanel == "speed") "speed" else "high_quality", 40.dp, filled = true)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(38.dp).clip(RoundedCornerShape(14.dp)).background(cs.primary), contentAlignment = Alignment.Center) { Icon(pIcon, null, Modifier.size(22.dp), tint = cs.onPrimary) }
                     Column(Modifier.weight(1f)) {
-                        Text(if (lastPanel == "speed") "Playback speed" else "Video quality", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        if (lastPanel != "speed") Text(if (qNow.isNotEmpty()) "Now playing ${YT_Q[qNow]?.first ?: qNow}" else "Start playing to load the list", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                        Text(pTitle, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text(pSub, color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    YBtn("close", "Close", 36.dp) { panel = null }
+                    PBtn("close", "Close", 36.dp, onClick = { panel = null })
                 }
-                Column(Modifier.weight(1f).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (lastPanel == "speed") listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f).forEach { r ->
-                        YRow(if (r == 1f) "Normal" else "${r}×", if (r == 1f) "1×" else "", speed == r, false) { speed = r; js("P.setPlaybackRate($r)") }
-                    } else (listOf("auto") + YT_Q.keys.filter { it in levels }).forEach { q ->
-                        YRow(
-                            if (q == "auto") "Auto" else YT_Q[q]?.first ?: q, if (q == "auto") "Best for your connection" else YT_Q[q]?.second ?: "",
-                            qsel == q, q == qNow,
-                        ) { qsel = q; js("setQ('$q')") }
+                Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(if (shown == "queue") 6.dp else 12.dp)) {
+                    when (shown) {
+                        "queue" -> queue.forEachIndexed { i, q ->
+                            val cur = q.id == v.id
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (cur) cs.primary.copy(alpha = 0.28f) else SOFT)
+                                    .clickable { panel = null; onSelect(q) }.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                val th = rememberThumb(q)
+                                Box(Modifier.size(width = 76.dp, height = 46.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x33FFFFFF)), contentAlignment = Alignment.Center) {
+                                    if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(22.dp), tint = Color.White)
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text(q.name, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("${i + 1} · ${q.folder}", color = Color(0xB3FFFFFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                                if (cur) Icon("play_arrow", null, Modifier.size(22.dp), tint = cs.primary)
+                            }
+                        }
+                        "speed" -> {
+                            Text(fmtSpeed(speed), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                PBtn("remove", "Slower", 44.dp, bg = SOFT, onClick = { applySpeed(speed - 0.25f) })
+                                PebbleSlider(speed, { applySpeed(it) }, Modifier.weight(1f), valueRange = 0.25f..2f)
+                                PBtn("add", "Faster", 44.dp, bg = SOFT, onClick = { applySpeed(speed + 0.25f) })
+                            }
+                            Sl("tune", "Presets")
+                            val pre = PRESETS.filter { it <= 2f }
+                            Chips(pre.map { fmtSpeed(it) }, pre.indexOfFirst { kotlin.math.abs(it - speed) < 0.01f }) { applySpeed(pre[it]) }
+                            Wide("restart_alt", "Normal speed") { applySpeed(1f) }
+                            Text("YouTube tops out at 2×.", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                        }
+                        "audio" -> {
+                            var vol by remember { mutableFloatStateOf(am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                PBtn(if (muted || vol <= 0f) "volume_off" else "volume_up", "Mute", 52.dp, bg = if (muted) cs.primary else SOFT, tint = if (muted) cs.onPrimary else Color.White,
+                                    onClick = { muted = !muted; js(if (muted) "P.mute()" else "P.unMute()") })
+                                Column {
+                                    Text("${(vol * 100).roundToInt()}%", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(if (muted) "Muted" else "Volume", color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                            PebbleSlider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, (it * am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).roundToInt(), 0) }, Modifier.fillMaxWidth())
+                            Text("Sound boost and presets can't change YouTube's audio. Use your device volume instead.", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                        }
+                        "quality" -> {
+                            (listOf("auto") + YT_Q.keys.filter { it in levels }).forEach { q ->
+                                YRow(
+                                    if (q == "auto") "Auto" else YT_Q[q]?.first ?: q, if (q == "auto") "Best for your connection" else YT_Q[q]?.second ?: "",
+                                    qsel == q, q == qNow,
+                                ) { qsel = q; js("setQ('$q')") }
+                            }
+                            Text("YouTube only offers the sizes this video has.", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                        }
+                        else -> {
+                            Sl("timer", "Pause playback after")
+                            val mins = listOf(0, 15, 30, 45, 60, 90)
+                            Chips(mins.map { if (it == 0) "Off" else "$it min" }, if (sleepEnd == 0L) 0 else -1, 3) {
+                                sleepEnd = if (mins[it] == 0) 0L else SystemClock.elapsedRealtime() + mins[it] * 60000L
+                            }
+                        }
                     }
-                    if (lastPanel != "speed") Text("YouTube only offers the sizes this video has.", color = Color(0xB3FFFFFF), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
                 }
             }
         }
@@ -284,37 +404,18 @@ fun YouTubeScreen(v: Video, onClose: () -> Unit) {
 }
 
 @Composable
-private fun YBtn(icon: String, desc: String, size: androidx.compose.ui.unit.Dp, bg: Color = Color(0x55000000), tint: Color = Color.White, onClick: () -> Unit) {
-    Box(Modifier.size(size).clip(CircleShape).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, desc, Modifier.size(size * 0.5f), tint = tint)
-    }
-}
-
-@Composable
-private fun YPill(icon: String, label: String, on: Boolean, onClick: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    Row(
-        Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(if (on) cs.primary else Color(0x55000000)).clickable(onClick = onClick).padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(icon, null, Modifier.size(20.dp), tint = if (on) cs.onPrimary else Color.White)
-        Text(label, color = if (on) cs.onPrimary else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
-    }
-}
-
-@Composable
 private fun YRow(title: String, sub: String, sel: Boolean, playing: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (sel) cs.primaryContainer else Color(0x14FFFFFF)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else SOFT).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.ExtraBold, color = if (sel) cs.onPrimaryContainer else Color.White)
-            if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = if (sel) cs.onPrimaryContainer else Color(0xB3FFFFFF))
+            Text(title, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = Color(0xB3FFFFFF))
         }
         if (playing) Text("Playing", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = cs.onPrimary, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 3.dp))
-        if (sel) Icon("check", null, Modifier.size(20.dp), tint = cs.onPrimaryContainer)
+        if (sel) Icon("check", null, Modifier.size(20.dp), tint = cs.primary)
     }
 }
 

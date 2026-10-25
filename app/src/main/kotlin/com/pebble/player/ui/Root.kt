@@ -59,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -217,7 +218,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             if (v.ext == "YouTube") {
                 // plain back: a video layer inside a transformed (predictive back) layer can render blank
                 BackHandler { playing = null }
-                YouTubeScreen(v) { playing = null }
+                key(v.id) { YouTubeScreen(v, visible.filter { it.ext == "YouTube" }, prefs, { playing = it }) { playing = null } }
             } else PredictiveBack(true, { playing = null }) {
                 PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
             }
