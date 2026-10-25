@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pebble_icon_start">#FFFF8A5C</color>
+    <color name="pebble_icon_end">#FF7B61FF</color>
+</resources>
