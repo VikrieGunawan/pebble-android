@@ -1,1 +1,6 @@
-
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material You: the icon takes the wallpaper colors -->
+    <color name="pebble_icon_start">@android:color/system_accent1_500</color>
+    <color name="pebble_icon_end">@android:color/system_accent3_600</color>
+</resources>
