@@ -13,8 +13,8 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:offset="0" android:color="#FFFF8A5C" />
-                <item android:offset="1" android:color="#FF7B61FF" />
+                <item android:offset="0" android:color="@color/pebble_icon_start" />
+                <item android:offset="1" android:color="@color/pebble_icon_end" />
             </gradient>
         </aapt:attr>
     </path>
