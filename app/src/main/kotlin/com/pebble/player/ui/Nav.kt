@@ -87,7 +87,7 @@ fun PebbleTabBar(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val line = cs.outlineVariant
     Row(
-        Modifier.fillMaxWidth().background(cs.surfaceContainer).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
+        Modifier.fillMaxWidth().glass(0.dp).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
     ) { NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.weight(1f)) { onTab(n.id) } } }
@@ -98,7 +98,7 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val line = cs.outlineVariant
     Column(
-        Modifier.width(92.dp).fillMaxHeight().background(cs.surfaceContainer)
+        Modifier.width(92.dp).fillMaxHeight().glass(0.dp)
             .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }
             .statusBarsPadding().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -132,14 +132,14 @@ fun PebbleTopBar(
         val bg by animateColorAsState(if (on) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tbbg")
         Box(Modifier.size(42.dp).clip(CircleShape).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(22.dp), tint = tint) }
     }
-    Column(Modifier.fillMaxWidth().background(cs.background).statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showLogo) {
                 LogoMark(38.dp); Spacer(Modifier.width(10.dp))
                 Text("Pebble", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.weight(1f))
-            Row(Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(Modifier.glass(24.dp).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
                 roundBtn("settings", settingsOn, "Settings", onSettings)
             }
@@ -149,7 +149,7 @@ fun PebbleTopBar(
         var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
         val border by animateColorAsState(if (focused) cs.primary else cs.outlineVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sb")
         Row(
-            Modifier.fillMaxWidth().height(48.dp).clip(CircleShape).background(cs.surfaceContainer).border(1.5.dp, border, CircleShape).padding(start = 8.dp, end = 6.dp),
+            Modifier.fillMaxWidth().height(48.dp).glass(24.dp).border(1.5.dp, border, CircleShape).padding(start = 8.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(32.dp).clip(CircleShape).background(cs.primaryContainer), contentAlignment = Alignment.Center) { Icon("search", null, Modifier.size(18.dp), tint = cs.primary) }

@@ -80,7 +80,7 @@ private val ICONS = mapOf(
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(28.dp)).background(cs.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
+    Column(Modifier.fillMaxWidth().padding(top = 14.dp).glass(28.dp, lens = false).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
 }
 
 @Composable
@@ -131,7 +131,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
     PredictiveBack(page != null, { page = null }) {
     Column(Modifier.fillMaxSize().verticalScroll(sc).padding(horizontal = 16.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
+            Modifier.fillMaxWidth().padding(top = 8.dp).glass(32.dp, lens = false).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PAnim(cur != null, enter = fadeIn() + expandHorizontally() + scaleIn(), exit = fadeOut() + shrinkHorizontally() + scaleOut()) {
@@ -159,7 +159,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             shown.chunked(2).forEach { r ->
                 Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     r.forEach { c ->
-                        Column(Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).background(cs.surfaceContainer).clickable { page = c.id }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Column(Modifier.weight(1f).glass(26.dp, lens = false).clickable { page = c.id }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             IconTile(c.icon, 46.dp, filled = true)
                             Column { Text(c.title, fontWeight = FontWeight.ExtraBold); Text(c.sub, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, minLines = 2) }
                         }

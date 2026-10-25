@@ -153,6 +153,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
 
+    GlassScene {
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
@@ -162,7 +163,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f), containerColor = androidx.compose.ui.graphics.Color.Transparent,
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
@@ -218,6 +219,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
             }
         }
+    }
     }
 
     update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
