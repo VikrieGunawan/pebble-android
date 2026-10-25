@@ -1,7 +1,10 @@
 {
   "version": "1.0.2-beta",
   "notes": [
-    "Fixed: YouTube videos no longer play as a blank screen with sound only. Pebble's own player controls are back, with a quality menu that slides in from the right."
+    "Fixed: YouTube videos no longer play as a black screen with sound only.",
+    "Fixed: the changelog in the update pop-up is now neatly grouped.",
+    "New: the YouTube player now has the same controls and menus as the local player: speed, audio, sleep timer, loop, pop-out, up next and video quality.",
+    "New: the menu of a YouTube video now matches the local video menu."
   ],
   "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.0.2-beta/PebblePlayer.apk",
   "size": 0
