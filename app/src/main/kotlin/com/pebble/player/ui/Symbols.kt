@@ -1,6 +1,7 @@
 package com.pebble.player.ui
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.size
 import com.kashif_e.backdrop.effects.vibrancy
 import com.kashif_e.backdrop.effects.lens
@@ -171,7 +172,7 @@ fun PebbleSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Mod
     val cs = MaterialTheme.colorScheme
     val bd = LocalBackdrop.current
     val src = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val pressed by androidx.compose.foundation.interaction.collectIsPressedAsState(src)
+    val pressed by src.collectIsPressedAsState()
     val f by androidx.compose.animation.core.animateFloatAsState(
         if (checked) 1f else 0f, androidx.compose.animation.core.spring(androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, androidx.compose.animation.core.Spring.StiffnessMediumLow), label = "sw",
     )
