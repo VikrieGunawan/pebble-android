@@ -120,7 +120,7 @@ private fun HeroCard(v: Video, prog: Prog?, label: String, onClick: () -> Unit) 
 @Composable
 private fun FolderCard(name: String, count: Int, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Column(Modifier.width(150.dp).glass(24.dp, lens = false).clickable(onClick = onClick).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.width(150.dp).clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(Modifier.size(40.dp).clip(CircleShape).background(cs.primaryContainer), contentAlignment = Alignment.Center) { Icon("folder", null, Modifier.size(22.dp), tint = cs.onPrimaryContainer) }
         Column {
             Text(name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -141,7 +141,7 @@ private fun VideoRow(list: List<Video>, prefs: Prefs, play: (Video) -> Unit) {
 @Composable
 private fun ActionTile(icon: String, title: String, sub: String, filled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Column(modifier.glass(26.dp, lens = false).clickable(onClick = onClick).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(modifier.clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         IconTile(icon, 46.dp, filled)
         Column { Text(title, fontWeight = FontWeight.ExtraBold); Text(sub, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant) }
     }

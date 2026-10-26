@@ -7,7 +7,6 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -153,7 +152,6 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
 
-    GlassScene {
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
@@ -163,7 +161,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
-            modifier = Modifier.weight(1f), containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            modifier = Modifier.weight(1f),
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
@@ -176,16 +174,15 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
         ) { pad ->
             val focus = androidx.compose.ui.platform.LocalFocusManager.current
-            // Back animation moves only the page content, not the search bar, header or navigation.
-            PredictiveBack(tab != 0, {
-                val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
-                if (tab == 1 && segs.isNotEmpty()) openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/") else tab = 0
-            }, Modifier.padding(pad).fillMaxSize()) {
-            AnimatedContent(
-                targetState = tab,
-                transitionSpec = { slideTransition(if (targetState > initialState) 1 else -1) },
-                modifier = Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } },
-                label = "tab",
+            // Tabs sit side by side; switching slides the strip and the tabs in between pass by.
+            TabPager(
+                tab = tab, count = 5, onTab = { tab = it },
+                inFolder = tab == 1 && !libFolder.isNullOrBlank(),
+                onFolderUp = {
+                    val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+                    openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/")
+                },
+                modifier = Modifier.padding(pad).fillMaxSize().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } },
             ) { t ->
                 if (t == 4) {
                     SettingsScreen(prefs, app.store, all, { rescan++ }, startClear, query)
@@ -203,7 +200,6 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     }
                 }
             }
-            }
         }
         }
         }
@@ -219,7 +215,6 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 PlayerScreen(v, queue, prefs, app.store, { playing = null }, { playing = it })
             }
         }
-    }
     }
 
     update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }

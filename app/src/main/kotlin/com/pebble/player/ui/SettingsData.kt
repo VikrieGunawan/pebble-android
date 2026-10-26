@@ -75,7 +75,7 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
     val frac by animateFloatAsState(used, tween(700), label = "storage")
 
     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.fillMaxWidth().glass(28.dp, lens = false).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("database", 46.dp, filled = true)
                 Column {
@@ -116,7 +116,7 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
 @Composable
 private fun Stat(icon: String, value: Int, label: String, modifier: Modifier) {
     val cs = MaterialTheme.colorScheme
-    Column(modifier.glass(24.dp, lens = false).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier.clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         IconTile(icon, 36.dp)
         Text("$value", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = cs.onSurfaceVariant, maxLines = 1)

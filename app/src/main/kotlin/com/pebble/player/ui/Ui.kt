@@ -228,7 +228,7 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMor
         AnimatedContent(row, transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(160)) using SizeTransform(clip = false) }, label = "folder") { r ->
             val tile = with(sc) { Modifier.sharedBounds(rememberSharedContentState("fi-$name"), this@AnimatedContent) }
             if (r) Row(
-                Modifier.fillMaxWidth().glass(24.dp, lens = false).clickable(onClick = onClick).padding(12.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 IconTile("folder", 52.dp, modifier = tile)
@@ -238,7 +238,7 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMor
                 }
                 if (onMore != null) more() else Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
             } else Column(
-                Modifier.fillMaxWidth().glass(24.dp, lens = false).clickable(onClick = onClick).padding(16.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -271,7 +271,7 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
     LaunchedEffect(path, segs) { repeat(14) { delay(45); active.bringIntoView() } }
     val shape = RoundedCornerShape(22.dp)
     Row(
-        Modifier.fillMaxWidth().glass(22.dp).border(1.dp, cs.outlineVariant.copy(alpha = 0.6f), shape).padding(6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainer).border(1.dp, cs.outlineVariant.copy(alpha = 0.6f), shape).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
@@ -350,7 +350,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                 Box(Modifier.size(40.dp).clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) { Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
             }
             if (r) {
-                Row(Modifier.fillMaxWidth().glass(24.dp, lens = false).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     thumb(Modifier.width(128.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(v.name, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -360,7 +360,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                 }
             } else {
                 // no clipped corners here, so the format pill and ⋮ button never get cut off
-                Column(Modifier.fillMaxWidth().glass(24.dp, lens = false).clickable(onClick = onClick).padding(8.dp)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(8.dp)) {
                     thumb(Modifier.fillMaxWidth())
                     Row(Modifier.padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

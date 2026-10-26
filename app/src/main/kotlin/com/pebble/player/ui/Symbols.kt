@@ -3,10 +3,6 @@ package com.pebble.player.ui
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.size
-import com.kashif_e.backdrop.effects.vibrancy
-import com.kashif_e.backdrop.effects.lens
-import com.kashif_e.backdrop.effects.blur
-import com.kashif_e.backdrop.drawBackdrop
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.offset
@@ -166,38 +162,13 @@ fun Icon(name: String, contentDescription: String?, modifier: Modifier = Modifie
     }
 }
 
-/** Liquid Glass switch: a colored track and a glass thumb that grows when pressed. Check (on) / cross (off) inside. */
+/** Material 3 switch with a check (on) / cross (off) inside the thumb. */
 @Composable
 fun PebbleSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
-    val cs = MaterialTheme.colorScheme
-    val bd = LocalBackdrop.current
-    val src = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val pressed by src.collectIsPressedAsState()
-    val f by androidx.compose.animation.core.animateFloatAsState(
-        if (checked) 1f else 0f, androidx.compose.animation.core.spring(androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, androidx.compose.animation.core.Spring.StiffnessMediumLow), label = "sw",
+    androidx.compose.material3.Switch(
+        checked = checked, onCheckedChange = onChange, modifier = modifier,
+        thumbContent = { Icon(if (checked) "check" else "close", null, Modifier.size(16.dp)) },
     )
-    val p by androidx.compose.animation.core.animateFloatAsState(if (pressed) 1f else 0f, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), label = "swp")
-    val track = androidx.compose.ui.graphics.lerp(cs.surfaceContainerHighest, cs.primary, f.coerceIn(0f, 1f))
-    Box(
-        modifier.size(64.dp, 32.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).background(track)
-            .clickable(interactionSource = src, indication = null, role = androidx.compose.ui.semantics.Role.Switch, enabled = onChange != null) { onChange?.invoke(!checked) },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        val thumbW = androidx.compose.ui.unit.lerp(36.dp, 44.dp, p)
-        val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
-        Box(
-            Modifier.offset { androidx.compose.ui.unit.IntOffset((3.dp + (64.dp - 6.dp - thumbW) * f).roundToPx(), 0) }
-                .size(thumbW, 28.dp)
-                .then(
-                    if (bd != null) Modifier.drawBackdrop(
-                        backdrop = bd, shape = { shape },
-                        effects = { vibrancy(); blur(1.dp.toPx()); lens(8.dp.toPx(), 12.dp.toPx()) },
-                        onDrawSurface = { drawRect(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f - 0.3f * p)) },
-                    ) else Modifier.clip(shape).background(androidx.compose.ui.graphics.Color.White),
-                ),
-            contentAlignment = Alignment.Center,
-        ) { Icon(if (checked) "check" else "close", null, Modifier.size(16.dp), tint = if (checked) cs.primary else cs.outline) }
-    }
 }
 
 /** Scope-free AnimatedVisibility: avoids the ColumnScope/RowScope extension being picked inside nested Box/Column. */

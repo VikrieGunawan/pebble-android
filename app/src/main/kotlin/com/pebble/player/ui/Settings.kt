@@ -79,8 +79,7 @@ private val ICONS = mapOf(
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(top = 14.dp).glass(28.dp, lens = false).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
+    Column(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
 }
 
 @Composable
@@ -131,7 +130,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
     PredictiveBack(page != null, { page = null }) {
     Column(Modifier.fillMaxSize().verticalScroll(sc).padding(horizontal = 16.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(top = 8.dp).glass(32.dp, lens = false).padding(16.dp),
+            Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PAnim(cur != null, enter = fadeIn() + expandHorizontally() + scaleIn(), exit = fadeOut() + shrinkHorizontally() + scaleOut()) {
@@ -159,7 +158,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             shown.chunked(2).forEach { r ->
                 Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     r.forEach { c ->
-                        Column(Modifier.weight(1f).glass(26.dp, lens = false).clickable { page = c.id }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Column(Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable { page = c.id }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             IconTile(c.icon, 46.dp, filled = true)
                             Column { Text(c.title, fontWeight = FontWeight.ExtraBold); Text(c.sub, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, minLines = 2) }
                         }
@@ -180,17 +179,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             Choice("Sort by", listOf("Newest", "Name", "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
         }
 
-        if (p == "playback") Section("Playback") {
-            SwitchRow("Autoplay", "Start as soon as a video opens", prefs.autoplay) { put(K.autoplay, it) }
-            SwitchRow("Resume where you stopped", "Continue from your last position", prefs.resume) { put(K.resume, it) }
-            SwitchRow("Keep screen on", "While a video is playing", prefs.wake) { put(K.wake, it) }
-            Choice("Skip step", listOf("5s", "10s", "15s", "30s"), listOf(5, 10, 15, 30).indexOf(prefs.skip).let { if (it < 0) 1 else it }) { put(K.skip, listOf(5, 10, 15, 30)[it]) }
-            Choice("Default speed", listOf("0.5x", "1x", "1.25x", "1.5x", "2x"), SPEEDS.indexOf(prefs.speed).let { if (it < 0) 1 else it }) { put(K.speed, SPEEDS[it]) }
-            Choice("Video fit", listOf("Fit", "Zoom", "Stretch"), prefs.fit) { put(K.fit, it) }
-            SwitchRow("Rotate with the video", "Wide videos go landscape automatically", prefs.autoFs) { put(K.autoFs, it) }
-            Choice("Screen rotation", listOf("Auto", "Portrait", "Landscape"), prefs.orient) { put(K.orient, it) }
-            Choice("If Bluetooth or headphones disconnect", listOf("Pause", "Keep playing"), prefs.onLost) { put(K.onLost, it) }
-        }
+        if (p == "playback") PlaybackPage(prefs, store)
 
         if (p == "device") Section("Device") { DeviceControls() }
 
