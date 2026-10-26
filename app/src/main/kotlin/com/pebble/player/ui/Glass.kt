@@ -2,7 +2,6 @@ package com.pebble.player.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,59 +15,38 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
+import com.kashif_e.backdrop.Backdrop
+import com.kashif_e.backdrop.backdrops.layerBackdrop
+import com.kashif_e.backdrop.backdrops.rememberLayerBackdrop
+import com.kashif_e.backdrop.drawBackdrop
+import com.kashif_e.backdrop.effects.blur
+import com.kashif_e.backdrop.effects.lens
+import com.kashif_e.backdrop.effects.vibrancy
 
-/** The layer all Liquid Glass surfaces look through. */
+/** The layer all Liquid Glass surfaces look through (null inside separate windows such as sheets and dialogs). */
 val LocalBackdrop = compositionLocalOf<Backdrop?> { null }
 
 /**
- * Liquid Glass Modifier (Gaya iOS / KMP Liquid Glass):
- * - Vibrancy: Mempertajam warna di balik kaca
- * - Blur: Membiaskan cahaya latar secara lembut
- * - Lens Refraction: Membiaskan lekukan tepi kaca
- * - Specular Rim: Kilau cahaya di sudut tepi kaca
+ * Liquid Glass surface (Kyant0's Backdrop library): blurs, saturates and refracts what lies behind it.
+ * Without a backdrop (dialogs, sheets, over video) it falls back to a plain frosted panel.
+ * [lens] adds the refraction at the edges; keep it off for large cards so lists stay smooth.
  */
 @Composable
-fun Modifier.glass(
-    radius: Dp = 24.dp,
-    lens: Boolean = true,
-    tint: Color = Color.Unspecified,
-    borderAlpha: Float = 0.35f
-): Modifier {
+fun Modifier.glass(radius: Dp = 24.dp, lens: Boolean = true, tint: Color = Color.Unspecified): Modifier {
     val bd = LocalBackdrop.current
     val cs = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(radius)
-    val fill = (if (tint == Color.Unspecified) cs.surfaceContainerHigh else tint).copy(alpha = 0.40f)
-    val borderColor = cs.outlineVariant.copy(alpha = borderAlpha)
-
-    val baseModifier = if (bd == null) {
-        this.clip(shape).background(cs.surfaceContainer.copy(alpha = 0.75f))
-    } else {
-        this.drawBackdrop(
-            backdrop = bd,
-            shape = { shape },
-            effects = {
-                vibrancy()
-                blur(12.dp.toPx())
-                if (lens && radius > 0.dp) {
-                    lens(minOf(12.dp.toPx(), radius.toPx()), minOf(24.dp.toPx(), radius.toPx() * 2f))
-                }
-            },
-            onDrawSurface = { drawRect(fill) },
-        )
-    }
-
-    return if (borderAlpha > 0f && radius > 0.dp) {
-        baseModifier.border(0.75.dp, borderColor, shape)
-    } else {
-        baseModifier
-    }
+    val fill = (if (tint == Color.Unspecified) cs.surfaceContainerHigh else tint).copy(alpha = 0.42f)
+    return if (bd == null) this.clip(shape).background(cs.surfaceContainer) else this.drawBackdrop(
+        backdrop = bd,
+        shape = { shape },
+        effects = {
+            vibrancy()
+            blur(10.dp.toPx())
+            if (lens && radius > 0.dp) lens(minOf(12.dp.toPx(), radius.toPx()), minOf(24.dp.toPx(), radius.toPx() * 2f))
+        },
+        onDrawSurface = { drawRect(fill) },
+    )
 }
 
 /** Soft colored backdrop that the glass shows through; everything glass is drawn on top of it. */
