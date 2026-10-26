@@ -69,7 +69,6 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.github.kashif-mehmood-km:backdrop:0.0.1-alpha02") // Liquid Glass (KMPLiquidGlass)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
