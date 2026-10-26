@@ -15,6 +15,8 @@ android {
         targetSdk = 36       // Android 16
         versionCode = 4
         versionName = "1.0.4-beta"
+        // 64-bit only: arm64 phones and x86_64 devices/emulators
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
     // One fixed key for every build, so updates install over the old version.
@@ -67,7 +69,7 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.github.kyant0:backdrop:2.0.1") // Liquid Glass
+    implementation("io.github.kashif-mehmood-km:backdrop:0.0.1-alpha02") // Liquid Glass (KMPLiquidGlass)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
