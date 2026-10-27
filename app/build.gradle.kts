@@ -40,13 +40,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    // Two APKs per build: one for 64-bit phones (arm64-v8a) and one for 32-bit phones (armeabi-v7a).
+    // One APK per ABI plus a universal one that installs on any device. Try the universal APK first.
     splits {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = false
+            include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+            isUniversalApk = true
         }
     }
     buildFeatures { compose = true }
