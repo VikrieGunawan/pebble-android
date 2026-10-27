@@ -128,7 +128,7 @@ suspend fun fetchUpdate(ctx: Context): Result<UpdateInfo?> = withContext(Dispatc
             val j = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
             val v = j.getString("version")
             if (!newer(v, currentVersion(ctx))) null else {
-                UpdateInfo(v.removePrefix("v"), parseNotes(j.opt("notes")), j.getString("apk"), j.optLong("size"))
+                UpdateInfo(v.removePrefix("v"), parseNotes(j.opt("notes")), if (android.os.Build.SUPPORTED_ABIS.firstOrNull() in setOf("arm64-v8a", "x86_64")) j.getString("apk") else j.optString("apk32", j.getString("apk")), j.optLong("size"))
             }
         } finally { c.disconnect() }
     }
