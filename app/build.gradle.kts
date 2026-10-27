@@ -15,8 +15,6 @@ android {
         targetSdk = 36       // Android 16
         versionCode = 4
         versionName = "1.0.4-beta"
-        // 64-bit only: arm64 phones and x86_64 devices/emulators
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
     // One fixed key for every build, so updates install over the old version.
@@ -41,6 +39,15 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    // Two APKs per build: one for 64-bit phones (arm64-v8a) and one for 32-bit phones (armeabi-v7a).
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
     }
     buildFeatures { compose = true }
     packaging {
