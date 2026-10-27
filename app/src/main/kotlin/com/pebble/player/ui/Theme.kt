@@ -36,12 +36,17 @@ val ACCENTS: List<Pair<String, Int>> = listOf(
 ).map { it.first to it.second.toInt() }
 
 @Composable
-fun PebbleTheme(mode: Int, dynamic: Boolean, accent: Color, content: @Composable () -> Unit) {
+fun PebbleTheme(mode: Int, dynamic: Boolean, accent: Color, amoled: Boolean = false, content: @Composable () -> Unit) {
     val dark = when (mode) { 1 -> false; 2 -> true; else -> isSystemInDarkTheme() }
     val ctx = LocalContext.current
-    val scheme = if (dynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val base = if (dynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
     } else seedScheme(accent, dark)
+    val scheme = if (dark && amoled) base.copy(
+        background = Color.Black, surface = Color.Black, surfaceContainerLowest = Color.Black,
+        surfaceContainerLow = Color(0xFF080808), surfaceContainer = Color(0xFF101010),
+        surfaceContainerHigh = Color(0xFF181818), surfaceContainerHighest = Color(0xFF212121),
+    ) else base
     MaterialExpressiveTheme(
         colorScheme = scheme,
         motionScheme = MotionScheme.expressive(),

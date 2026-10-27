@@ -41,6 +41,22 @@ private val FILLED = family(1f)
 private val OUTLINE = family(0f)
 
 private val CP = mapOf(
+    "battery_full" to 0xe1a5,
+    "bluetooth" to 0xe1a7,
+    "bolt" to 0xea0b,
+    "brightness_high" to 0xe1ac,
+    "brightness_low" to 0xe1ad,
+    "brightness_medium" to 0xe1ae,
+    "devices" to 0xe326,
+    "memory" to 0xe322,
+    "phone_android" to 0xf2db,
+    "screenshot_monitor" to 0xec08,
+    "speaker" to 0xe32d,
+    "tablet_android" to 0xe330,
+    "view_comfy" to 0xe42a,
+    "view_compact" to 0xe42b,
+    "volume_down" to 0xe04d,
+    "zoom_in" to 0xe8ff,
     "arrow_back" to 0xe5c4,
     "arrow_forward" to 0xe5c8,
     "aspect_ratio" to 0xe85b,

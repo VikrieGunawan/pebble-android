@@ -89,7 +89,7 @@ fun PebbleRoot(app: PebbleApp, openUri: Uri?, onOpenConsumed: () -> Unit) {
     val prefs by app.store.prefs.collectAsStateWithLifecycle(Prefs())
     var clearing by remember { mutableStateOf(false) }
     CompositionLocalProvider(LocalApp provides app) {
-        PebbleTheme(prefs.theme, prefs.dynamic, Color(prefs.accent)) {
+        PebbleTheme(prefs.theme, prefs.dynamic, Color(prefs.accent), prefs.amoled) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Crossfade(
                     targetState = when {
@@ -154,7 +154,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
-        val wide = cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560
+        val wide = (cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560) || (cfg.screenWidthDp > cfg.screenHeightDp && cfg.screenWidthDp >= 600)
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {

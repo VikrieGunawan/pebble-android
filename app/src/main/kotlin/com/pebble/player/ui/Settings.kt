@@ -70,49 +70,15 @@ import com.pebble.player.data.Store
 import com.pebble.player.data.Video
 import kotlinx.coroutines.launch
 
-private val ICONS = mapOf(
-    "Theme" to "contrast", "Material You" to "palette", "Accent color" to "palette", "Layout" to "grid_view", "Sort by" to "sort",
-    "Autoplay" to "play_circle", "Resume where you stopped" to "history", "Keep screen on" to "smartphone", "Skip step" to "forward_10",
-    "Default speed" to "speed", "Video fit" to "aspect_ratio", "Rotate with the video" to "screen_rotation", "Screen rotation" to "screen_rotation",
-    "If Bluetooth or headphones disconnect" to "headphones",
-)
-
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
-}
-
-@Composable
-private fun SwitchRow(title: String, sub: String, v: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onChange(!v) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        IconTile(ICONS[title] ?: "tune", 38.dp)
-        Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        PebbleSwitch(v, onChange)
-    }
-}
-
-@Composable
-private fun Choice(title: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconTile(ICONS[title] ?: "tune", 38.dp)
-            Text(title, fontWeight = FontWeight.Bold)
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            options.forEachIndexed { i, o -> FilterChip(selected == i, { onSelect(i) }, { Text(o) }) }
-        }
-    }
 }
 
 data class Cat(val id: String, val icon: String, val title: String, val sub: String)
 
 @Composable
 fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Unit, onClearAll: () -> Unit, query: String = "") {
-    val scope = rememberCoroutineScope()
-    fun <T> put(k: androidx.datastore.preferences.core.Preferences.Key<T>, v: T) { scope.launch { store.put(k, v) } }
 
     var page by remember { mutableStateOf<String?>(null) }
     val cs = MaterialTheme.colorScheme
@@ -168,20 +134,11 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             }
         }
 
-        if (p == "appearance") Section("Appearance") {
-            Choice("Theme", listOf("System", "Light", "Dark"), prefs.theme) { put(K.theme, it) }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) SwitchRow("Material You", "Use colors from your wallpaper", prefs.dynamic) { put(K.dyn, it) }
-            if (!prefs.dynamic || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                Text("Accent color", fontWeight = FontWeight.SemiBold)
-                SwatchGrid(prefs.accent, false) { put(K.accent, it) }
-            }
-            Choice("Layout", listOf("Grid", "List"), prefs.layout) { put(K.layout, it) }
-            Choice("Sort by", listOf("Newest", "Name", "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
-        }
+        if (p == "appearance") AppearancePage(prefs, store)
 
         if (p == "playback") PlaybackPage(prefs, store)
 
-        if (p == "device") Section("Device") { DeviceControls() }
+        if (p == "device") DevicePage()
 
         if (p == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
 
@@ -226,58 +183,9 @@ private fun LibraryControls(prefs: Prefs, store: Store, all: List<Video>, onResc
     }
 }
 
-@Composable
-private fun DeviceControls() {
-    val ctx = LocalContext.current
-    val am = remember { ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
-    var canWrite by remember { mutableStateOf(Settings.System.canWrite(ctx)) }
-    val wl = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { canWrite = Settings.System.canWrite(ctx) }
-
-    var bri by remember { mutableFloatStateOf(readBrightness(ctx)) }
-    var vol by remember { mutableFloatStateOf(am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()) }
-    val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-
-    Text("System volume", fontWeight = FontWeight.SemiBold)
-    PebbleSlider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, it.toInt(), 0) }, valueRange = 0f..maxVol.toFloat(), steps = (maxVol - 1).coerceAtLeast(0))
-
-    Text("System brightness", fontWeight = FontWeight.SemiBold)
-    if (canWrite) {
-        PebbleSlider(bri, {
-            bri = it
-            try {
-                Settings.System.putInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
-                Settings.System.putInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS, it.toInt())
-            } catch (_: Exception) { }
-        }, valueRange = 1f..255f)
-    } else {
-        Text("Allow Pebble to change system settings to control brightness.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton({ wl.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${ctx.packageName}"))) }) { Text("Allow") }
-    }
-
-    // Bluetooth
-    var btOk by remember { mutableStateOf(Build.VERSION.SDK_INT < 31 || ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) }
-    val askBt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { btOk = it }
-    Text("Bluetooth", fontWeight = FontWeight.SemiBold)
-    if (!btOk) {
-        Text("Allow nearby devices access to show real Bluetooth names.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton({ askBt.launch(Manifest.permission.BLUETOOTH_CONNECT) }) { Text("Allow") }
-    } else {
-        val adapter = remember { (ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter }
-        var name by remember { mutableStateOf(try { adapter?.name ?: "" } catch (_: SecurityException) { "" }) }
-        var msg by remember { mutableStateOf("") }
-        OutlinedTextField(name, { name = it }, label = { Text("This phone's Bluetooth name") }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), enabled = adapter != null)
-        Button({
-            msg = try { if (adapter?.setName(name.trim()) == true) "Name updated" else "Couldn't change the name" } catch (_: SecurityException) { "Permission denied" }
-        }, enabled = adapter != null && name.isNotBlank()) { Text("Apply name") }
-        if (msg.isNotEmpty()) Text(msg, style = MaterialTheme.typography.bodySmall)
-        val outs = remember(btOk, vol) { am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter { isBt(it) } }
-        Text(if (outs.isEmpty()) "No Bluetooth audio connected." else "Connected: " + outs.joinToString { it.productName.toString() }, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
 internal fun isBt(d: AudioDeviceInfo) = d.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
     (Build.VERSION.SDK_INT >= 31 && (d.type == AudioDeviceInfo.TYPE_BLE_HEADSET || d.type == AudioDeviceInfo.TYPE_BLE_SPEAKER || d.type == AudioDeviceInfo.TYPE_BLE_BROADCAST))
 
-private fun readBrightness(ctx: Context): Float = try {
+internal fun readBrightness(ctx: Context): Float = try {
     Settings.System.getInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS).toFloat().coerceIn(1f, 255f)
 } catch (_: Exception) { 128f }

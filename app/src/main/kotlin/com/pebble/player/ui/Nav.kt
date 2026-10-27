@@ -96,16 +96,19 @@ fun PebbleTabBar(tab: Int, onTab: (Int) -> Unit) {
 @Composable
 fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
     val line = cs.outlineVariant
     Column(
         Modifier.width(92.dp).fillMaxHeight().background(cs.surfaceContainer)
             .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }
-            .statusBarsPadding().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),
+            .statusBarsPadding().navigationBarsPadding().padding(horizontal = 8.dp, vertical = if (short) 6.dp else 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (short) 2.dp else 10.dp),
     ) {
-        LogoMark(46.dp)
-        Text("Pebble", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(8.dp))
+        if (!short) {
+            LogoMark(46.dp)
+            Text("Pebble", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+        }
         NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(n.id) } }
         Spacer(Modifier.weight(1f))
         NavButton("settings", "Settings", tab == 4, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(4) }
@@ -126,30 +129,19 @@ fun PebbleTopBar(
     // leaving the keyboard (back / swipe down) also leaves the search field, so its highlight turns off
     LaunchedEffect(imeOn) { if (wasIme && !imeOn) focus.clearFocus(); wasIme = imeOn }
     val cs = MaterialTheme.colorScheme
+    val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
     @Composable
     fun roundBtn(icon: String, on: Boolean, label: String, onClick: () -> Unit) {
         val tint by animateColorAsState(if (on) cs.primary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tb")
         val bg by animateColorAsState(if (on) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tbbg")
         Box(Modifier.size(42.dp).clip(CircleShape).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(22.dp), tint = tint) }
     }
-    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (showLogo) {
-                LogoMark(38.dp); Spacer(Modifier.width(10.dp))
-                Text("Pebble", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.weight(1f))
-            Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
-                roundBtn("settings", settingsOn, "Settings", onSettings)
-            }
-            Spacer(Modifier.width(10.dp))
-            Avatar(profile, 42.dp, Modifier.clickable(onClick = onProfile))
-        }
-        var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-        val border by animateColorAsState(if (focused) cs.primary else cs.outlineVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sb")
+    var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val border by animateColorAsState(if (focused) cs.primary else cs.outlineVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "sb")
+    @Composable
+    fun searchField(modifier: Modifier) {
         Row(
-            Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).border(1.5.dp, border, CircleShape).padding(start = 8.dp, end = 6.dp),
+            modifier.height(48.dp).clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).border(1.5.dp, border, CircleShape).padding(start = 8.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(32.dp).clip(CircleShape).background(cs.primaryContainer), contentAlignment = Alignment.Center) { Icon("search", null, Modifier.size(18.dp), tint = cs.primary) }
@@ -163,6 +155,36 @@ fun PebbleTopBar(
                 )
             }
             if (query.isNotEmpty()) Box(Modifier.size(36.dp).clip(CircleShape).clickable { onQuery("") }, contentAlignment = Alignment.Center) { Icon("close", "Clear", Modifier.size(20.dp), tint = cs.onSurfaceVariant) }
+        }
+    }
+    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = if (short) 6.dp else 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (short) {
+            // landscape phones: one slim row (search + buttons) so the page keeps its height
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                searchField(Modifier.weight(1f))
+                Spacer(Modifier.width(10.dp))
+                Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
+                    roundBtn("settings", settingsOn, "Settings", onSettings)
+                }
+                Spacer(Modifier.width(10.dp))
+                Avatar(profile, 42.dp, Modifier.clickable(onClick = onProfile))
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showLogo) {
+                    LogoMark(38.dp); Spacer(Modifier.width(10.dp))
+                    Text("Pebble", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.weight(1f))
+                Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
+                    roundBtn("settings", settingsOn, "Settings", onSettings)
+                }
+                Spacer(Modifier.width(10.dp))
+                Avatar(profile, 42.dp, Modifier.clickable(onClick = onProfile))
+            }
+            searchField(Modifier.fillMaxWidth())
         }
     }
 }

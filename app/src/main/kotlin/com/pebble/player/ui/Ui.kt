@@ -196,7 +196,7 @@ fun VideoCollection(
     val row = prefs.layout == 1
     val gap by animateDpAsState(if (row) 0.dp else 14.dp, label = "gridGap")
     LazyVerticalGrid(
-        columns = if (row) GridCells.Fixed(1) else GridCells.Adaptive(168.dp),
+        columns = if (row) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(if (row) 10.dp else 14.dp),

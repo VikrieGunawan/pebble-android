@@ -84,7 +84,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
 }
 
 @Composable
-private fun PlayCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun PlayCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp), content = content,
@@ -92,7 +92,7 @@ private fun PlayCard(modifier: Modifier = Modifier, content: @Composable ColumnS
 }
 
 @Composable
-private fun PlayStat(icon: String, value: String, label: String, modifier: Modifier) {
+internal fun PlayStat(icon: String, value: String, label: String, modifier: Modifier) {
     val cs = MaterialTheme.colorScheme
     Column(modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         IconTile(icon, 36.dp)
@@ -103,7 +103,7 @@ private fun PlayStat(icon: String, value: String, label: String, modifier: Modif
 
 /** Rounded icon badge; filled with the accent when [on], muted when off. */
 @Composable
-private fun Badge(icon: String, on: Boolean) {
+internal fun Badge(icon: String, on: Boolean) {
     val cs = MaterialTheme.colorScheme
     val bg by animateColorAsState(if (on) cs.primary else cs.surfaceContainerHighest, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "badgeBg")
     val fg by animateColorAsState(if (on) cs.onPrimary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "badgeFg")
@@ -113,7 +113,7 @@ private fun Badge(icon: String, on: Boolean) {
 }
 
 @Composable
-private fun ToggleCard(icon: String, title: String, desc: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun ToggleCard(icon: String, title: String, desc: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(cs.surfaceContainer).clickable { onChange(!checked) }.padding(16.dp),
@@ -129,7 +129,7 @@ private fun ToggleCard(icon: String, title: String, desc: String, checked: Boole
 }
 
 @Composable
-private fun ChoiceCard(icon: String, title: String, desc: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+internal fun ChoiceCard(icon: String, title: String, desc: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     PlayCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -139,6 +139,14 @@ private fun ChoiceCard(icon: String, title: String, desc: String, options: List<
                 Text(desc, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
             }
         }
+        Segments(options, selected, onSelect)
+    }
+}
+
+/** Pill-shaped segmented picker; [selected] may be -1 when nothing matches. */
+@Composable
+internal fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    val cs = MaterialTheme.colorScheme
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHighest).padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -153,5 +161,4 @@ private fun ChoiceCard(icon: String, title: String, desc: String, options: List<
                 ) { Text(o, color = fg, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1) }
             }
         }
-    }
 }
