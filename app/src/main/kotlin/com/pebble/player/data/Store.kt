@@ -37,6 +37,8 @@ data class Prefs(
     val orient: Int = 0,           // 0 auto, 1 portrait, 2 landscape
     val onLost: Int = 0,           // 0 pause, 1 keep playing
     val wake: Boolean = true,
+    val amoled: Boolean = false,   // pure black in dark mode
+    val gridSize: Int = 1,         // 0 compact, 1 normal, 2 large
     val profile: Profile = Profile(),
     val blacklist: Set<String> = emptySet(),
     val favs: Set<String> = emptySet(),
@@ -59,6 +61,8 @@ object K {
     val orient = intPreferencesKey("orient")
     val onLost = intPreferencesKey("onlost")
     val wake = booleanPreferencesKey("wake")
+    val amoled = booleanPreferencesKey("amoled")
+    val gridSize = intPreferencesKey("gridsize")
     val pName = stringPreferencesKey("p_name")
     val pEmoji = stringPreferencesKey("p_emoji")
     val pColor = intPreferencesKey("p_color")
@@ -91,6 +95,8 @@ class Store(context: Context) {
             orient = p[K.orient] ?: 0,
             onLost = p[K.onLost] ?: 0,
             wake = p[K.wake] ?: true,
+            amoled = p[K.amoled] ?: false,
+            gridSize = p[K.gridSize] ?: 1,
             profile = Profile(p[K.pName] ?: "", p[K.pEmoji] ?: "", p[K.pColor] ?: 0, p[K.pPhoto] ?: ""),
             blacklist = p[K.bl] ?: emptySet(),
             favs = p[K.favs] ?: emptySet(),
@@ -137,7 +143,7 @@ class Store(context: Context) {
     suspend fun resetSettings() = ds.edit {
         val keys = listOf<Preferences.Key<*>>(
             K.theme, K.dyn, K.accent, K.layout, K.sort, K.autoplay, K.resume, K.autoFs,
-            K.skip, K.speed, K.fit, K.orient, K.onLost, K.wake,
+            K.skip, K.speed, K.fit, K.orient, K.onLost, K.wake, K.amoled, K.gridSize,
         )
         keys.forEach { k -> it.remove(k) }
     }
