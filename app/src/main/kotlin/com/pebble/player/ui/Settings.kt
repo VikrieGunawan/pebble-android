@@ -140,7 +140,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
 
         if (p == "device") DevicePage()
 
-        if (p == "library") Section("Library") { LibraryControls(prefs, store, all, onRescan) }
+        if (p == "library") LibraryPage(prefs, store, all, onRescan)
 
         if (p == "data") DataPage(prefs, store, all, onClearAll)
 
@@ -157,31 +157,6 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
 }
 
 val SPEEDS = listOf(0.5f, 1f, 1.25f, 1.5f, 2f)
-
-@Composable
-private fun LibraryControls(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    val folders = remember(all, prefs.blacklist) {
-        (all.map { it.path to it.folder } + prefs.blacklist.map { it to it.trimEnd('/').substringAfterLast('/') })
-            .distinctBy { it.first }.sortedWith { x, y -> NaturalOrder.compare(x.second, y.second) }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("${all.size} videos found", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-        OutlinedButton(onRescan) { Text("Scan again") }
-    }
-    Text("Hide folders", fontWeight = FontWeight.SemiBold)
-    if (folders.isEmpty()) Text("No folders yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    folders.forEach { (path, name) ->
-        val hidden = path in prefs.blacklist
-        Row(Modifier.fillMaxWidth().clickable { scope.launch { store.toggleBlacklist(path) } }, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(name.ifBlank { "Videos" })
-                Text(path, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            PebbleSwitch(hidden, { scope.launch { store.toggleBlacklist(path) } })
-        }
-    }
-}
 
 internal fun isBt(d: AudioDeviceInfo) = d.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
     (Build.VERSION.SDK_INT >= 31 && (d.type == AudioDeviceInfo.TYPE_BLE_HEADSET || d.type == AudioDeviceInfo.TYPE_BLE_SPEAKER || d.type == AudioDeviceInfo.TYPE_BLE_BROADCAST))

@@ -48,6 +48,11 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -101,9 +106,9 @@ fun PebbleRoot(app: PebbleApp, openUri: Uri?, onOpenConsumed: () -> Unit) {
                     label = "root",
                 ) { s ->
                     when (s) {
-                        0 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(64.dp)) }
-                        1 -> ClearDataScreen(app) { clearing = false }
-                        2 -> Onboarding(prefs, app.store)
+                        0 -> Box(Modifier.fillMaxSize().cutoutSides(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(64.dp)) }
+                        1 -> Box(Modifier.fillMaxSize().cutoutSides()) { ClearDataScreen(app) { clearing = false } }
+                        2 -> Box(Modifier.fillMaxSize().cutoutSides()) { Onboarding(prefs, app.store) }
                         else -> MainFlow(app, prefs, openUri, onOpenConsumed) { clearing = true }
                     }
                 }
@@ -158,7 +163,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {
-        Row(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize().cutoutSides()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
             modifier = Modifier.weight(1f),
@@ -220,6 +225,9 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }
+
+/** Keeps the UI away from a camera notch on the left or right edge (landscape). */
+private fun Modifier.cutoutSides(): Modifier = windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
 
 @Composable
 private fun PermissionPrompt(onAsk: () -> Unit) {
