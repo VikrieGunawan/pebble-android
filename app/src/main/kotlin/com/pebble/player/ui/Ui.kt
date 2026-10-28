@@ -26,6 +26,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.Image
@@ -268,7 +269,12 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
     val scroll = rememberScrollState()
     // Follow the active crumb: keep it in view while crumbs animate in/out, on every folder change.
     val active = remember { BringIntoViewRequester() }
-    LaunchedEffect(path, segs) { repeat(14) { delay(45); active.bringIntoView() } }
+    // Folder rows are rebuilt every time they scroll back into view: only animate real folder changes, not that rebuild.
+    val settled = remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { withFrameNanos { }; settled.value = true }
+    LaunchedEffect(path, segs) {
+        if (!settled.value) { try { active.bringIntoView() } catch (_: Exception) { } } else repeat(14) { delay(45); active.bringIntoView() }
+    }
     val shape = RoundedCornerShape(22.dp)
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainer).border(1.dp, cs.outlineVariant.copy(alpha = 0.6f), shape).padding(6.dp),
@@ -284,7 +290,7 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
             segs.forEachIndexed { i, name ->
                 val target = segs.take(i + 1).joinToString("/") + "/"
                 key(target) {
-                    var shown by remember { mutableStateOf(false) }
+                    var shown by remember { mutableStateOf(!settled.value) }
                     LaunchedEffect(Unit) { shown = true }
                     PAnim(shown, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

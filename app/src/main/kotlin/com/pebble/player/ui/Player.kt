@@ -21,6 +21,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -479,10 +480,6 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     }
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 14.dp, vertical = 5.dp)) {
                         Text(video.name, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
-                        Text(
-                            if (queue.size > 1 && idx >= 0) "Video ${idx + 1} of ${queue.size}" else fmt(dur),
-                            color = Color(0xB3FFFFFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                        )
                     }
                     Row(Modifier.clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                         PBtn("screen_rotation", "Rotate", 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else Color.White,
@@ -780,26 +777,82 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
         onDispose { am.unregisterAudioDeviceCallback(cb) }
     }
 
-    Dialog(onClose) {
-        Column(Modifier.clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Audio output", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-            @Composable
-            fun row(label: String, sub: String, sel: Boolean, onClick: () -> Unit) {
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(label, fontWeight = FontWeight.SemiBold)
-                        Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (sel) Icon("check", null, tint = MaterialTheme.colorScheme.primary)
+    Dialog(onClose, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        val cs = MaterialTheme.colorScheme
+        val active = devices.firstOrNull { it.id == chosen } ?: devices.firstOrNull { isBt(it) }
+            ?: devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET } ?: devices.firstOrNull()
+        Column(
+            Modifier.padding(16.dp).widthIn(max = 420.dp).fillMaxWidth().heightIn(max = 560.dp)
+                .clip(RoundedCornerShape(30.dp)).background(Color(0xF2181330)).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(42.dp).clip(RoundedCornerShape(15.dp)).background(cs.primary), contentAlignment = Alignment.Center) { Icon("headphones", null, Modifier.size(24.dp), tint = cs.onPrimary) }
+                Column(Modifier.weight(1f)) {
+                    Text("Audio output", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                    Text(if (chosen == -1) "Automatic" else "Fixed to one device", color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+                PBtn("close", "Close", 36.dp, bg = SOFT, onClick = onClose)
+            }
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Brush.linearGradient(listOf(cs.primary.copy(alpha = 0.38f), cs.tertiary.copy(alpha = 0.26f)))).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(48.dp).clip(CircleShape).background(Color(0x33FFFFFF)), contentAlignment = Alignment.Center) { Icon(audioIcon(active), null, Modifier.size(26.dp), tint = Color.White) }
+                Column(Modifier.weight(1f)) {
+                    Text("PLAYING ON", color = Color(0xB3FFFFFF), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                    Text(active?.let { deviceLabel(it) } ?: "Phone speaker", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            row("Automatic", "Let Android choose", chosen == -1) { chosen = -1; player.setPreferredAudioDevice(null) }
-            devices.forEach { d ->
-                row(deviceLabel(d), if (isBt(d)) "Bluetooth" else "Device", chosen == d.id) { chosen = d.id; player.setPreferredAudioDevice(d) }
+            Sl("devices", "Choose where sound plays")
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                @Composable
+                fun item(icon: String, label: String, sub: String, sel: Boolean, onClick: () -> Unit) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else SOFT).clickable(onClick = onClick).padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(Modifier.size(40.dp).clip(CircleShape).background(if (sel) cs.primary else Color(0x26FFFFFF)), contentAlignment = Alignment.Center) {
+                            Icon(icon, null, Modifier.size(22.dp), tint = if (sel) cs.onPrimary else Color.White)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(label, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(sub, color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        if (sel) Icon("check", null, Modifier.size(22.dp), tint = cs.primary)
+                    }
+                }
+                item("tune", "Automatic", "Let Android choose the best output", chosen == -1) { chosen = -1; player.setPreferredAudioDevice(null) }
+                devices.forEach { d -> item(audioIcon(d), deviceLabel(d), audioKind(d), chosen == d.id) { chosen = d.id; player.setPreferredAudioDevice(d) } }
             }
-            TextButton(onClose, Modifier.align(Alignment.End)) { Text("Done") }
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SOFT).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon("info", null, Modifier.size(20.dp), tint = Color(0xB3FFFFFF))
+                Text(
+                    "If a device disconnects, the video will ${if (lostPolicy == 1) "keep playing" else "pause"}. Change this in Settings → Playback.",
+                    color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(16.dp)).background(cs.primary).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
+                Text("Done", color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
+            }
         }
     }
+}
+
+private fun audioIcon(d: AudioDeviceInfo?): String = when {
+    d == null -> "speaker"
+    isBt(d) -> "bluetooth"
+    d.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "speaker"
+    d.type == AudioDeviceInfo.TYPE_HDMI -> "devices"
+    else -> "headphones"
+}
+
+private fun audioKind(d: AudioDeviceInfo): String = when {
+    isBt(d) -> "Bluetooth"
+    d.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER || d.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Built in"
+    d.type == AudioDeviceInfo.TYPE_USB_DEVICE || d.type == AudioDeviceInfo.TYPE_USB_HEADSET -> "USB"
+    d.type == AudioDeviceInfo.TYPE_HDMI -> "HDMI"
+    else -> "Wired"
 }
 
 /** Slim seek bar: a thin track that thickens while dragging, with a round handle. */
