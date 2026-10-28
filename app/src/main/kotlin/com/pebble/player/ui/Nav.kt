@@ -103,7 +103,9 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
     // the rail background runs under the camera notch; only its content stays clear of it
-    val startInset = WindowInsets.displayCutout.only(WindowInsetsSides.Start).asPaddingValues().calculateStartPadding(androidx.compose.ui.platform.LocalLayoutDirection.current)
+    val dir = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val insetPad = WindowInsets.displayCutout.only(WindowInsetsSides.Start).asPaddingValues()
+    val startInset = maxOf(insetPad.calculateLeftPadding(dir), insetPad.calculateRightPadding(dir))
     val line = cs.outlineVariant
     Column(
         Modifier.width(92.dp + startInset).fillMaxHeight().background(cs.surfaceContainer).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
