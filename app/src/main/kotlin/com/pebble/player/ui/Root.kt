@@ -163,10 +163,10 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {
-        Row(Modifier.fillMaxSize().cutoutSides()) {
+        Row(Modifier.fillMaxSize()) {
         if (wide) PebbleRail(tab) { tab = it }
         Scaffold(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).windowInsetsPadding(WindowInsets.displayCutout.only(if (wide) WindowInsetsSides.End else WindowInsetsSides.Horizontal)),
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },

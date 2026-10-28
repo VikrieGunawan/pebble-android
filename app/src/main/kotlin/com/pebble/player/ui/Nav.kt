@@ -7,6 +7,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -97,9 +102,11 @@ fun PebbleTabBar(tab: Int, onTab: (Int) -> Unit) {
 fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
+    // the rail background runs under the camera notch; only its content stays clear of it
+    val startInset = WindowInsets.displayCutout.only(WindowInsetsSides.Start).asPaddingValues().calculateStartPadding(androidx.compose.ui.platform.LocalLayoutDirection.current)
     val line = cs.outlineVariant
     Column(
-        Modifier.width(92.dp).fillMaxHeight().background(cs.surfaceContainer)
+        Modifier.width(92.dp + startInset).fillMaxHeight().background(cs.surfaceContainer).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
             .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }
             .statusBarsPadding().navigationBarsPadding().padding(horizontal = 8.dp, vertical = if (short) 6.dp else 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (short) 2.dp else 10.dp),

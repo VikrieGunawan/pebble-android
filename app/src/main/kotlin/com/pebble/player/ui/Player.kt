@@ -21,6 +21,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -354,12 +355,12 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     }
 
     val cs = MaterialTheme.colorScheme
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black).windowInsetsPadding(WindowInsets.displayCutout)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
         val land = maxWidth > maxHeight
         val endPad by animateDpAsState(if (land && panel != null) 340.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit
 
-        Box(Modifier.fillMaxSize().padding(end = endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).padding(end = endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
             AndroidView(
                 factory = { PlayerView(it).apply { useController = false; setShutterBackgroundColor(android.graphics.Color.BLACK) } },
                 update = {
@@ -445,10 +446,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             }
         }
         if (subs && cueText.isNotBlank()) {
-            val subBottom by animateDpAsState(if (show) 92.dp else 30.dp, label = "subBottom")
+            val subBottom by animateDpAsState(if (show) 112.dp else 30.dp, label = "subBottom")
             val sp = listOf(14, 16, 19, 24)[subSize].sp
             Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(WindowInsets.displayCutout).navigationBarsPadding()
                     .padding(start = 28.dp, end = 28.dp + endPad.coerceAtLeast(0.dp), bottom = subBottom.coerceAtLeast(0.dp)).heightIn(max = maxHeight * 0.5f),
                 contentAlignment = Alignment.BottomCenter,
             ) {
@@ -463,59 +464,74 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         PAnim(show, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
             val padEnd = endPad.coerceAtLeast(0.dp)
             val corner by animateDpAsState(if (isPlaying) 20.dp else 30.dp, label = "playCorner")
+            val cut = WindowInsets.displayCutout
+            val glass = Color(0xB8140F28)
+            val rim = Color(0x22FFFFFF)
             Box(Modifier.fillMaxSize()) {
-                // top: back, title and the two screen tools
+                // header: its background runs edge to edge (through the camera notch); only the content stays clear of it
                 Row(
                     Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent)))
-                        .statusBarsPadding().padding(start = 12.dp, end = 12.dp + padEnd, top = 6.dp, bottom = 14.dp),
+                        .windowInsetsPadding(cut).statusBarsPadding().padding(start = 10.dp, end = 10.dp + padEnd, top = 6.dp, bottom = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    PBtn("arrow_back", "Back", 36.dp, bg = Color(0x33FFFFFF), onClick = onClose)
-                    Column(Modifier.weight(1f)) {
-                        Text(video.name, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        if (queue.size > 1 && idx >= 0) Text("${idx + 1} of ${queue.size}", color = Color(0xB3FFFFFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Box(Modifier.size(38.dp).clip(CircleShape).background(glass).border(1.dp, rim, CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
+                        Icon("arrow_back", "Back", Modifier.size(20.dp), tint = Color.White)
                     }
-                    PBtn("screen_rotation", "Rotate", 36.dp, bg = if (orient != 0) cs.primary else Color(0x33FFFFFF), tint = if (orient != 0) cs.onPrimary else Color.White,
-                        onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
-                    PBtn("queue_music", "Queue", 36.dp, bg = if (panel == "queue") cs.primary else Color(0x33FFFFFF), tint = if (panel == "queue") cs.onPrimary else Color.White, onClick = { togglePanel("queue") })
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 14.dp, vertical = 5.dp)) {
+                        Text(video.name, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                        Text(
+                            if (queue.size > 1 && idx >= 0) "Video ${idx + 1} of ${queue.size}" else fmt(dur),
+                            color = Color(0xB3FFFFFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Row(Modifier.clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PBtn("screen_rotation", "Rotate", 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else Color.White,
+                            onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
+                        PBtn("queue_music", "Queue", 36.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else Color.White, onClick = { togglePanel("queue") })
+                    }
                 }
 
-                // middle: transport
-                Row(Modifier.align(Alignment.Center).padding(end = padEnd), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PBtn("skip_previous", "Previous", 36.dp, enabled = prev != null, bg = Color(0x26FFFFFF), onClick = { go(prev) })
-                    PBtn("replay_10", "Back", 42.dp, bg = Color(0x33FFFFFF), onClick = { player.seekTo((player.currentPosition - curPrefs.skip * 1000L).coerceAtLeast(0)); tick++ })
+                // transport
+                Row(Modifier.align(Alignment.Center).padding(end = padEnd), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    PBtn("skip_previous", "Previous", 36.dp, enabled = prev != null, bg = glass, onClick = { go(prev) })
+                    PBtn("replay_10", "Back", 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition - curPrefs.skip * 1000L).coerceAtLeast(0)); tick++ })
                     Box(
-                        Modifier.size(56.dp).clip(RoundedCornerShape(corner.coerceAtLeast(0.dp))).background(cs.primary)
+                        Modifier.size(58.dp).clip(RoundedCornerShape(corner.coerceAtLeast(0.dp))).background(cs.primary)
                             .clickable { if (player.isPlaying) player.pause() else player.play(); tick++ },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(if (isPlaying) "pause" else "play_arrow", "Play or pause", Modifier.size(30.dp), tint = cs.onPrimary) }
-                    PBtn("forward_10", "Forward", 42.dp, bg = Color(0x33FFFFFF), onClick = { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); tick++ })
-                    PBtn("skip_next", "Next", 36.dp, enabled = pickNext() != null, bg = Color(0x26FFFFFF), onClick = { go(pickNext()) })
+                    ) { Icon(if (isPlaying) "pause" else "play_arrow", "Play or pause", Modifier.size(32.dp), tint = cs.onPrimary) }
+                    PBtn("forward_10", "Forward", 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); tick++ })
+                    PBtn("skip_next", "Next", 36.dp, enabled = pickNext() != null, bg = glass, onClick = { go(pickNext()) })
                 }
 
-                // bottom: seek bar, then every tool in one slim row
+                // bottom card: seek bar, then the tools in two groups
                 Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xD9000000))))
-                        .navigationBarsPadding().padding(start = 12.dp, end = 12.dp + padEnd, top = 16.dp, bottom = 4.dp),
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cut).navigationBarsPadding()
+                        .padding(start = 10.dp, end = 10.dp + padEnd, bottom = 6.dp)
+                        .clip(RoundedCornerShape(26.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(26.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                         Scrubber(
                             value = scrub ?: if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f,
                             onChange = { scrub = it },
                             onFinish = { f -> player.seekTo((f * dur).toLong()); scrub = null },
                             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
                         )
-                        Text(fmt(dur), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(fmt(dur), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
-                        IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
-                        IBtn("closed_caption", "Subtitles", panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
-                        IBtn("repeat", "Loop", loop) { loop = !loop }
-                        IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
-                        IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
-                        IBtn("aspect_ratio", "Video ratio", panel == "ratio") { togglePanel("ratio") }
+                    Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.clip(RoundedCornerShape(20.dp)).background(SOFT).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
+                            IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
+                            IBtn("closed_caption", "Subtitles", panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
+                        }
+                        Row(Modifier.clip(RoundedCornerShape(20.dp)).background(SOFT).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IBtn("repeat", "Loop", loop) { loop = !loop }
+                            IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
+                            IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
+                            IBtn("aspect_ratio", "Video ratio", panel == "ratio") { togglePanel("ratio") }
+                        }
                     }
                 }
             }
@@ -537,7 +553,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 else -> Triple("timer", "Sleep timer", if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else "Off")
             }
             Column(
-                (if (land) Modifier.statusBarsPadding().navigationBarsPadding().padding(end = 12.dp, top = 8.dp, bottom = 8.dp, start = 8.dp).width(300.dp).fillMaxHeight()
+                (if (land) Modifier.windowInsetsPadding(WindowInsets.displayCutout).statusBarsPadding().navigationBarsPadding().padding(end = 12.dp, top = 8.dp, bottom = 8.dp, start = 8.dp).width(300.dp).fillMaxHeight()
                 else Modifier.fillMaxWidth().navigationBarsPadding().padding(8.dp).heightIn(max = maxHeight * 0.6f))
                     .clip(RoundedCornerShape(28.dp)).background(GLASS)
                     .pointerInput(Unit) { detectTapGestures { } }.padding(14.dp),
