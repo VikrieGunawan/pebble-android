@@ -227,6 +227,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 }
 
 /** Keeps the UI away from a camera notch on the left or right edge (landscape). */
+@Composable
 private fun Modifier.cutoutSides(): Modifier = windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
 
 @Composable
