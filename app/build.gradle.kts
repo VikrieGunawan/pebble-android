@@ -40,15 +40,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    // One APK per ABI plus a universal one that installs on any device. Try the universal APK first.
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-            isUniversalApk = true
-        }
-    }
+    // One APK for every phone: no ABI filter or split, so it installs on whatever the device runs.
     buildFeatures { compose = true }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
