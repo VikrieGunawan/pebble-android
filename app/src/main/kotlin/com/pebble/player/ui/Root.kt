@@ -1,5 +1,9 @@
 package com.pebble.player.ui
 
+import kotlinx.coroutines.delay
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -146,6 +150,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     LaunchedEffect(granted, rescan) {
         if (granted) { all = app.media.scan(); scanned = true }
+        if (refreshing) { delay(700); refreshing = false }
     }
     LaunchedEffect(openUri) {
         if (openUri != null) { playing = app.media.fromUri(openUri); queue = emptyList(); onOpenConsumed() }
@@ -156,6 +161,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         when (prefs.sort) { 1 -> l.sortedWith { x, y -> NaturalOrder.compare(x.name, y.name) }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
+    var refreshing by remember { mutableStateOf(false) }
+    fun refresh() { refreshing = true; rescan++ }
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
@@ -174,6 +181,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     settingsOn = tab == 4, onSettings = { tab = if (tab == 4) 0 else 4 },
                     dark = dark, onToggleTheme = { scope.launch { app.store.put(K.theme, if (dark) 1 else 2) } },
                     profile = prefs.profile, onProfile = { profileDialog = true },
+                    canRefresh = tab != 4 && granted && scanned, refreshing = refreshing, onRefresh = { refresh() },
                 )
             },
             bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
@@ -195,7 +203,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     PermissionPrompt { ask.launch(needPerm()) }
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
-                } else when (t) {
+                } else PullPage(refreshing, { refresh() }) { when (t) {
                     0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder)
                     1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
@@ -203,7 +211,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                         val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
                         HistoryTab(prefs, app.store, l, ::play)
                     }
-                }
+                } }
             }
         }
         }
@@ -224,6 +232,16 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
+}
+
+/** Pull down to rescan, with the Material 3 Expressive loading indicator (the same one used for buffering). */
+@Composable
+private fun PullPage(refreshing: Boolean, onRefresh: () -> Unit, content: @Composable () -> Unit) {
+    val state = rememberPullToRefreshState()
+    PullToRefreshBox(
+        isRefreshing = refreshing, onRefresh = onRefresh, state = state, modifier = Modifier.fillMaxSize(),
+        indicator = { PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = refreshing, modifier = Modifier.align(Alignment.TopCenter)) },
+    ) { content() }
 }
 
 /** Keeps the UI away from a camera notch on the left or right edge (landscape). */

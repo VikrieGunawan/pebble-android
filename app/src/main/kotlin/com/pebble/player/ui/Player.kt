@@ -183,10 +183,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var nowMs by remember { mutableLongStateOf(0L) }
     var panel by remember { mutableStateOf<String?>(null) }
     var lastPanel by remember { mutableStateOf("speed") }
+    var shownPanel by remember { mutableStateOf<String?>(null) } // what is on screen; lags behind `panel` so a swap can close the old menu first
     var audioDlg by remember { mutableStateOf(false) }
     val curAuto by rememberUpdatedState(autoNext)
     val curShuffle by rememberUpdatedState(shuffle)
-    val curPanel by rememberUpdatedState(panel)
 
     val player = remember(video.id) {
         ExoPlayer.Builder(ctx)
@@ -218,7 +218,11 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     LaunchedEffect(prefs.onLost) { player.setHandleAudioBecomingNoisy(prefs.onLost == 0) }
     LaunchedEffect(player, loop) { player.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF }
     LaunchedEffect(player, muted) { player.volume = if (muted) 0f else 1f }
-    LaunchedEffect(panel) { panel?.let { lastPanel = it } }
+    LaunchedEffect(panel) {
+        if (shownPanel != null && shownPanel != panel) { shownPanel = null; if (panel != null) delay(260) }
+        shownPanel = panel
+        panel?.let { lastPanel = it }
+    }
     DisposableEffect(player, boost) {
         var le: android.media.audiofx.LoudnessEnhancer? = null
         try {
@@ -313,7 +317,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var scrub by remember { mutableStateOf<Float?>(null) }
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(show, tick, isPlaying, panel, scrub) {
-        if (show && isPlaying && panel == null && scrub == null) { delay(3200); show = false }
+        if (show && isPlaying && scrub == null) { delay(3200); show = false }
     }
     BackHandler(panel != null) { panel = null }
 
@@ -358,7 +362,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     val cs = MaterialTheme.colorScheme
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
         val land = maxWidth > maxHeight
-        val endPad by animateDpAsState(if (land && panel != null) 340.dp else 0.dp, label = "endPad")
+        val endPad by animateDpAsState(if (land && shownPanel != null) 340.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit
 
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).padding(end = endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
@@ -383,7 +387,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             Modifier.fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = { if (curPanel != null) panel = null else { show = !show; tick++ } },
+                        onTap = { show = !show; tick++ },
                         onDoubleTap = { o ->
                             val pl = curPlayer
                             val step = curPrefs.skip * 1000L
@@ -535,12 +539,12 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         }
 
         PAnim(
-            panel != null,
+            shownPanel != null,
             Modifier.align(if (land) Alignment.CenterEnd else Alignment.BottomCenter),
             enter = if (land) slideInHorizontally { it } + fadeIn() else slideInVertically { it } + fadeIn(),
             exit = if (land) slideOutHorizontally { it } + fadeOut() else slideOutVertically { it } + fadeOut(),
         ) {
-            val shown = panel ?: lastPanel
+            val shown = shownPanel ?: lastPanel
             val (pIcon, pTitle, pSub) = when (shown) {
                 "speed" -> Triple("speed", "Playback speed", if (speed == 1f) "Normal" else fmtSpeed(speed))
                 "subs" -> Triple("closed_caption", "Subtitles", if (subUri != null) subName else "No file loaded")

@@ -266,14 +266,14 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
         if (t.size >= cur.size && t.take(cur.size) == cur) t else cur
     }
     val upA by animateFloatAsState(if (cur.isNotEmpty()) 1f else 0.35f, label = "up")
-    val scroll = rememberScrollState()
+    val scroll = rememberScrollState(Int.MAX_VALUE) // opens already scrolled to the end: no slide when the page is rebuilt
     // Follow the active crumb: keep it in view while crumbs animate in/out, on every folder change.
     val active = remember { BringIntoViewRequester() }
     // Folder rows are rebuilt every time they scroll back into view: only animate real folder changes, not that rebuild.
     val settled = remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { withFrameNanos { }; settled.value = true }
     LaunchedEffect(path, segs) {
-        if (!settled.value) { try { active.bringIntoView() } catch (_: Exception) { } } else repeat(14) { delay(45); active.bringIntoView() }
+        if (settled.value) repeat(14) { delay(45); active.bringIntoView() }
     }
     val shape = RoundedCornerShape(22.dp)
     Row(
