@@ -142,6 +142,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var all by remember { mutableStateOf<List<Video>>(emptyList()) }
     var scanned by remember { mutableStateOf(false) }
     var rescan by remember { mutableIntStateOf(0) }
+    var refreshing by remember { mutableStateOf(false) }
+    fun refresh() { refreshing = true; rescan++ }
     var folderMenu by remember { mutableStateOf<String?>(null) }
     var profileDialog by remember { mutableStateOf(false) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
@@ -161,8 +163,6 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         when (prefs.sort) { 1 -> l.sortedWith { x, y -> NaturalOrder.compare(x.name, y.name) }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
-    var refreshing by remember { mutableStateOf(false) }
-    fun refresh() { refreshing = true; rescan++ }
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
