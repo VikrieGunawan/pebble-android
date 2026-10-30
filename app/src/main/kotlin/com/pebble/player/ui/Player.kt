@@ -1,5 +1,9 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -360,12 +364,16 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     }
 
     val cs = MaterialTheme.colorScheme
+    // notch: keep the top/bottom clear, and the same space on BOTH sides so everything stays centred
+    val cutV = WindowInsets.displayCutout.only(WindowInsetsSides.Vertical)
+    val cutPad = WindowInsets.displayCutout.asPaddingValues()
+    val sideInset = maxOf(cutPad.calculateLeftPadding(LocalLayoutDirection.current), cutPad.calculateRightPadding(LocalLayoutDirection.current))
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
         val land = maxWidth > maxHeight
-        val endPad by animateDpAsState(if (land && shownPanel != null) 340.dp else 0.dp, label = "endPad")
+        val endPad by animateDpAsState(if (land && panel != null) 316.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit
 
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).padding(end = endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(horizontal = sideInset), contentAlignment = Alignment.Center) {
             AndroidView(
                 factory = { PlayerView(it).apply { useController = false; setShutterBackgroundColor(android.graphics.Color.BLACK) } },
                 update = {
@@ -454,8 +462,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             val subBottom by animateDpAsState(if (show) 112.dp else 30.dp, label = "subBottom")
             val sp = listOf(14, 16, 19, 24)[subSize].sp
             Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(WindowInsets.displayCutout).navigationBarsPadding()
-                    .padding(start = 28.dp, end = 28.dp + endPad.coerceAtLeast(0.dp), bottom = subBottom.coerceAtLeast(0.dp)).heightIn(max = maxHeight * 0.5f),
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cutV).navigationBarsPadding()
+                    .padding(start = 28.dp + sideInset, end = 28.dp + sideInset, bottom = subBottom.coerceAtLeast(0.dp)).heightIn(max = maxHeight * 0.5f),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Text(
@@ -469,14 +477,13 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         PAnim(show, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
             val padEnd = endPad.coerceAtLeast(0.dp)
             val corner by animateDpAsState(if (isPlaying) 20.dp else 30.dp, label = "playCorner")
-            val cut = WindowInsets.displayCutout
             val glass = Color(0xB8140F28)
             val rim = Color(0x22FFFFFF)
             Box(Modifier.fillMaxSize()) {
                 // header: its background runs edge to edge (through the camera notch); only the content stays clear of it
                 Row(
                     Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent)))
-                        .windowInsetsPadding(cut).statusBarsPadding().padding(start = 10.dp, end = 10.dp + padEnd, top = 6.dp, bottom = 14.dp),
+                        .windowInsetsPadding(cutV).statusBarsPadding().padding(start = 10.dp + sideInset, end = 10.dp + sideInset + padEnd, top = 6.dp, bottom = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(Modifier.size(38.dp).clip(CircleShape).background(glass).border(1.dp, rim, CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
@@ -507,8 +514,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
 
                 // bottom card: seek bar, then the tools in two groups
                 Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cut).navigationBarsPadding()
-                        .padding(start = 10.dp, end = 10.dp + padEnd, bottom = 6.dp)
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cutV).navigationBarsPadding()
+                        .padding(start = 10.dp + sideInset, end = 10.dp + sideInset + padEnd, bottom = 6.dp)
                         .clip(RoundedCornerShape(26.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(26.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -554,7 +561,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 else -> Triple("timer", "Sleep timer", if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else "Off")
             }
             Column(
-                (if (land) Modifier.windowInsetsPadding(WindowInsets.displayCutout).statusBarsPadding().navigationBarsPadding().padding(end = 12.dp, top = 8.dp, bottom = 8.dp, start = 8.dp).width(300.dp).fillMaxHeight()
+                (if (land) Modifier.windowInsetsPadding(cutV).statusBarsPadding().navigationBarsPadding().padding(end = 12.dp + sideInset, top = 8.dp, bottom = 8.dp, start = 8.dp).width(300.dp).fillMaxHeight()
                 else Modifier.fillMaxWidth().navigationBarsPadding().padding(8.dp).heightIn(max = maxHeight * 0.6f))
                     .clip(RoundedCornerShape(28.dp)).background(GLASS)
                     .pointerInput(Unit) { detectTapGestures { } }.padding(14.dp),

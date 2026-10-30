@@ -213,11 +213,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
             text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(48.dp)) } },
         )
     }
-    if (details) AlertDialog(
-        onDismissRequest = { details = false }, title = { Text(v.name) },
-        text = { Text("Format: ${v.ext.ifEmpty { "-" }}\nSize: ${fmtSize(v.size)}\nDuration: ${fmt(v.dur)}\nFolder: ${v.path.ifEmpty { v.folder }}") },
-        confirmButton = { TextButton({ details = false }) { Text("Close") } },
-    )
+    if (details) VideoDetailsDialog(v, prefs) { details = false }
     if (confirmDel) AlertDialog(
         onDismissRequest = { confirmDel = false }, title = { Text("Delete this video?") }, text = { Text("The file is removed from your phone. Android will ask you to confirm.") },
         confirmButton = {
@@ -331,9 +327,5 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
             }
         }
     }
-    if (details) AlertDialog(
-        onDismissRequest = { details = false }, title = { Text(name) },
-        text = { Text("Path: ${path.ifEmpty { "/" }}\nVideos: ${vids.size}\nSize: ${fmtSize(vids.sumOf { it.size })}\nDuration: ${fmt(vids.sumOf { it.dur })}\nSubfolders: ${vids.map { it.path }.distinct().count { it != path }}") },
-        confirmButton = { TextButton({ details = false }) { Text("Close") } },
-    )
+    if (details) FolderDetailsDialog(name, path, vids) { details = false }
 }
