@@ -77,7 +77,7 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
                 PlayStat("movie", v.ext.ifEmpty { "-" }.uppercase(), "Format", Modifier.weight(1f))
             }
             InfoRow("folder", "Location", place)
-            InfoRow("update", "Added", added)
+            InfoRow("calendar_month", "Added", added)
             InfoRow("favorite", "Favorite", if (fav) "Yes, pinned in Favorites" else "No")
             InfoRow(
                 "history", "Watched",

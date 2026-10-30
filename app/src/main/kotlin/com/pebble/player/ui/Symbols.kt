@@ -41,6 +41,7 @@ private val FILLED = family(1f)
 private val OUTLINE = family(0f)
 
 private val CP = mapOf(
+    "calendar_month" to 0xebcc,
     "battery_full" to 0xe1a5,
     "bluetooth" to 0xe1a7,
     "bolt" to 0xea0b,

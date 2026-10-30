@@ -43,8 +43,9 @@ fun TabPager(
         }
     }
     BackHandler(tab != 0) { if (inFolder) onFolderUp() else onTab(0) }
-    val lo by remember { derivedStateOf { floor(pos.value).toInt().coerceIn(0, count - 1) } }
-    val hi by remember { derivedStateOf { ceil(pos.value).toInt().coerceIn(0, count - 1) } }
+    // every tab between where we are and where we are going stays composed for the whole slide, so none is built mid-motion
+    val lo by remember(tab) { derivedStateOf { minOf(floor(pos.value).toInt(), tab).coerceIn(0, count - 1) } }
+    val hi by remember(tab) { derivedStateOf { maxOf(ceil(pos.value).toInt(), tab).coerceIn(0, count - 1) } }
     Box(modifier.clipToBounds()) {
         for (i in lo..hi) key(i) {
             Box(Modifier.fillMaxSize().graphicsLayer { translationX = (i - pos.value) * size.width }) { page(i) }

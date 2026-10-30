@@ -370,7 +370,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     val sideInset = maxOf(cutPad.calculateLeftPadding(LocalLayoutDirection.current), cutPad.calculateRightPadding(LocalLayoutDirection.current))
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
         val land = maxWidth > maxHeight
-        val endPad by animateDpAsState(if (land && panel != null) 316.dp else 0.dp, label = "endPad")
+        val endPad by animateDpAsState(if (land && panel != null) 300.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit
 
         Box(Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
@@ -561,10 +561,13 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 else -> Triple("timer", "Sleep timer", if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else "Off")
             }
             Column(
-                (if (land) Modifier.windowInsetsPadding(cutV).statusBarsPadding().navigationBarsPadding().padding(end = 12.dp + sideInset, top = 8.dp, bottom = 8.dp, start = 8.dp).width(300.dp).fillMaxHeight()
+                (if (land) Modifier.fillMaxHeight().width(300.dp)
                 else Modifier.fillMaxWidth().navigationBarsPadding().padding(8.dp).heightIn(max = maxHeight * 0.6f))
-                    .clip(RoundedCornerShape(28.dp)).background(GLASS)
-                    .pointerInput(Unit) { detectTapGestures { } }.padding(14.dp),
+                    // landscape: the menu is attached to the right edge of the screen, full height
+                    .clip(if (land) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp) else RoundedCornerShape(28.dp)).background(GLASS)
+                    .pointerInput(Unit) { detectTapGestures { } }
+                    .then(if (land) Modifier.windowInsetsPadding(cutV).statusBarsPadding().navigationBarsPadding().padding(end = sideInset) else Modifier)
+                    .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
