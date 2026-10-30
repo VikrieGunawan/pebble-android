@@ -39,7 +39,7 @@ fun TabPager(
     LaunchedEffect(tab) {
         if (pos.targetValue != tab.toFloat()) {
             val d = abs(pos.value - tab)
-            pos.animateTo(tab.toFloat(), tween((200 + 40 * d).toInt().coerceAtMost(420), easing = FastOutSlowInEasing))
+            pos.animateTo(tab.toFloat(), tween((320 + 60 * d).toInt().coerceAtMost(600), easing = FastOutSlowInEasing))
         }
     }
     BackHandler(tab != 0) { if (inFolder) onFolderUp() else onTab(0) }

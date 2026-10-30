@@ -181,7 +181,6 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     settingsOn = tab == 4, onSettings = { tab = if (tab == 4) 0 else 4 },
                     dark = dark, onToggleTheme = { scope.launch { app.store.put(K.theme, if (dark) 1 else 2) } },
                     profile = prefs.profile, onProfile = { profileDialog = true },
-                    canRefresh = tab != 4 && granted && scanned, refreshing = refreshing, onRefresh = { refresh() },
                 )
             },
             bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
@@ -204,7 +203,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 } else if (!scanned) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                 } else PullPage(refreshing, { refresh() }) { when (t) {
-                    0 -> HomeTab(prefs, visible, { rescan++ }, ::play, { tab = it }, openFolder)
+                    0 -> HomeTab(prefs, visible, { refresh() }, ::play, { tab = it }, openFolder)
                     1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
                     2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
                     else -> {

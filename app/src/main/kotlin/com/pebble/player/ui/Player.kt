@@ -373,7 +373,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val endPad by animateDpAsState(if (land && panel != null) 316.dp else 0.dp, label = "endPad")
         val effFit = if (ratio > 0f && fit == 0) 1 else fit
 
-        Box(Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(horizontal = sideInset), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
             AndroidView(
                 factory = { PlayerView(it).apply { useController = false; setShutterBackgroundColor(android.graphics.Color.BLACK) } },
                 update = {
@@ -463,7 +463,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             val sp = listOf(14, 16, 19, 24)[subSize].sp
             Box(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cutV).navigationBarsPadding()
-                    .padding(start = 28.dp + sideInset, end = 28.dp + sideInset, bottom = subBottom.coerceAtLeast(0.dp)).heightIn(max = maxHeight * 0.5f),
+                    .padding(start = 28.dp + sideInset, end = 28.dp + sideInset + endPad.coerceAtLeast(0.dp), bottom = subBottom.coerceAtLeast(0.dp)).heightIn(max = maxHeight * 0.5f),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Text(

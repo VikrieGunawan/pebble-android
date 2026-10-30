@@ -131,7 +131,6 @@ fun PebbleTopBar(
     showLogo: Boolean, query: String, onQuery: (String) -> Unit, placeholder: String,
     settingsOn: Boolean, onSettings: () -> Unit, dark: Boolean, onToggleTheme: () -> Unit,
     profile: Profile, onProfile: () -> Unit,
-    canRefresh: Boolean = false, refreshing: Boolean = false, onRefresh: () -> Unit = {},
 ) {
     val focus = LocalFocusManager.current
     val imeOn = WindowInsets.isImeVisible
@@ -174,7 +173,6 @@ fun PebbleTopBar(
                 searchField(Modifier.weight(1f))
                 Spacer(Modifier.width(10.dp))
                 Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (canRefresh) roundBtn("refresh", refreshing, "Refresh", onRefresh)
                     roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
                     roundBtn("settings", settingsOn, "Settings", onSettings)
                 }
@@ -189,7 +187,6 @@ fun PebbleTopBar(
                 }
                 Spacer(Modifier.weight(1f))
                 Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (canRefresh) roundBtn("refresh", refreshing, "Refresh", onRefresh)
                     roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
                     roundBtn("settings", settingsOn, "Settings", onSettings)
                 }
