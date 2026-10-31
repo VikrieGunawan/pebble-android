@@ -1,5 +1,17 @@
 package com.pebble.player.ui
 
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
 import kotlinx.coroutines.delay
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -163,6 +175,14 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         when (prefs.sort) { 1 -> l.sortedWith { x, y -> NaturalOrder.compare(x.name, y.name) }; 2 -> l.sortedByDescending { it.dur }; 3 -> l.sortedByDescending { it.size }; else -> l }
     }
     fun play(v: Video, list: List<Video>) { playing = v; queue = list }
+    // Settings is its own layer: opening it slides the whole page (and the navigation) away once, instead of walking through the tabs.
+    var lastTab by remember { mutableIntStateOf(0) }
+    LaunchedEffect(tab) { if (tab != 4) lastTab = tab }
+    val sp = remember { Animatable(if (tab == 4) 1f else 0f) }
+    LaunchedEffect(tab == 4) { sp.animateTo(if (tab == 4) 1f else 0f, tween(380, easing = FastOutSlowInEasing)) }
+    val pagerVisible by remember { derivedStateOf { sp.value < 1f } }
+    val settingsVisible by remember { derivedStateOf { sp.value > 0f } }
+    BackHandler(tab == 4) { tab = lastTab }
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
@@ -171,46 +191,60 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {
         Row(Modifier.fillMaxSize()) {
-        if (wide) PebbleRail(tab) { tab = it }
+        if (wide) PAnim(
+            tab != 4,
+            enter = slideInHorizontally(tween(380)) { -it } + expandHorizontally(tween(380)),
+            exit = slideOutHorizontally(tween(380)) { -it } + shrinkHorizontally(tween(380)),
+        ) { PebbleRail(tab) { tab = it } }
         Scaffold(
             modifier = Modifier.weight(1f).windowInsetsPadding(WindowInsets.displayCutout.only(if (wide) WindowInsetsSides.End else WindowInsetsSides.Horizontal)),
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
                     placeholder = if (tab == 4) "Search settings" else "Search your videos",
-                    settingsOn = tab == 4, onSettings = { tab = if (tab == 4) 0 else 4 },
+                    settingsOn = tab == 4, onSettings = { tab = if (tab == 4) lastTab else 4 },
                     dark = dark, onToggleTheme = { scope.launch { app.store.put(K.theme, if (dark) 1 else 2) } },
                     profile = prefs.profile, onProfile = { profileDialog = true },
                 )
             },
-            bottomBar = { if (!wide) PebbleTabBar(tab) { tab = it } },
+            bottomBar = {
+                if (!wide) PAnim(
+                    tab != 4,
+                    enter = slideInHorizontally(tween(380)) { -it } + expandVertically(tween(380)),
+                    exit = slideOutHorizontally(tween(380)) { -it } + shrinkVertically(tween(380)),
+                ) { PebbleTabBar(tab) { tab = it } }
+            },
         ) { pad ->
             val focus = androidx.compose.ui.platform.LocalFocusManager.current
-            // Tabs sit side by side; switching slides the strip and the tabs in between pass by.
-            TabPager(
-                tab = tab, count = 5, onTab = { tab = it },
-                inFolder = tab == 1 && !libFolder.isNullOrBlank(),
-                onFolderUp = {
-                    val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
-                    openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/")
-                },
-                modifier = Modifier.padding(pad).fillMaxSize().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } },
-            ) { t ->
-                if (t == 4) {
-                    SettingsScreen(prefs, app.store, all, { rescan++ }, startClear, query)
-                } else if (!granted) {
-                    PermissionPrompt { ask.launch(needPerm()) }
-                } else if (!scanned) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
-                } else PullPage(refreshing, { refresh() }) { when (t) {
-                    0 -> HomeTab(prefs, visible, { refresh() }, ::play, { tab = it }, openFolder)
-                    1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
-                    2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
-                    else -> {
-                        val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
-                        HistoryTab(prefs, app.store, l, ::play)
+            Box(Modifier.padding(pad).fillMaxSize().clipToBounds().pointerInput(Unit) { detectTapGestures { focus.clearFocus() } }) {
+                if (pagerVisible) Box(Modifier.fillMaxSize().graphicsLayer { translationX = -sp.value * size.width }) {
+                    // Tabs sit side by side; switching slides the strip and the tabs in between pass by.
+                    TabPager(
+                        tab = if (tab == 4) lastTab else tab, count = 4, onTab = { tab = it }, active = tab != 4,
+                        inFolder = tab == 1 && !libFolder.isNullOrBlank(),
+                        onFolderUp = {
+                            val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+                            openFolder(if (segs.size <= 1) null else segs.dropLast(1).joinToString("/") + "/")
+                        },
+                    ) { t ->
+                        if (!granted) {
+                            PermissionPrompt { ask.launch(needPerm()) }
+                        } else if (!scanned) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
+                        } else PullPage(refreshing, { refresh() }) { when (t) {
+                            0 -> HomeTab(prefs, visible, { refresh() }, ::play, { tab = it }, openFolder)
+                            1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
+                            2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
+                            else -> {
+                                val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
+                                HistoryTab(prefs, app.store, l, ::play)
+                            }
+                        } }
                     }
-                } }
+                }
+                if (settingsVisible) Box(Modifier.fillMaxSize().graphicsLayer { translationX = (1f - sp.value) * size.width }) {
+                    SettingsScreen(prefs, app.store, all, { rescan++ }, startClear, query)
+                }
             }
         }
         }

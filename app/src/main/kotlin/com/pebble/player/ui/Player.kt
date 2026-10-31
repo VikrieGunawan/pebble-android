@@ -367,6 +367,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     // notch: keep the top/bottom clear, and the same space on BOTH sides so everything stays centred
     val cutV = WindowInsets.displayCutout.only(WindowInsetsSides.Vertical)
     val cutPad = WindowInsets.displayCutout.asPaddingValues()
+    val rightInset = cutPad.calculateRightPadding(LocalLayoutDirection.current)
     val sideInset = maxOf(cutPad.calculateLeftPadding(LocalLayoutDirection.current), cutPad.calculateRightPadding(LocalLayoutDirection.current))
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
         val land = maxWidth > maxHeight
@@ -566,7 +567,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     // landscape: the menu is attached to the right edge of the screen, full height
                     .clip(if (land) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp) else RoundedCornerShape(28.dp)).background(GLASS)
                     .pointerInput(Unit) { detectTapGestures { } }
-                    .then(if (land) Modifier.windowInsetsPadding(cutV).statusBarsPadding().navigationBarsPadding().padding(end = sideInset) else Modifier)
+                    .then(if (land) Modifier.windowInsetsPadding(cutV).statusBarsPadding().navigationBarsPadding().padding(end = rightInset) else Modifier)
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

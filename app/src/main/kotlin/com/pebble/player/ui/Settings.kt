@@ -91,10 +91,9 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         Cat("about", "info", "About", "Pebble Player"),
     )
     val cur = cats.firstOrNull { it.id == page }
-    val sc = rememberScrollState()
-    LaunchedEffect(page) { sc.scrollTo(0) }
+    val hubScroll = rememberScrollState() // kept while a sub page is open, so coming back lands where you were
     PredictiveBack(page != null, { page = null }) {
-    Column(Modifier.fillMaxSize().verticalScroll(sc).padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -115,8 +114,8 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
                 }
             }
         }
-        AnimatedContent(page, transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "setPage") { p ->
-        Column {
+        AnimatedContent(page, Modifier.weight(1f), transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "setPage") { p ->
+        Column(Modifier.fillMaxSize().verticalScroll(if (p == null) hubScroll else rememberScrollState())) {
         if (p == null) {
             val shown = cats.filter { query.isBlank() || it.title.contains(query, true) || it.sub.contains(query, true) }
             Spacer(Modifier.height(14.dp))
@@ -149,9 +148,9 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             Text("v${currentVersion(LocalContext.current)} · Material 3 Expressive", color = MaterialTheme.colorScheme.onSurfaceVariant)
             UpdateRow()
         }
-        }
-        }
         Spacer(Modifier.height(32.dp))
+        }
+        }
     }
     }
 }

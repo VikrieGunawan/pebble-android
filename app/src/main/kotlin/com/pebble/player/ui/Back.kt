@@ -32,7 +32,7 @@ fun PredictiveBack(enabled: Boolean, onBack: () -> Unit, modifier: Modifier = Mo
  */
 @Composable
 fun TabPager(
-    tab: Int, count: Int, onTab: (Int) -> Unit, inFolder: Boolean, onFolderUp: () -> Unit,
+    tab: Int, count: Int, onTab: (Int) -> Unit, inFolder: Boolean, onFolderUp: () -> Unit, active: Boolean = true,
     modifier: Modifier = Modifier, page: @Composable (Int) -> Unit,
 ) {
     val pos = remember { Animatable(tab.toFloat()) }
@@ -42,7 +42,7 @@ fun TabPager(
             pos.animateTo(tab.toFloat(), tween((320 + 60 * d).toInt().coerceAtMost(600), easing = FastOutSlowInEasing))
         }
     }
-    BackHandler(tab != 0) { if (inFolder) onFolderUp() else onTab(0) }
+    BackHandler(active && tab != 0) { if (inFolder) onFolderUp() else onTab(0) }
     // every tab between where we are and where we are going stays composed for the whole slide, so none is built mid-motion
     val lo by remember(tab) { derivedStateOf { minOf(floor(pos.value).toInt(), tab).coerceIn(0, count - 1) } }
     val hi by remember(tab) { derivedStateOf { maxOf(ceil(pos.value).toInt(), tab).coerceIn(0, count - 1) } }
