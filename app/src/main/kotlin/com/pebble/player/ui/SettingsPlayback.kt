@@ -32,6 +32,8 @@ import com.pebble.player.data.Store
 import kotlinx.coroutines.launch
 
 private val SKIPS = listOf(5, 10, 15, 30)
+private val HOLDS = listOf(1.5f, 2f, 2.5f, 3f)
+private val HOLD_LABELS = listOf("1.5x", "2x", "2.5x", "3x")
 private val SPEED_LABELS = listOf("0.5x", "1x", "1.25x", "1.5x", "2x")
 
 /** Settings → Playback: current choices at a glance, then grouped cards (switches and segmented pickers). */
@@ -72,6 +74,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
         SectionLabel("tune", "Controls")
         ChoiceCard("forward_10", "Skip step", "How far the skip buttons and double-tap jump.", SKIPS.map { "${it}s" }, skipI) { put(K.skip, SKIPS[it]) }
         ChoiceCard("speed", "Default speed", "The speed every video starts at.", SPEED_LABELS, speedI) { put(K.speed, SPEEDS[it]) }
+        ChoiceCard("speed", "Hold to speed up", "Press and hold the video to play faster. Let go to go back.", HOLD_LABELS, HOLDS.indexOf(prefs.holdSpeed).let { if (it < 0) 1 else it }) { put(K.holdSpeed, HOLDS[it]) }
         ChoiceCard("aspect_ratio", "Video fit", "How the picture fills the screen.", fits, prefs.fit) { put(K.fit, it) }
 
         SectionLabel("screen_rotation", "Screen")

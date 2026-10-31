@@ -1,5 +1,13 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
@@ -294,28 +302,66 @@ private fun PermissionPrompt(onAsk: () -> Unit) {
     }
 }
 
+/** Profile editor. Portrait: one scrolling column. Landscape: photo and name on the left, emoji and colors on the right. */
 @Composable
 private fun ProfileDialog(p: Profile, onDismiss: () -> Unit, onSave: (Profile) -> Unit) {
     var cur by remember { mutableStateOf(p) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Your profile") },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().height(440.dp).let { it }) {
-                androidx.compose.foundation.layout.Box(Modifier.weight(1f, fill = false)) {
-                    Column(Modifier.verticalScrollCompat(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        PhotoAvatar(cur, 110.dp) { cur = cur.copy(photo = it, emoji = "") }
-                        OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = { Text("Name") }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
-                        EmojiColorPicker(cur) { cur = it }
+    val cs = MaterialTheme.colorScheme
+    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
+            val land = maxWidth > maxHeight
+            @Composable
+            fun hero(avatar: Dp) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(cs.surfaceContainer).padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PhotoAvatar(cur, avatar) { cur = cur.copy(photo = it, emoji = "") }
+                    Text("Tap the photo to change it", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = { Text("Name") }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
+                    if (cur.photo.isNotEmpty()) Row(
+                        Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHighest).clickable { cur = cur.copy(photo = "") }.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon("close", null, Modifier.size(18.dp), tint = cs.onSurfaceVariant)
+                        Text("Remove photo", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
-        },
-        confirmButton = { TextButton({ onSave(cur) }) { Text("Save") } },
-        dismissButton = { TextButton(onDismiss) { Text("Cancel") } },
-    )
+            @Composable
+            fun actions() {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.height(44.dp).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHighest).clickable(onClick = onDismiss).padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
+                        Text("Cancel", fontWeight = FontWeight.ExtraBold)
+                    }
+                    Row(
+                        Modifier.height(44.dp).clip(RoundedCornerShape(16.dp)).background(cs.primary).clickable { onSave(cur) }.padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon("check", null, Modifier.size(20.dp), tint = cs.onPrimary)
+                        Text("Save", color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+            Column(
+                Modifier.widthIn(max = if (land) 780.dp else 460.dp).fillMaxWidth().heightIn(max = maxHeight)
+                    .clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainerHigh),
+            ) {
+                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Your profile", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    if (land) actions()
+                }
+                if (land) Row(Modifier.weight(1f, fill = false).padding(horizontal = 16.dp).padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(Modifier.width(250.dp).verticalScroll(rememberScrollState())) { hero(96.dp) }
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) { EmojiColorPicker(cur) { cur = it } }
+                } else {
+                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        hero(108.dp)
+                        EmojiColorPicker(cur) { cur = it }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) { actions() }
+                }
+            }
+        }
+    }
 }
-
-@Composable
-private fun Modifier.verticalScrollCompat(): Modifier =
-    this.then(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()))

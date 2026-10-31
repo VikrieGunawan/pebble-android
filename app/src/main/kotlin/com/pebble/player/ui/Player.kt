@@ -1,5 +1,7 @@
 package com.pebble.player.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.only
@@ -250,6 +252,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var error by remember(video.id) { mutableStateOf<PlaybackException?>(null) }
     var failing by remember(video.id) { mutableStateOf<PlaybackException?>(null) } // error seen, screen still waiting
     var speed by remember { mutableFloatStateOf(prefs.speed) }
+    var boosting by remember { mutableStateOf(false) } // press-and-hold fast playback
+    val curSpeed by rememberUpdatedState(speed)
     var fit by remember { mutableIntStateOf(prefs.fit) }
     var orient by remember { mutableIntStateOf(prefs.orient) }
     var vSize by remember { mutableStateOf(VideoSize.UNKNOWN) }
@@ -397,6 +401,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { show = !show; tick++ },
+                        onPress = { tryAwaitRelease(); if (boosting) { boosting = false; curPlayer.setPlaybackSpeed(curSpeed) } },
+                        onLongPress = { boosting = true; curPlayer.setPlaybackSpeed(curPrefs.holdSpeed); hud = null },
                         onDoubleTap = { o ->
                             val pl = curPlayer
                             val step = curPrefs.skip * 1000L
@@ -458,6 +464,13 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 LinearProgressIndicator(progress = { v }, modifier = Modifier.size(width = 110.dp, height = 6.dp), drawStopIndicator = {})
                 Text("${(v * 100).roundToInt()}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
+        }
+        if (boosting) Row(
+            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp).clip(RoundedCornerShape(26.dp)).background(Color(0xB80A0814)).padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon("speed", null, Modifier.size(22.dp), tint = cs.primary)
+            Text("${fmtSpeed(curPrefs.holdSpeed)} speed", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
         }
         if (subs && cueText.isNotBlank()) {
             val subBottom by animateDpAsState(if (show) 112.dp else 30.dp, label = "subBottom")
@@ -522,6 +535,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                         Scrubber(
+                            playing = isPlaying,
                             value = scrub ?: if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f,
                             onChange = { scrub = it },
                             onFinish = { f -> player.seekTo((f * dur).toLong()); scrub = null },
@@ -870,18 +884,19 @@ private fun audioKind(d: AudioDeviceInfo): String = when {
     else -> "Wired"
 }
 
-/** Slim seek bar: a thin track that thickens while dragging, with a round handle. */
+/** Material 3 Expressive seek bar: a wavy track that ripples while playing, flattens when paused or dragged, with a pill handle. */
 @Composable
-private fun Scrubber(value: Float, onChange: (Float) -> Unit, onFinish: (Float) -> Unit, modifier: Modifier = Modifier) {
+private fun Scrubber(playing: Boolean, value: Float, onChange: (Float) -> Unit, onFinish: (Float) -> Unit, modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme
     var w by remember { mutableFloatStateOf(1f) }
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
-    val th by animateDpAsState(if (drag) 8.dp else 4.dp, label = "scrubH")
+    val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
+    val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, label = "wave")
     val v = value.coerceIn(0f, 1f)
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
-        modifier.height(30.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
+        modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
             .pointerInput(Unit) { detectTapGestures { o -> upd(o.x); onFinish(last) } }
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
@@ -892,8 +907,13 @@ private fun Scrubber(value: Float, onChange: (Float) -> Unit, onFinish: (Float) 
             },
         contentAlignment = Alignment.CenterStart,
     ) {
-        Box(Modifier.fillMaxWidth().height(th.coerceAtLeast(1.dp)).clip(CircleShape).background(Color(0x40FFFFFF)))
-        Box(Modifier.fillMaxWidth(v).height(th.coerceAtLeast(1.dp)).clip(CircleShape).background(cs.primary))
-        Box(Modifier.offset { androidx.compose.ui.unit.IntOffset((v * w - 7.dp.toPx()).roundToInt(), 0) }.size(14.dp).clip(CircleShape).background(cs.primary))
+        LinearWavyProgressIndicator(
+            progress = { v }, modifier = Modifier.fillMaxWidth(),
+            color = cs.primary, trackColor = Color(0x40FFFFFF), amplitude = { amp },
+        )
+        Box(
+            Modifier.offset { androidx.compose.ui.unit.IntOffset((v * w - handleW.toPx() / 2f).roundToInt(), 0) }
+                .size(handleW.coerceAtLeast(1.dp), 24.dp).clip(RoundedCornerShape(50)).background(cs.primary),
+        )
     }
 }
