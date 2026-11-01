@@ -18,11 +18,14 @@ import com.pebble.player.ui.PebbleRoot
 class MainActivity : ComponentActivity() {
     private var openUri by mutableStateOf<Uri?>(null)
 
-    // System "Bold text" would add +300 to every weight; cap it so text stays readable but not extremely thick.
+    // System "Bold text" would add +300 to every weight; cap it. Only this one field is overridden, so rotation and size changes still update.
     override fun attachBaseContext(newBase: Context) {
-        val c = Configuration(newBase.resources.configuration)
-        if (Build.VERSION.SDK_INT >= 31 && c.fontWeightAdjustment != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED && c.fontWeightAdjustment > 100) c.fontWeightAdjustment = 100
-        super.attachBaseContext(newBase.createConfigurationContext(c))
+        val w = newBase.resources.configuration.fontWeightAdjustment
+        if (Build.VERSION.SDK_INT >= 31 && w != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED && w > 100) {
+            val o = Configuration()
+            o.fontWeightAdjustment = 100
+            super.attachBaseContext(newBase.createConfigurationContext(o))
+        } else super.attachBaseContext(newBase)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
