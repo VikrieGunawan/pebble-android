@@ -2,6 +2,7 @@
 
 package com.pebble.player.ui
 
+import androidx.compose.animation.BoundsTransform
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.animation.SharedTransitionScope
@@ -230,13 +231,17 @@ private fun morphSpec(): ContentTransform =
 
 /** Shared bounds without any fade: the element itself moves and resizes between the list and grid layouts. */
 @Composable
-private fun SharedTransitionScope.morph(key: String, av: AnimatedVisibilityScope, z: Float = 1f, remeasure: Boolean = false): Modifier = Modifier.sharedBounds(
-    rememberSharedContentState(key), av,
-    enter = EnterTransition.None, exit = ExitTransition.None,
-    boundsTransform = { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) },
-    resizeMode = if (remeasure) SharedTransitionScope.ResizeMode.RemeasureToBounds else SharedTransitionScope.ResizeMode.ScaleToBounds(ContentScale.FillBounds, Alignment.TopStart),
-    zIndexInOverlay = z,
-)
+private fun SharedTransitionScope.morph(key: String, av: AnimatedVisibilityScope, z: Float = 1f, remeasure: Boolean = false): Modifier {
+    val st = rememberSharedContentState(key)
+    val bt = BoundsTransform { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) }
+    // remeasure = relayout every frame (backgrounds, text); otherwise the default scale-to-bounds (cheap)
+    return if (remeasure) Modifier.sharedBounds(
+        st, av, enter = EnterTransition.None, exit = ExitTransition.None, boundsTransform = bt,
+        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, zIndexInOverlay = z,
+    ) else Modifier.sharedBounds(
+        st, av, enter = EnterTransition.None, exit = ExitTransition.None, boundsTransform = bt, zIndexInOverlay = z,
+    )
+}
 
 /** Folder card (grid) / folder row (list): background, icon, texts and menu all glide between the two layouts. */
 @Composable
