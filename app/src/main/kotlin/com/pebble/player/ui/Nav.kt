@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -113,13 +114,17 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
             .statusBarsPadding().navigationBarsPadding().padding(horizontal = 8.dp, vertical = if (short) 6.dp else 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (short) 2.dp else 10.dp),
     ) {
-        if (!short) {
-            LogoMark(46.dp)
-            Text("Pebble", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
+        Column(
+            Modifier.weight(1f).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (short) 2.dp else 10.dp),
+        ) {
+            if (!short) {
+                LogoMark(46.dp)
+                Text("Pebble", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+            }
+            NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(n.id) } }
         }
-        NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(n.id) } }
-        Spacer(Modifier.weight(1f))
         NavButton("settings", "Settings", tab == 4, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(4) }
     }
 }

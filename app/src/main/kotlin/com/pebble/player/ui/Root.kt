@@ -262,7 +262,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     }
                 }
                 if (settingsVisible) Box(Modifier.fillMaxSize().graphicsLayer { translationX = (1f - sp.value) * size.width }) {
-                    SettingsScreen(prefs, app.store, all, { rescan++ }, startClear, query)
+                    PullPage(refreshing, { refresh() }) { SettingsScreen(prefs, app.store, all, { refresh() }, startClear, query) }
                 }
             }
         }
