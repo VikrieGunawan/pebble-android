@@ -2,6 +2,12 @@
 
 package com.pebble.player.ui
 
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -195,9 +201,11 @@ fun VideoCollection(
 ) {
     val folderMenu = LocalFolderMenu.current
     val row = prefs.layout == 1
+    val cfg = LocalConfiguration.current
+    val phone = minOf(cfg.screenWidthDp, cfg.screenHeightDp) < 600 // phones: grid = one big card per row
     val gap by animateDpAsState(if (row) 0.dp else 14.dp, label = "gridGap")
     LazyVerticalGrid(
-        columns = if (row) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
+        columns = if (row || phone) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(if (row) 10.dp else 14.dp),
@@ -215,41 +223,56 @@ fun VideoCollection(
     }
 }
 
-/** Folder card (grid) / folder row (list) that morphs between the two layouts. */
+private const val MORPH_MS = 420
+
+private fun morphSpec(): ContentTransform =
+    EnterTransition.None togetherWith ExitTransition.None using SizeTransform(clip = false) { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) }
+
+/** Shared bounds without any fade: the element itself moves and resizes between the list and grid layouts. */
+@Composable
+private fun SharedTransitionScope.morph(key: String, av: AnimatedVisibilityScope, z: Float = 1f): Modifier = Modifier.sharedBounds(
+    rememberSharedContentState(key), av,
+    enter = EnterTransition.None, exit = ExitTransition.None,
+    boundsTransform = { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) },
+    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+    zIndexInOverlay = z,
+)
+
+/** Folder card (grid) / folder row (list): background, icon, texts and menu all glide between the two layouts. */
 @Composable
 fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMore: (() -> Unit)? = null, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    val more: @Composable () -> Unit = {
-        if (onMore != null) Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
-            Icon("more_vert", "Folder menu", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
-        }
-    }
     SharedTransitionLayout(modifier) {
         val sc = this
-        AnimatedContent(row, transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(160)) using SizeTransform(clip = false) }, label = "folder") { r ->
-            val tile = with(sc) { Modifier.sharedBounds(rememberSharedContentState("fi-$name"), this@AnimatedContent) }
-            if (r) Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                IconTile("folder", 52.dp, modifier = tile)
-                Column(Modifier.weight(1f)) {
-                    Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+        AnimatedContent(row, transitionSpec = { morphSpec() }, label = "folder") { r ->
+            val av: AnimatedVisibilityScope = this
+            val sh: @Composable (String, Float) -> Modifier = { k, z -> sc.morph(k, av, z) }
+            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("fbg-$name", 0f)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
+            val title: @Composable () -> Unit = { Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = sh("ft-$name", 1f).fillMaxWidth()) }
+            val sub: @Composable () -> Unit = {
+                Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, modifier = sh("fs-$name", 1f).fillMaxWidth())
+            }
+            val more: @Composable () -> Unit = {
+                if (onMore != null) Box(sh("fm-$name", 1f).size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
+                    Icon("more_vert", "Folder menu", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 }
-                if (onMore != null) more() else Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
-            } else Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                    IconTile("folder", 52.dp, modifier = tile)
-                    Spacer(Modifier.weight(1f))
-                    Box(Modifier.offset(x = 8.dp, y = (-8).dp)) { more() }
+            }
+            if (r) Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
+                bg()
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    IconTile("folder", 52.dp, modifier = sh("fi-$name", 1f))
+                    Column(Modifier.weight(1f)) { title(); sub() }
+                    if (onMore != null) more() else Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 }
-                Column {
-                    Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            } else Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
+                bg()
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                        IconTile("folder", 52.dp, modifier = sh("fi-$name", 1f))
+                        Spacer(Modifier.weight(1f))
+                        Box(Modifier.offset(x = 8.dp, y = (-8).dp)) { more() }
+                    }
+                    Column { title(); sub() }
                 }
             }
         }
@@ -318,7 +341,7 @@ private fun Crumb(icon: String, label: String, cur: Boolean, dim: Boolean, extra
     }
 }
 
-/** Video card in the website's style; morphs between grid and list with a shared-bounds thumbnail. */
+/** Video card: cover, title, format/size, ⋮ button and background glide (no fade) between list and grid. */
 @Composable
 fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
@@ -328,10 +351,12 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
     val bmp = rememberThumb(v)
     SharedTransitionLayout(modifier) {
         val sc = this
-        AnimatedContent(row, transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(160)) using SizeTransform(clip = false) }, label = "card") { r ->
-            val shared = with(sc) { Modifier.sharedBounds(rememberSharedContentState("t-${v.id}"), this@AnimatedContent) }
+        AnimatedContent(row, transitionSpec = { morphSpec() }, label = "card") { r ->
+            val av: AnimatedVisibilityScope = this
+            val sh: @Composable (String, Float) -> Modifier = { k, z -> sc.morph(k, av, z) }
+            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("bg-${v.id}", 0f)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
             val thumb: @Composable (Modifier) -> Unit = { m ->
-                Box(shared.then(m).aspectRatio(16f / 9f).clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHigh)) {
+                Box(sh("t-${v.id}", 1f).then(m).aspectRatio(16f / 9f).clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHigh)) {
                     bmp?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                         ?: Icon("movie", null, Modifier.align(Alignment.Center).size(30.dp), tint = cs.onSurfaceVariant)
                     if (v.dur > 0) Text(
@@ -345,35 +370,37 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                     )
                 }
             }
+            val title: @Composable (Int) -> Unit = { n ->
+                Text(v.name, fontWeight = FontWeight.Bold, maxLines = n, overflow = TextOverflow.Ellipsis, modifier = sh("n-${v.id}", 1f).fillMaxWidth())
+            }
             val meta: @Composable () -> Unit = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(sh("m-${v.id}", 1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (v.ext.isNotEmpty()) Text(v.ext, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
                         modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer).padding(horizontal = 8.dp, vertical = 3.dp))
                     if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
                 }
             }
             val more: @Composable () -> Unit = {
-                Box(Modifier.size(40.dp).clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) { Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
+                Box(sh("o-${v.id}", 1f).size(40.dp).clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) { Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
             }
             if (r) {
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    thumb(Modifier.width(128.dp))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(v.name, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        meta()
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
+                    bg()
+                    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        thumb(Modifier.width(128.dp))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) { title(2); meta() }
+                        more()
                     }
-                    more()
                 }
             } else {
-                // no clipped corners here, so the format pill and ⋮ button never get cut off
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick).padding(8.dp)) {
-                    thumb(Modifier.fillMaxWidth())
-                    Row(Modifier.padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(v.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            meta()
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
+                    bg()
+                    Column(Modifier.fillMaxWidth().padding(8.dp)) {
+                        thumb(Modifier.fillMaxWidth())
+                        Row(Modifier.padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { title(1); meta() }
+                            more()
                         }
-                        more()
                     }
                 }
             }

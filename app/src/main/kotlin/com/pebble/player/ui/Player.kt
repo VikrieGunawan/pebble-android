@@ -1,5 +1,10 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -335,6 +340,19 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var seekFlash by remember { mutableStateOf("") }
     var seekN by remember { mutableIntStateOf(0) }
     LaunchedEffect(seekN) { if (seekFlash.isNotEmpty()) { delay(600); seekFlash = "" } }
+    // Double-tap in the middle: a play/pause icon pops in and fades out, controls stay hidden.
+    var playFlash by remember { mutableStateOf(false) } // true = now playing
+    var playN by remember { mutableIntStateOf(0) }
+    val pfA = remember { Animatable(0f) }
+    val pfS = remember { Animatable(0.6f) }
+    LaunchedEffect(playN) {
+        if (playN == 0) return@LaunchedEffect
+        pfA.snapTo(1f); pfS.snapTo(0.6f)
+        launch { pfS.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 520f)) }
+        delay(420)
+        launch { pfS.animateTo(1.25f, tween(260, easing = FastOutSlowInEasing)) }
+        pfA.animateTo(0f, tween(260))
+    }
 
     val pickSub = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { u ->
         if (u != null) {
@@ -411,7 +429,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             when {
                                 o.x < w / 3f -> { pl.seekTo((pl.currentPosition - step).coerceAtLeast(0L)); seekFlash = "r−${curPrefs.skip}s"; seekN++ }
                                 o.x > w * 2f / 3f -> { pl.seekTo((pl.currentPosition + step).coerceAtMost(total)); seekFlash = "f+${curPrefs.skip}s"; seekN++ }
-                                else -> if (pl.isPlaying) pl.pause() else pl.play()
+                                else -> { val will = !pl.playWhenReady; if (will) pl.play() else pl.pause(); playFlash = will; playN++ }
                             }
                         },
                     )
@@ -448,6 +466,11 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         )
 
         if ((buffering || failing != null) && error == null) androidx.compose.material3.LoadingIndicator(Modifier.align(Alignment.Center).size(56.dp))
+        if (pfA.value > 0f) Box(
+            Modifier.align(Alignment.Center).size(88.dp).graphicsLayer { alpha = pfA.value; scaleX = pfS.value; scaleY = pfS.value }
+                .clip(CircleShape).background(Color(0x99000000)),
+            contentAlignment = Alignment.Center,
+        ) { Icon(if (playFlash) "play_arrow" else "pause", null, Modifier.size(48.dp), tint = Color.White, fill = true) }
         if (seekFlash.isNotEmpty()) Row(
             Modifier.align(Alignment.Center).clip(RoundedCornerShape(28.dp)).background(Color(0x99000000)).padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),

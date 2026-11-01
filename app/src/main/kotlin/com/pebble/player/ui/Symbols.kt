@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.size
@@ -171,7 +172,7 @@ fun Icon(name: String, contentDescription: String?, modifier: Modifier = Modifie
         Text(
             glyph, color = tint, maxLines = 1, softWrap = false, textAlign = TextAlign.Center,
             style = TextStyle(
-                fontFamily = if (fill) FILLED else OUTLINE, fontSize = sp, lineHeight = sp,
+                fontFamily = if (fill) FILLED else OUTLINE, fontSynthesis = FontSynthesis.None, fontSize = sp, lineHeight = sp,
                 lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
             ),
             modifier = Modifier.size(side).wrapContentSize(Alignment.Center, unbounded = true),
