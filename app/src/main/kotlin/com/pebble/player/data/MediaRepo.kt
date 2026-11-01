@@ -1,5 +1,11 @@
 package com.pebble.player.data
 
+import kotlin.coroutines.resume
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
+import android.os.Environment
+import android.media.MediaScannerConnection
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
@@ -61,6 +67,41 @@ class MediaRepo(private val c: Context) {
             }
         } catch (_: SecurityException) { }
         out
+    }
+
+    /**
+     * MediaStore only lists files the system media scanner has already seen, so new or copied videos can be missing.
+     * Walk the storage, find video files MediaStore doesn't know yet, and ask the scanner to index them.
+     * Returns how many files were handed to the scanner.
+     */
+    @Suppress("DEPRECATION")
+    suspend fun reindex(): Int = withContext(Dispatchers.IO) {
+        try {
+            val known = HashSet<String>()
+            c.contentResolver.query(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL), arrayOf(MediaStore.Video.Media.DATA), null, null, null)?.use { q ->
+                while (q.moveToNext()) q.getString(0)?.let { known += it }
+            }
+            val roots = LinkedHashMap<String, File>()
+            roots[Environment.getExternalStorageDirectory().path] = Environment.getExternalStorageDirectory()
+            c.getExternalFilesDirs(null).forEach { f -> f?.path?.substringBefore("/Android")?.let { roots.putIfAbsent(it, File(it)) } }
+            val exts = setOf("mp4", "mkv", "webm", "avi", "mov", "3gp", "m4v", "flv", "wmv", "ts", "mpg", "mpeg", "mts", "m2ts")
+            val found = ArrayList<String>()
+            for (r in roots.values) {
+                r.walkTopDown()
+                    .onEnter { dir -> dir == r || (!dir.name.startsWith(".") && dir.name != "Android" && !File(dir, ".nomedia").exists()) }
+                    .filter { it.isFile && it.extension.lowercase() in exts && it.path !in known }
+                    .take(500 - found.size)
+                    .forEach { found += it.path }
+            }
+            if (found.isEmpty()) return@withContext 0
+            withTimeoutOrNull(15_000) {
+                suspendCancellableCoroutine<Unit> { cont ->
+                    var left = found.size
+                    MediaScannerConnection.scanFile(c, found.toTypedArray(), null) { _, _ -> if (--left <= 0 && cont.isActive) cont.resume(Unit) }
+                }
+            }
+            found.size
+        } catch (_: Exception) { 0 }
     }
 
     /** A user-chosen cover image for this video (saved in the app's own folder). */
