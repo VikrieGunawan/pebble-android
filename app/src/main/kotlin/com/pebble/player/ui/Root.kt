@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import android.widget.Toast
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.rememberScrollState
@@ -171,7 +172,14 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
 
     LaunchedEffect(granted, rescan) {
-        if (granted) { all = app.media.scan(); scanned = true }
+        if (granted) {
+            val before = all.map { it.id }.toSet()
+            all = app.media.scan(); scanned = true
+            if (refreshing) {
+                val n = all.count { it.id !in before }
+                Toast.makeText(ctx, when (n) { 0 -> "No new videos found"; 1 -> "1 new video added"; else -> "$n new videos added" }, Toast.LENGTH_SHORT).show()
+            }
+        }
         if (refreshing) { delay(700); refreshing = false }
     }
     LaunchedEffect(openUri) {

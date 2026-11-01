@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.foundation.layout.width
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -92,7 +93,8 @@ private fun groupNotes(lines: List<String>): List<Pair<String, List<String>>> {
         val k = m?.groupValues?.get(1)?.lowercase()?.replaceFirstChar { it.uppercase() } ?: ""
         out.getOrPut(k) { mutableListOf() }.add((m?.groupValues?.get(2) ?: l).trim())
     }
-    return out.map { it.key to it.value }
+    val order = listOf("Fixed", "New", "Improved", "Changed", "Removed", "")
+    return out.map { it.key to it.value }.sortedBy { order.indexOf(it.first).let { i -> if (i < 0) order.size else i } }
 }
 
 fun currentVersion(ctx: Context): String = try {
@@ -292,18 +294,17 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     Icon("info", null, Modifier.size(18.dp), tint = cs.primary)
                                     Text("WHAT'S NEW", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 0.8.sp)
                                 }
-                                Column(Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                     info.notes.forEach { (title, lines) ->
-                                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             if (title.isNotBlank()) Text(
-                                                title, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
-                                                color = if (title.equals("New", true)) cs.onTertiaryContainer else cs.onPrimaryContainer,
-                                                modifier = Modifier.clip(RoundedCornerShape(50)).background(if (title.equals("New", true)) cs.tertiaryContainer else cs.primaryContainer).padding(horizontal = 10.dp, vertical = 3.dp),
+                                                (if (title == "New") "Added" else title) + ":", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold,
+                                                color = if (title == "Fixed") cs.error else cs.primary,
                                             )
-                                            lines.forEach { l ->
+                                            lines.forEachIndexed { i, l ->
                                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    Text("•", color = cs.primary, fontWeight = FontWeight.ExtraBold)
-                                                    Text(l, style = MaterialTheme.typography.bodyMedium)
+                                                    Text("${i + 1}.", color = cs.onSurfaceVariant, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(24.dp))
+                                                    Text(l, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                                 }
                                             }
                                         }

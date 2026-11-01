@@ -223,18 +223,18 @@ fun VideoCollection(
     }
 }
 
-private const val MORPH_MS = 420
+private const val MORPH_MS = 340
 
 private fun morphSpec(): ContentTransform =
     ContentTransform(EnterTransition.None, ExitTransition.None, sizeTransform = SizeTransform(clip = false) { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) })
 
 /** Shared bounds without any fade: the element itself moves and resizes between the list and grid layouts. */
 @Composable
-private fun SharedTransitionScope.morph(key: String, av: AnimatedVisibilityScope, z: Float = 1f): Modifier = Modifier.sharedBounds(
+private fun SharedTransitionScope.morph(key: String, av: AnimatedVisibilityScope, z: Float = 1f, remeasure: Boolean = false): Modifier = Modifier.sharedBounds(
     rememberSharedContentState(key), av,
     enter = EnterTransition.None, exit = ExitTransition.None,
     boundsTransform = { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) },
-    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+    resizeMode = if (remeasure) SharedTransitionScope.ResizeMode.RemeasureToBounds else SharedTransitionScope.ResizeMode.ScaleToBounds(ContentScale.FillBounds, Alignment.TopStart),
     zIndexInOverlay = z,
 )
 
@@ -246,21 +246,21 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMor
         val sc = this
         AnimatedContent(row, transitionSpec = { morphSpec() }, label = "folder") { r ->
             val av: AnimatedVisibilityScope = this
-            val sh: @Composable (String, Float) -> Modifier = { k, z -> sc.morph(k, av, z) }
-            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("fbg-$name", 0f)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
-            val title: @Composable () -> Unit = { Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = sh("ft-$name", 1f).fillMaxWidth()) }
+            val sh: @Composable (String, Float, Boolean) -> Modifier = { k, z, r2 -> sc.morph(k, av, z, r2) }
+            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("fbg-$name", 0f, true)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
+            val title: @Composable () -> Unit = { Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = sh("ft-$name", 1f, true).fillMaxWidth()) }
             val sub: @Composable () -> Unit = {
-                Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, modifier = sh("fs-$name", 1f).fillMaxWidth())
+                Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, modifier = sh("fs-$name", 1f, true).fillMaxWidth())
             }
             val more: @Composable () -> Unit = {
-                if (onMore != null) Box(sh("fm-$name", 1f).size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
+                if (onMore != null) Box(sh("fm-$name", 1f, false).size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
                     Icon("more_vert", "Folder menu", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 }
             }
             if (r) Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
                 bg()
                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    IconTile("folder", 52.dp, modifier = sh("fi-$name", 1f))
+                    IconTile("folder", 52.dp, modifier = sh("fi-$name", 1f, false))
                     Column(Modifier.weight(1f)) { title(); sub() }
                     if (onMore != null) more() else Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 }
@@ -268,7 +268,7 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMor
                 bg()
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        IconTile("folder", 52.dp, modifier = sh("fi-$name", 1f))
+                        IconTile("folder", 52.dp, modifier = sh("fi-$name", 1f, false))
                         Spacer(Modifier.weight(1f))
                         Box(Modifier.offset(x = 8.dp, y = (-8).dp)) { more() }
                     }
@@ -353,10 +353,10 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
         val sc = this
         AnimatedContent(row, transitionSpec = { morphSpec() }, label = "card") { r ->
             val av: AnimatedVisibilityScope = this
-            val sh: @Composable (String, Float) -> Modifier = { k, z -> sc.morph(k, av, z) }
-            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("bg-${v.id}", 0f)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
+            val sh: @Composable (String, Float, Boolean) -> Modifier = { k, z, r2 -> sc.morph(k, av, z, r2) }
+            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("bg-${v.id}", 0f, true)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
             val thumb: @Composable (Modifier) -> Unit = { m ->
-                Box(sh("t-${v.id}", 1f).then(m).aspectRatio(16f / 9f).clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHigh)) {
+                Box(sh("t-${v.id}", 1f, false).then(m).aspectRatio(16f / 9f).clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHigh)) {
                     bmp?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                         ?: Icon("movie", null, Modifier.align(Alignment.Center).size(30.dp), tint = cs.onSurfaceVariant)
                     if (v.dur > 0) Text(
@@ -371,17 +371,17 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                 }
             }
             val title: @Composable (Int) -> Unit = { n ->
-                Text(v.name, fontWeight = FontWeight.Bold, maxLines = n, overflow = TextOverflow.Ellipsis, modifier = sh("n-${v.id}", 1f).fillMaxWidth())
+                Text(v.name, fontWeight = FontWeight.Bold, maxLines = n, overflow = TextOverflow.Ellipsis, modifier = sh("n-${v.id}", 1f, true).fillMaxWidth())
             }
             val meta: @Composable () -> Unit = {
-                Row(sh("m-${v.id}", 1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(sh("m-${v.id}", 1f, false), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (v.ext.isNotEmpty()) Text(v.ext, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
                         modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer).padding(horizontal = 8.dp, vertical = 3.dp))
                     if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
                 }
             }
             val more: @Composable () -> Unit = {
-                Box(sh("o-${v.id}", 1f).size(40.dp).clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) { Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
+                Box(sh("o-${v.id}", 1f, false).size(40.dp).clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) { Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
             }
             if (r) {
                 Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
