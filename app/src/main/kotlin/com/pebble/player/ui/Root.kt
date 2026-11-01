@@ -174,7 +174,10 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     LaunchedEffect(granted, rescan) {
         if (granted) {
             val before = all.map { it.id }.toSet()
+            if (refreshing) app.media.reindex() // index videos the system scanner hasn't seen yet
+            val first = !scanned
             all = app.media.scan(); scanned = true
+            if (first && app.media.reindex() > 0) all = app.media.scan()
             if (refreshing) {
                 val n = all.count { it.id !in before }
                 Toast.makeText(ctx, when (n) { 0 -> "No new videos found"; 1 -> "1 new video added"; else -> "$n new videos added" }, Toast.LENGTH_SHORT).show()
@@ -202,7 +205,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
-        val wide = (cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560) || (cfg.screenWidthDp > cfg.screenHeightDp && cfg.screenWidthDp >= 600)
+        val wide = (cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560) || cfg.screenWidthDp > cfg.screenHeightDp
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {

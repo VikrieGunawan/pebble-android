@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.unit.sp
 import android.Manifest
 import android.bluetooth.BluetoothManager
 import android.content.Context
@@ -77,6 +78,43 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 
 data class Cat(val id: String, val icon: String, val title: String, val sub: String)
 
+/** Every individual setting, so the search box finds them all (not just the page names). */
+private data class Hit(val page: String, val icon: String, val title: String, val sub: String)
+private val HITS = listOf(
+    Hit("appearance", "contrast", "Mode", "Follow the phone, or always use light or dark theme"),
+    Hit("appearance", "dark_mode", "Pure black dark mode", "A true black AMOLED background"),
+    Hit("appearance", "palette", "Material You", "Use colors from your wallpaper"),
+    Hit("appearance", "grid_view", "Layout", "Cards in a grid, or one video per row (list)"),
+    Hit("appearance", "zoom_in", "Card size", "How big the video cards are in the grid"),
+    Hit("appearance", "sort", "Sort by", "The order of your videos: newest, name, longest, largest"),
+    Hit("playback", "play_circle", "Autoplay", "Start as soon as a video opens"),
+    Hit("playback", "history", "Resume where you stopped", "Continue from your last position"),
+    Hit("playback", "smartphone", "Keep screen on", "The screen stays awake while a video plays"),
+    Hit("playback", "forward_10", "Skip step", "How far the skip buttons and double-tap jump"),
+    Hit("playback", "speed", "Default speed", "The speed every video starts at"),
+    Hit("playback", "speed", "Hold to speed up", "Press and hold the video to play faster"),
+    Hit("playback", "aspect_ratio", "Video fit", "How the picture fills the screen"),
+    Hit("playback", "screen_rotation", "Rotate with the video", "Wide videos go landscape automatically"),
+    Hit("playback", "smartphone", "Screen rotation", "Lock the player to one direction, or follow the phone"),
+    Hit("playback", "headphones", "If Bluetooth or headphones disconnect", "What the video does when the sound device goes away"),
+    Hit("device", "volume_up", "Sound", "Volume, speaker and audio output"),
+    Hit("device", "brightness_high", "Screen", "Brightness, refresh rate and adaptive brightness"),
+    Hit("device", "bluetooth", "Bluetooth", "Connected devices and device name"),
+    Hit("device", "info", "This device", "Model, Android version and hardware"),
+    Hit("library", "refresh", "Scan again", "Look for new videos"),
+    Hit("library", "folder", "Folders", "Choose which folders are shown"),
+    Hit("library", "visibility_off", "Hidden folders", "Show hidden folders again"),
+    Hit("data", "delete_sweep", "Clear watch history", "Forget where you stopped in every video"),
+    Hit("data", "heart_broken", "Clear favorites", "Remove the heart from every video"),
+    Hit("data", "hide_image", "Remove cover images", "Back to the original thumbnails"),
+    Hit("data", "restart_alt", "Reset settings", "Return every option to its default"),
+    Hit("data", "cleaning_services", "Clear app data", "Delete history, favorites, settings and your profile"),
+    Hit("about", "system_update", "Check for updates", "Download the newest version"),
+    Hit("about", "info", "App info", "Version, build and package"),
+    Hit("about", "share", "Share Pebble Player", "Send the app to a friend"),
+    Hit("about", "content_copy", "Copy app info", "Copy version and device details"),
+)
+
 @Composable
 fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Unit, onClearAll: () -> Unit, query: String = "") {
 
@@ -119,7 +157,8 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         if (p == null) {
             val shown = cats.filter { query.isBlank() || it.title.contains(query, true) || it.sub.contains(query, true) }
             Spacer(Modifier.height(14.dp))
-            if (shown.isEmpty()) EmptyCard("info", "No results", "Try another word.")
+            val hits = if (query.isBlank()) emptyList() else HITS.filter { it.title.contains(query, true) || it.sub.contains(query, true) }
+            if (shown.isEmpty() && hits.isEmpty()) EmptyCard("info", "No results", "Try another word.")
             shown.chunked(2).forEach { r ->
                 Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     r.forEach { c ->
@@ -129,6 +168,23 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
                         }
                     }
                     if (r.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            if (hits.isNotEmpty()) {
+                Text("SETTINGS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(start = 6.dp, top = 4.dp, bottom = 8.dp))
+                hits.forEach { h ->
+                    val pageName = cats.firstOrNull { it.id == h.page }?.title ?: ""
+                    Row(
+                        Modifier.padding(bottom = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable { page = h.page }.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        IconTile(h.icon, 42.dp)
+                        Column(Modifier.weight(1f)) {
+                            Text(h.title, fontWeight = FontWeight.Bold)
+                            Text("$pageName · ${h.sub}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 2)
+                        }
+                        Icon("chevron_right", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                    }
                 }
             }
         }

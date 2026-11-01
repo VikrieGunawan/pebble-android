@@ -208,16 +208,14 @@ fun VideoCollection(
     val row = prefs.layout == 1
     val cfg = LocalConfiguration.current
     val phone = minOf(cfg.screenWidthDp, cfg.screenHeightDp) < 600 // phones: grid = one big card per row
-    val gap by animateDpAsState(if (row) 0.dp else 14.dp, label = "gridGap")
     LazyVerticalGrid(
         columns = if (row || phone) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(if (row) 10.dp else 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) { header() }
-        item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(gap.coerceAtLeast(0.dp))) }
         if (folders.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("folder", "Folders", folders.size) }
             items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first.trimEnd('/').substringAfterLast('/'), f.second, row, Modifier.animateItem(), { folderMenu(f.first) }) { onFolder(f.first) } }

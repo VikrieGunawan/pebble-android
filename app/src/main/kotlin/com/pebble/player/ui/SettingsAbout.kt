@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +40,9 @@ internal fun AboutPage() {
     val cs = MaterialTheme.colorScheme
     val ctx = LocalContext.current
     val version = currentVersion(ctx)
+    val pi = remember { try { ctx.packageManager.getPackageInfo(ctx.packageName, 0) } catch (_: Exception) { null } }
+    val build = if (pi == null) "?" else if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode.toString() else @Suppress("DEPRECATION") pi.versionCode.toString()
+    val updated = pi?.let { java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(it.lastUpdateTime)) } ?: "—"
     val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
     val device = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"
     val android = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
@@ -68,10 +72,10 @@ internal fun AboutPage() {
 
         PlayCard {
             SectionLabel("info", "App info")
-            InfoRow("smartphone", "Device", device)
-            InfoRow("settings", "System", android)
-            InfoRow("memory", "Architecture", abi)
-            InfoRow("lock", "Package", ctx.packageName)
+            InfoRow("info", "Version", "$version (build $build)")
+            InfoRow("label", "Package", ctx.packageName)
+            InfoRow("calendar_month", "Last updated", updated)
+            InfoRow("settings", "Requires", "Android 10 or newer")
         }
 
         PlayCard {
@@ -89,10 +93,6 @@ internal fun AboutPage() {
             }
         }
 
-        Text(
-            "Made with care by Vikrie Gunawan", Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
-        )
     }
 }
 
