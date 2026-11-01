@@ -226,7 +226,7 @@ fun VideoCollection(
 private const val MORPH_MS = 420
 
 private fun morphSpec(): ContentTransform =
-    EnterTransition.None togetherWith ExitTransition.None using SizeTransform(clip = false) { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) }
+    ContentTransform(EnterTransition.None, ExitTransition.None, sizeTransform = SizeTransform(clip = false) { _, _ -> tween(MORPH_MS, easing = FastOutSlowInEasing) })
 
 /** Shared bounds without any fade: the element itself moves and resizes between the list and grid layouts. */
 @Composable
