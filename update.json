@@ -26,8 +26,6 @@
     "Improved: phones show one card per row in Grid",
     "Improved: app icon follows Material You colors",
     "Improved: grouped, numbered changelog in the update pop-up",
-    "Removed: YouTube",
-    "Removed: predictive back animation",
     "Removed: \"Video X of Y\" text in the player"
   ],
   "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.1.0/PebblePlayer.apk",
