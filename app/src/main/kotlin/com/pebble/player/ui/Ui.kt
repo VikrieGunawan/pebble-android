@@ -2,6 +2,10 @@
 
 package com.pebble.player.ui
 
+import androidx.compose.ui.util.lerp
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.layout.Layout
 import androidx.compose.animation.BoundsTransform
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.BoxScope
@@ -346,7 +350,10 @@ private fun Crumb(icon: String, label: String, cur: Boolean, dim: Boolean, extra
     }
 }
 
-/** Video card: cover, title, format/size, ⋮ button and background glide (no fade) between list and grid. */
+/**
+ * Video card: ONE layout whose cover, title, format/size, ⋮ button and background are placed by an animated 0..1 value,
+ * so list ⇄ grid glides smoothly (no fade, no double composition, no shared-element overlay).
+ */
 @Composable
 fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
@@ -354,61 +361,68 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
     val prog = prefs.progress[v.uri.toString()]
     val fav = v.uri.toString() in prefs.favs
     val bmp = rememberThumb(v)
-    SharedTransitionLayout(modifier) {
-        val sc = this
-        AnimatedContent(row, transitionSpec = { morphSpec() }, label = "card") { r ->
-            val av: AnimatedVisibilityScope = this
-            val sh: @Composable (String, Float, Boolean) -> Modifier = { k, z, r2 -> sc.morph(k, av, z, r2) }
-            val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("bg-${v.id}", 0f, true)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
-            val thumb: @Composable (Modifier) -> Unit = { m ->
-                Box(sh("t-${v.id}", 1f, false).then(m).aspectRatio(16f / 9f).clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHigh)) {
-                    bmp?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                        ?: Icon("movie", null, Modifier.align(Alignment.Center).size(30.dp), tint = cs.onSurfaceVariant)
-                    if (v.dur > 0) Text(
-                        fmt(v.dur), color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xAA000000)).padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                    if (fav) Icon("favorite", null, Modifier.align(Alignment.TopStart).padding(6.dp).size(18.dp), tint = cs.primary)
-                    if (prog != null && prog.dur > 0) LinearProgressIndicator(
-                        progress = { (prog.pos.toFloat() / prog.dur).coerceIn(0f, 1f) },
-                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp), color = cs.primary, trackColor = Color.Transparent, drawStopIndicator = {},
-                    )
-                }
+    val t = animateFloatAsState(if (row) 0f else 1f, tween(MORPH_MS, easing = FastOutSlowInEasing), label = "morph")
+    val shape = RoundedCornerShape(24.dp)
+    Layout(
+        content = {
+            Box(Modifier.layoutId("bg").background(cs.surfaceContainer))
+            Box(Modifier.layoutId("thumb").clip(RoundedCornerShape(18.dp)).background(cs.surfaceContainerHigh)) {
+                bmp?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                    ?: Icon("movie", null, Modifier.align(Alignment.Center).size(30.dp), tint = cs.onSurfaceVariant)
+                if (v.dur > 0) Text(
+                    fmt(v.dur), color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xAA000000)).padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+                if (fav) Icon("favorite", null, Modifier.align(Alignment.TopStart).padding(6.dp).size(18.dp), tint = cs.primary)
+                if (prog != null && prog.dur > 0) LinearProgressIndicator(
+                    progress = { (prog.pos.toFloat() / prog.dur).coerceIn(0f, 1f) },
+                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp), color = cs.primary, trackColor = Color.Transparent, drawStopIndicator = {},
+                )
             }
-            val title: @Composable (Int) -> Unit = { n ->
-                Text(v.name, fontWeight = FontWeight.Bold, maxLines = n, overflow = TextOverflow.Ellipsis, modifier = sh("n-${v.id}", 1f, true).fillMaxWidth())
+            Text(v.name, Modifier.layoutId("title"), fontWeight = FontWeight.Bold, maxLines = if (row) 2 else 1, overflow = TextOverflow.Ellipsis)
+            Row(Modifier.layoutId("meta"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (v.ext.isNotEmpty()) Text(v.ext, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer).padding(horizontal = 8.dp, vertical = 3.dp))
+                if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
             }
-            val meta: @Composable () -> Unit = {
-                Row(sh("m-${v.id}", 1f, false), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (v.ext.isNotEmpty()) Text(v.ext, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer).padding(horizontal = 8.dp, vertical = 3.dp))
-                    if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
-                }
+            Box(Modifier.layoutId("more").clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) {
+                Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
             }
-            val more: @Composable () -> Unit = {
-                Box(sh("o-${v.id}", 1f, false).size(40.dp).clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) { Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
-            }
-            if (r) {
-                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
-                    bg()
-                    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        thumb(Modifier.width(128.dp))
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) { title(2); meta() }
-                        more()
-                    }
-                }
-            } else {
-                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
-                    bg()
-                    Column(Modifier.fillMaxWidth().padding(8.dp)) {
-                        thumb(Modifier.fillMaxWidth())
-                        Row(Modifier.padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { title(1); meta() }
-                            more()
-                        }
-                    }
-                }
-            }
+        },
+        modifier = modifier.fillMaxWidth().clip(shape).clickable(onClick = onClick),
+    ) { ms, c ->
+        val w = c.maxWidth
+        val k = t.value // 0 = list, 1 = grid (read here: only re-measures while animating)
+        val pad = 8.dp.roundToPx(); val btn = 40.dp.roundToPx(); val gap = 12.dp.roundToPx()
+        val twL = 128.dp.roundToPx(); val twG = w - 2 * pad
+        val tw = lerp(twL, twG, k); val th = tw * 9 / 16
+        val xL = pad + twL + gap; val xG = 12.dp.roundToPx()
+        val x = lerp(xL, xG, k)
+        val textW = lerp(w - xL - gap - btn - pad, w - xG - pad - btn, k).coerceAtLeast(0)
+        fun m(id: String) = ms.first { it.layoutId == id }
+        val thumb = m("thumb").measure(Constraints.fixed(tw, th))
+        val title = m("title").measure(Constraints(maxWidth = textW))
+        val meta = m("meta").measure(Constraints(maxWidth = textW))
+        val more = m("more").measure(Constraints.fixed(btn, btn))
+        // list target
+        val gL = 6.dp.roundToPx(); val colL = title.height + gL + meta.height
+        val contentL = maxOf(twL * 9 / 16, colL, btn)
+        val hL = contentL + 2 * pad
+        // grid target
+        val gG = 4.dp.roundToPx(); val colG = title.height + gG + meta.height
+        val rowG = maxOf(colG, btn); val topG = pad + twG * 9 / 16 + 6.dp.roundToPx()
+        val hG = topG + rowG + pad
+        val h = lerp(hL, hG, k)
+        val yTitle = lerp(pad + (contentL - colL) / 2, topG + (rowG - colG) / 2, k)
+        val yMeta = lerp(pad + (contentL - colL) / 2 + title.height + gL, topG + (rowG - colG) / 2 + title.height + gG, k)
+        val yMore = lerp(pad + (contentL - btn) / 2, topG + (rowG - btn) / 2, k)
+        val bg = m("bg").measure(Constraints.fixed(w, h))
+        layout(w, h) {
+            bg.place(0, 0)
+            thumb.place(pad, pad)
+            title.place(x, yTitle)
+            meta.place(x, yMeta)
+            more.place(w - pad - btn, yMore)
         }
     }
 }

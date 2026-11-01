@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -328,6 +329,16 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
 
     var show by remember { mutableStateOf(true) }
     var scrub by remember { mutableStateOf<Float?>(null) }
+    // Frame-accurate progress (read only in layout/draw, so no recomposition per frame)
+    val frac = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(player, show, isPlaying) {
+        if (!show) return@LaunchedEffect
+        while (true) {
+            withFrameNanos { }
+            if (scrub == null && dur > 0) frac.floatValue = (player.currentPosition.toFloat() / dur).coerceIn(0f, 1f)
+            if (!isPlaying) { delay(250) }
+        }
+    }
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(show, tick, isPlaying, panel, scrub) {
         if (show && isPlaying && scrub == null) { delay(3200); show = false }
@@ -559,7 +570,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                         Scrubber(
                             playing = isPlaying,
-                            value = scrub ?: if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f,
+                            value = { scrub ?: frac.floatValue },
                             onChange = { scrub = it },
                             onFinish = { f -> player.seekTo((f * dur).toLong()); scrub = null },
                             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
@@ -909,14 +920,13 @@ private fun audioKind(d: AudioDeviceInfo): String = when {
 
 /** Material 3 Expressive seek bar: a wavy track that ripples while playing, flattens when paused or dragged, with a pill handle. */
 @Composable
-private fun Scrubber(playing: Boolean, value: Float, onChange: (Float) -> Unit, onFinish: (Float) -> Unit, modifier: Modifier = Modifier) {
+private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> Unit, onFinish: (Float) -> Unit, modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme
     var w by remember { mutableFloatStateOf(1f) }
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
     val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
     val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, label = "wave")
-    val v = value.coerceIn(0f, 1f)
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
         modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
@@ -931,11 +941,11 @@ private fun Scrubber(playing: Boolean, value: Float, onChange: (Float) -> Unit, 
         contentAlignment = Alignment.CenterStart,
     ) {
         LinearWavyProgressIndicator(
-            progress = { v }, modifier = Modifier.fillMaxWidth(),
+            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
             color = cs.primary, trackColor = Color(0x40FFFFFF), amplitude = { amp },
         )
         Box(
-            Modifier.offset { androidx.compose.ui.unit.IntOffset((v * w - handleW.toPx() / 2f).roundToInt(), 0) }
+            Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }
                 .size(handleW.coerceAtLeast(1.dp), 24.dp).clip(RoundedCornerShape(50)).background(cs.primary),
         )
     }

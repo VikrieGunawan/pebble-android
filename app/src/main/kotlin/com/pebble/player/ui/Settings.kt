@@ -143,11 +143,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
 
         if (p == "data") DataPage(prefs, store, all, onClearAll)
 
-        if (p == "about") Section("About") {
-            Text("Pebble Player", fontWeight = FontWeight.SemiBold)
-            Text("v${currentVersion(LocalContext.current)} · Material 3 Expressive", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            UpdateRow()
-        }
+        if (p == "about") AboutPage()
         Spacer(Modifier.height(32.dp))
         }
         }
