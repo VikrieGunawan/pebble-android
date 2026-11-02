@@ -156,11 +156,17 @@ private fun deviceLabel(d: AudioDeviceInfo): String = when (d.type) {
     else -> d.productName.toString().ifBlank { "Bluetooth audio" }
 }
 
-private fun listOutputs(am: AudioManager): List<AudioDeviceInfo> = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter {
-    isBt(it) || it.type in listOf(
-        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET,
-        AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_HDMI,
-    )
+private fun listOutputs(am: AudioManager): List<AudioDeviceInfo> {
+    val all = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter {
+        isBt(it) || it.type in listOf(
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET,
+            AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_HDMI,
+        )
+    }
+    // one Bluetooth headset shows up once per profile (A2DP, SCO, LE): keep a single entry per device, preferring A2DP
+    fun key(d: AudioDeviceInfo) = d.productName.toString().ifBlank { d.address }
+    val pick = all.filter { isBt(it) }.groupBy { key(it) }.mapValues { (_, l) -> l.firstOrNull { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP } ?: l.first() }
+    return all.filter { !isBt(it) || pick[key(it)] === it }
 }
 
 @Composable

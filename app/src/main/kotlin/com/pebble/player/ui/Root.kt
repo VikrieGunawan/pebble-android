@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.foundation.layout.statusBarsPadding
 import android.widget.Toast
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
@@ -207,6 +208,15 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
         val wide = (cfg.screenWidthDp >= 744 && cfg.screenHeightDp >= 560) || cfg.screenWidthDp > cfg.screenHeightDp
         val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> androidx.compose.foundation.isSystemInDarkTheme() }
+        // clock, battery and notification icons: dark on light theme, light on dark theme (the player hides the bars itself)
+        val barView = androidx.compose.ui.platform.LocalView.current
+        LaunchedEffect(dark, playing == null) {
+            val win = (barView.context as? android.app.Activity)?.window
+            if (win != null && playing == null) androidx.core.view.WindowCompat.getInsetsController(win, barView).also {
+                it.isAppearanceLightStatusBars = !dark
+                it.isAppearanceLightNavigationBars = !dark
+            }
+        }
         CompositionLocalProvider(LocalVideoMenu provides { v: Video -> menuFor = v }, LocalFolderMenu provides { p: String -> folderMenu = p }) {
         run {
         Row(Modifier.fillMaxSize()) {
@@ -262,7 +272,11 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     }
                 }
                 if (settingsVisible) Box(Modifier.fillMaxSize().graphicsLayer { translationX = (1f - sp.value) * size.width }) {
-                    PullPage(refreshing, { refresh() }) { SettingsScreen(prefs, app.store, all, { refresh() }, startClear, query) }
+                    SettingsScreen(prefs, app.store, all, { refresh() }, startClear, query)
+                    if (refreshing) Box(
+                        Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp).size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center,
+                    ) { androidx.compose.material3.LoadingIndicator(Modifier.size(36.dp)) }
                 }
             }
         }
