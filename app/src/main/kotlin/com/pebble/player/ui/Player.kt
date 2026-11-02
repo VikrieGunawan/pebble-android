@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -131,6 +132,21 @@ import kotlin.math.roundToInt
 
 internal val GLASS = Color(0xE0181330)
 internal val SOFT = Color(0x1FFFFFFF)
+
+/** Player colors: light ink on dark glass in dark mode, dark ink on light glass in light mode. Set by PlayerScreen. */
+internal var PLIGHT by mutableStateOf(false)
+private val INK = Color(0xFF1B1730)
+internal val pFg: Color get() = if (PLIGHT) INK else Color.White
+internal val pFg2: Color get() = if (PLIGHT) INK.copy(alpha = 0.7f) else Color(0xB3FFFFFF)
+internal val pFg3: Color get() = if (PLIGHT) INK.copy(alpha = 0.55f) else Color(0x99FFFFFF)
+internal val pSoft: Color get() = if (PLIGHT) Color(0x14000000) else SOFT
+internal val pSoft2: Color get() = if (PLIGHT) Color(0x1F000000) else Color(0x33FFFFFF)
+internal val pRim: Color get() = if (PLIGHT) Color(0x22000000) else Color(0x22FFFFFF)
+internal val pGlass: Color get() = if (PLIGHT) Color(0xE6FFFFFF) else Color(0xB8140F28)
+internal val pPanel: Color get() = if (PLIGHT) Color(0xF5FFFFFF) else GLASS
+internal val pDialog: Color get() = if (PLIGHT) Color(0xF7FFFFFF) else Color(0xF2181330)
+internal val pTrack: Color get() = if (PLIGHT) Color(0x331B1730) else Color(0x40FFFFFF)
+internal val pScrim: Color get() = if (PLIGHT) Color(0xCCFFFFFF) else Color(0xCC000000)
 private val RATIOS = listOf(0f to "Auto", (16f / 9f) to "16:9", (4f / 3f) to "4:3", (21f / 9f) to "21:9", 1f to "1:1", (9f / 16f) to "9:16")
 internal val PRESETS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
 private val FITS = listOf("Fit", "Crop", "Stretch", "Width")
@@ -171,6 +187,7 @@ private fun listOutputs(am: AudioManager): List<AudioDeviceInfo> {
 
 @Composable
 fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, onClose: () -> Unit, onSelect: (Video) -> Unit) {
+    PLIGHT = MaterialTheme.colorScheme.background.luminance() > 0.5f
     val ctx = LocalContext.current
     val act = remember { ctx.activity() }
     val scope = rememberCoroutineScope()
@@ -531,25 +548,25 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         PAnim(show, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
             val padEnd = endPad.coerceAtLeast(0.dp)
             val corner by animateDpAsState(if (isPlaying) 20.dp else 30.dp, label = "playCorner")
-            val glass = Color(0xB8140F28)
-            val rim = Color(0x22FFFFFF)
+            val glass = pGlass
+            val rim = pRim
             Box(Modifier.fillMaxSize()) {
                 // header: its background runs edge to edge (through the camera notch); only the content stays clear of it
                 Row(
-                    Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent)))
+                    Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(pScrim, Color.Transparent)))
                         .windowInsetsPadding(cutV).statusBarsPadding().padding(start = 10.dp + sideInset, end = 10.dp + sideInset + padEnd, top = 6.dp, bottom = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(Modifier.size(38.dp).clip(CircleShape).background(glass).border(1.dp, rim, CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                        Icon("arrow_back", "Back", Modifier.size(20.dp), tint = Color.White)
+                        Icon("arrow_back", "Back", Modifier.size(20.dp), tint = pFg)
                     }
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 14.dp, vertical = 5.dp)) {
-                        Text(video.name, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                        Text(video.name, color = pFg, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                     }
                     Row(Modifier.clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        PBtn("screen_rotation", "Rotate", 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else Color.White,
+                        PBtn("screen_rotation", "Rotate", 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else pFg,
                             onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
-                        PBtn("queue_music", "Queue", 36.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else Color.White, onClick = { togglePanel("queue") })
+                        PBtn("queue_music", "Queue", 36.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else pFg, onClick = { togglePanel("queue") })
                     }
                 }
 
@@ -573,7 +590,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         .clip(RoundedCornerShape(26.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(26.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(fmt(scrub?.let { (it * dur).toLong() } ?: pos), color = pFg, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                         Scrubber(
                             playing = isPlaying,
                             value = { scrub ?: frac.floatValue },
@@ -581,15 +598,15 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             onFinish = { f -> player.seekTo((f * dur).toLong()); scrub = null },
                             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
                         )
-                        Text(fmt(dur), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(fmt(dur), color = pFg, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                     }
                     Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Row(Modifier.clip(RoundedCornerShape(20.dp)).background(SOFT).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.clip(RoundedCornerShape(20.dp)).background(pSoft).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
                             IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
                             IBtn("closed_caption", "Subtitles", panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
                         }
-                        Row(Modifier.clip(RoundedCornerShape(20.dp)).background(SOFT).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.clip(RoundedCornerShape(20.dp)).background(pSoft).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             IBtn("repeat", "Loop", loop) { loop = !loop }
                             IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
                             IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
@@ -619,7 +636,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 (if (land) Modifier.fillMaxHeight().width(300.dp)
                 else Modifier.fillMaxWidth().navigationBarsPadding().padding(8.dp).heightIn(max = maxHeight * 0.6f))
                     // landscape: the menu is attached to the right edge of the screen, full height
-                    .clip(if (land) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp) else RoundedCornerShape(28.dp)).background(GLASS)
+                    .clip(if (land) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp) else RoundedCornerShape(28.dp)).background(pPanel)
                     .pointerInput(Unit) { detectTapGestures { } }
                     .then(if (land) Modifier.windowInsetsPadding(cutV).statusBarsPadding().navigationBarsPadding().padding(end = rightInset) else Modifier)
                     .padding(14.dp),
@@ -628,8 +645,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(38.dp).clip(RoundedCornerShape(14.dp)).background(cs.primary), contentAlignment = Alignment.Center) { Icon(pIcon, null, Modifier.size(22.dp), tint = cs.onPrimary) }
                     Column(Modifier.weight(1f)) {
-                        Text(pTitle, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                        Text(pSub, color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(pTitle, color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text(pSub, color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     PBtn("close", "Close", 36.dp, onClick = { panel = null })
                 }
@@ -643,17 +660,17 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         itemsIndexed(queue, key = { _, q -> q.id }) { i, q ->
                             val cur = q.id == video.id
                             Row(
-                                Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (cur) cs.primary.copy(alpha = 0.28f) else SOFT)
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (cur) cs.primary.copy(alpha = 0.28f) else pSoft)
                                     .clickable { panel = null; onSelect(q) }.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
                                 val th = rememberThumb(q)
-                                Box(Modifier.size(width = 76.dp, height = 46.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x33FFFFFF)), contentAlignment = Alignment.Center) {
-                                    if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(22.dp), tint = Color.White)
+                                Box(Modifier.size(width = 76.dp, height = 46.dp).clip(RoundedCornerShape(10.dp)).background(pSoft2), contentAlignment = Alignment.Center) {
+                                    if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(22.dp), tint = pFg)
                                 }
                                 Column(Modifier.weight(1f)) {
-                                    Text(q.name, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text("${i + 1} · ${fmt(q.dur)}", color = Color(0xB3FFFFFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(q.name, color = pFg, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("${i + 1} · ${fmt(q.dur)}", color = pFg2, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                 }
                                 if (cur) Icon("play_arrow", null, Modifier.size(22.dp), tint = cs.primary)
                             }
@@ -662,29 +679,29 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 } else Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (shown) {
                         "speed" -> {
-                            Text(fmtSpeed(speed), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                            Text(fmtSpeed(speed), color = pFg, fontSize = 34.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                PBtn("remove", "Slower", 44.dp, bg = SOFT, onClick = { applySpeed(speed - 0.05f, true) })
+                                PBtn("remove", "Slower", 44.dp, bg = pSoft, onClick = { applySpeed(speed - 0.05f, true) })
                                 PebbleSlider(speed, { applySpeed((it * 20).roundToInt() / 20f, false) }, Modifier.weight(1f), valueRange = 0.25f..3f, onValueChangeFinished = { applySpeed(speed, true) })
-                                PBtn("add", "Faster", 44.dp, bg = SOFT, onClick = { applySpeed(speed + 0.05f, true) })
+                                PBtn("add", "Faster", 44.dp, bg = pSoft, onClick = { applySpeed(speed + 0.05f, true) })
                             }
                             Sl("tune", "Presets")
                             Chips(PRESETS.map { fmtSpeed(it) }, PRESETS.indexOfFirst { kotlin.math.abs(it - speed) < 0.01f }) { applySpeed(PRESETS[it], true) }
                             Wide("restart_alt", "Normal speed") { applySpeed(1f, true) }
                         }
                         "subs" -> {
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SOFT).clickable { subs = !subs }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Icon("closed_caption", null, Modifier.size(24.dp), tint = Color.White)
-                                Text("Show subtitles", Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold)
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).clickable { subs = !subs }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Icon("closed_caption", null, Modifier.size(24.dp), tint = pFg)
+                                Text("Show subtitles", Modifier.weight(1f), color = pFg, fontWeight = FontWeight.Bold)
                                 PebbleSwitch(subs, { subs = it })
                             }
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SOFT).clickable { pickSub.launch(arrayOf("*/*")) }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).clickable { pickSub.launch(arrayOf("*/*")) }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon("upload_file", null, Modifier.size(24.dp), tint = cs.primary)
                                 Column(Modifier.weight(1f)) {
-                                    Text("Load subtitle file", color = Color.White, fontWeight = FontWeight.Bold)
-                                    Text("SRT or VTT from your device", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                                    Text("Load subtitle file", color = pFg, fontWeight = FontWeight.Bold)
+                                    Text("SRT or VTT from your device", color = pFg2, fontSize = 12.sp)
                                 }
-                                Icon("chevron_right", null, Modifier.size(22.dp), tint = Color(0x99FFFFFF))
+                                Icon("chevron_right", null, Modifier.size(22.dp), tint = pFg3)
                             }
                             val textTr = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
                             if (textTr.isNotEmpty()) {
@@ -700,10 +717,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         "audio" -> {
                             var vol by remember { mutableFloatStateOf(am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)) }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                PBtn(if (muted || vol <= 0f) "volume_off" else "volume_up", "Mute", 52.dp, bg = if (muted) cs.primary else SOFT, tint = if (muted) cs.onPrimary else Color.White, onClick = { muted = !muted })
+                                PBtn(if (muted || vol <= 0f) "volume_off" else "volume_up", "Mute", 52.dp, bg = if (muted) cs.primary else pSoft, tint = if (muted) cs.onPrimary else pFg, onClick = { muted = !muted })
                                 Column {
-                                    Text("${(vol * 100).roundToInt()}%", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-                                    Text(if (muted) "Muted" else "Volume", color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("${(vol * 100).roundToInt()}%", color = pFg, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(if (muted) "Muted" else "Volume", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                             PebbleSlider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, (it * am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).roundToInt(), 0) }, Modifier.fillMaxWidth())
@@ -721,7 +738,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             Chips(FITS, fit) { applyFit(it) }
                             Sl("crop", "Aspect ratio")
                             Chips(RATIOS.map { it.second }, RATIOS.indexOfFirst { kotlin.math.abs(it.first - ratio) < 0.01f }, 3) { ratio = RATIOS[it].first }
-                            Text("A chosen aspect ratio crops the picture to that frame. Pick Auto to use the video's own shape.", color = Color(0xB3FFFFFF), fontSize = 12.sp)
+                            Text("A chosen aspect ratio crops the picture to that frame. Pick Auto to use the video's own shape.", color = pFg2, fontSize = 12.sp)
                         }
                         else -> {
                             Sl("timer", "Pause playback after")
@@ -747,7 +764,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
 }
 
 @Composable
-internal fun PBtn(icon: String, desc: String, size: Dp, modifier: Modifier = Modifier, enabled: Boolean = true, bg: Color = Color.Transparent, tint: Color = Color.White, onClick: () -> Unit) {
+internal fun PBtn(icon: String, desc: String, size: Dp, modifier: Modifier = Modifier, enabled: Boolean = true, bg: Color = Color.Transparent, tint: Color = pFg, onClick: () -> Unit) {
     Box(
         modifier.size(size).clip(CircleShape).background(bg).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -758,16 +775,16 @@ internal fun PBtn(icon: String, desc: String, size: Dp, modifier: Modifier = Mod
 internal fun IBtn(icon: String, desc: String, on: Boolean, badge: String? = null, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Box(Modifier.size(38.dp).clip(CircleShape).background(if (on) cs.primary else Color.Transparent).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, desc, Modifier.size(21.dp), tint = if (on) cs.onPrimary else Color.White)
-        if (badge != null) Text(badge, Modifier.align(Alignment.BottomEnd).padding(end = 1.dp, bottom = 2.dp), fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, color = if (on) cs.onPrimary else Color.White)
+        Icon(icon, desc, Modifier.size(21.dp), tint = if (on) cs.onPrimary else pFg)
+        if (badge != null) Text(badge, Modifier.align(Alignment.BottomEnd).padding(end = 1.dp, bottom = 2.dp), fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, color = if (on) cs.onPrimary else pFg)
     }
 }
 
 @Composable
 internal fun Sl(icon: String, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
-        Icon(icon, null, Modifier.size(18.dp), tint = Color(0xB3FFFFFF))
-        Text(text.uppercase(), color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp)
+        Icon(icon, null, Modifier.size(18.dp), tint = pFg2)
+        Text(text.uppercase(), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp)
     }
 }
 
@@ -778,8 +795,8 @@ internal fun Chips(opts: List<String>, sel: Int, cols: Int = 4, onSel: (Int) -> 
         opts.withIndex().chunked(cols).forEach { r ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 r.forEach { (i, o) ->
-                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(if (i == sel) cs.primary else SOFT).clickable { onSel(i) }, contentAlignment = Alignment.Center) {
-                        Text(o, color = if (i == sel) cs.onPrimary else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1)
+                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(if (i == sel) cs.primary else pSoft).clickable { onSel(i) }, contentAlignment = Alignment.Center) {
+                        Text(o, color = if (i == sel) cs.onPrimary else pFg, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1)
                     }
                 }
                 repeat(cols - r.size) { Spacer(Modifier.weight(1f)) }
@@ -791,11 +808,11 @@ internal fun Chips(opts: List<String>, sel: Int, cols: Int = 4, onSel: (Int) -> 
 @Composable
 internal fun Wide(icon: String, text: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(16.dp)).background(SOFT).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(16.dp)).background(pSoft).clickable(onClick = onClick),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, Modifier.size(22.dp), tint = Color.White)
-        Text(text, color = Color.White, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 8.dp))
+        Icon(icon, null, Modifier.size(22.dp), tint = pFg)
+        Text(text, color = pFg, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -803,11 +820,11 @@ internal fun Wide(icon: String, text: String, onClick: () -> Unit) {
 internal fun Opt(icon: String, text: String, sel: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else SOFT).clickable(onClick = onClick).padding(10.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else pSoft).clickable(onClick = onClick).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(icon, null, Modifier.size(22.dp), tint = Color.White)
-        Text(text, Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Icon(icon, null, Modifier.size(22.dp), tint = pFg)
+        Text(text, Modifier.weight(1f), color = pFg, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (sel) Icon("check", null, Modifier.size(22.dp), tint = cs.primary)
     }
 }
@@ -816,11 +833,11 @@ internal fun Opt(icon: String, text: String, sel: Boolean, onClick: () -> Unit) 
 internal fun Toggle(icon: String, text: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        modifier.height(40.dp).clip(RoundedCornerShape(14.dp)).background(if (on) cs.primary else SOFT).clickable(onClick = onClick),
+        modifier.height(40.dp).clip(RoundedCornerShape(14.dp)).background(if (on) cs.primary else pSoft).clickable(onClick = onClick),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, Modifier.size(20.dp), tint = if (on) cs.onPrimary else Color.White)
-        Text(text, color = if (on) cs.onPrimary else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp))
+        Icon(icon, null, Modifier.size(20.dp), tint = if (on) cs.onPrimary else pFg)
+        Text(text, color = if (on) cs.onPrimary else pFg, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp))
     }
 }
 
@@ -852,25 +869,25 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
             ?: devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET } ?: devices.firstOrNull()
         Column(
             Modifier.padding(16.dp).widthIn(max = 420.dp).fillMaxWidth().heightIn(max = 560.dp)
-                .clip(RoundedCornerShape(30.dp)).background(Color(0xF2181330)).padding(16.dp),
+                .clip(RoundedCornerShape(30.dp)).background(pDialog).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(42.dp).clip(RoundedCornerShape(15.dp)).background(cs.primary), contentAlignment = Alignment.Center) { Icon("headphones", null, Modifier.size(24.dp), tint = cs.onPrimary) }
                 Column(Modifier.weight(1f)) {
-                    Text("Audio output", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
-                    Text(if (chosen == -1) "Automatic" else "Fixed to one device", color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Audio output", color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                    Text(if (chosen == -1) "Automatic" else "Fixed to one device", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
-                PBtn("close", "Close", 36.dp, bg = SOFT, onClick = onClose)
+                PBtn("close", "Close", 36.dp, bg = pSoft, onClick = onClose)
             }
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Brush.linearGradient(listOf(cs.primary.copy(alpha = 0.38f), cs.tertiary.copy(alpha = 0.26f)))).padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(Modifier.size(48.dp).clip(CircleShape).background(Color(0x33FFFFFF)), contentAlignment = Alignment.Center) { Icon(audioIcon(active), null, Modifier.size(26.dp), tint = Color.White) }
+                Box(Modifier.size(48.dp).clip(CircleShape).background(pSoft2), contentAlignment = Alignment.Center) { Icon(audioIcon(active), null, Modifier.size(26.dp), tint = pFg) }
                 Column(Modifier.weight(1f)) {
-                    Text("PLAYING ON", color = Color(0xB3FFFFFF), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-                    Text(active?.let { deviceLabel(it) } ?: "Phone speaker", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("PLAYING ON", color = pFg2, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                    Text(active?.let { deviceLabel(it) } ?: "Phone speaker", color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Sl("devices", "Choose where sound plays")
@@ -878,15 +895,15 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 @Composable
                 fun item(icon: String, label: String, sub: String, sel: Boolean, onClick: () -> Unit) {
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else SOFT).clickable(onClick = onClick).padding(10.dp),
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (sel) cs.primary.copy(alpha = 0.28f) else pSoft).clickable(onClick = onClick).padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Box(Modifier.size(40.dp).clip(CircleShape).background(if (sel) cs.primary else Color(0x26FFFFFF)), contentAlignment = Alignment.Center) {
-                            Icon(icon, null, Modifier.size(22.dp), tint = if (sel) cs.onPrimary else Color.White)
+                        Box(Modifier.size(40.dp).clip(CircleShape).background(if (sel) cs.primary else pSoft2), contentAlignment = Alignment.Center) {
+                            Icon(icon, null, Modifier.size(22.dp), tint = if (sel) cs.onPrimary else pFg)
                         }
                         Column(Modifier.weight(1f)) {
-                            Text(label, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(sub, color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(label, color = pFg, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(sub, color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                         if (sel) Icon("check", null, Modifier.size(22.dp), tint = cs.primary)
                     }
@@ -894,11 +911,11 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 item("tune", "Automatic", "Let Android choose the best output", chosen == -1) { chosen = -1; player.setPreferredAudioDevice(null) }
                 devices.forEach { d -> item(audioIcon(d), deviceLabel(d), audioKind(d), chosen == d.id) { chosen = d.id; player.setPreferredAudioDevice(d) } }
             }
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SOFT).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon("info", null, Modifier.size(20.dp), tint = Color(0xB3FFFFFF))
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pSoft).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon("info", null, Modifier.size(20.dp), tint = pFg2)
                 Text(
                     "If a device disconnects, the video will ${if (lostPolicy == 1) "keep playing" else "pause"}. Change this in Settings → Playback.",
-                    color = Color(0xB3FFFFFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                 )
             }
             Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(16.dp)).background(cs.primary).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
@@ -932,7 +949,7 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
     val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
-    val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, label = "wave")
+    val amp by animateFloatAsState(if (drag) 0f else 1f, label = "wave")
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
         modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
@@ -948,7 +965,7 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     ) {
         LinearWavyProgressIndicator(
             progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
-            color = cs.primary, trackColor = Color(0x40FFFFFF), amplitude = { amp },
+            color = cs.primary, trackColor = pTrack, amplitude = { amp }, waveSpeed = if (playing && !drag) 40.dp else 0.01.dp,
         )
         Box(
             Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }
