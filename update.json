@@ -1,12 +1,12 @@
 {
-  "version": "1.1.1",
+  "version": "1.1.2",
   "notes": [
-    "Fixed: status bar icons now follow the app theme (dark on light mode)",
-    "Fixed: Settings no longer has Pull to Refresh, only Scan again",
-    "Fixed: Bluetooth devices showing twice in Audio output",
-    "Fixed: the seek bar wave now stops moving when paused",
-    "Improved: player controls now follow Light mode"
+    "Fixed: the seek bar is flat when paused and only waves while playing",
+    "Fixed: choosing the phone in Audio output now moves the sound off Bluetooth",
+    "Fixed: Audio output scrolls and fits in landscape",
+    "New: .ass/.ssa subtitles keep their own colors, size and position",
+    "Improved: the header theme button now cycles Same as device, Light and Dark"
   ],
-  "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.1.1/PebblePlayer.apk",
+  "apk": "https://github.com/VikrieGunawan/pebble-android/releases/download/1.1.2/PebblePlayer.apk",
   "size": 0
 }
