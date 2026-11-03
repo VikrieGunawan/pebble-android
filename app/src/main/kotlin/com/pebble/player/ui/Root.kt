@@ -232,7 +232,12 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
                     placeholder = if (tab == 4) "Search settings" else "Search your videos",
                     settingsOn = tab == 4, onSettings = { tab = if (tab == 4) lastTab else 4 },
-                    dark = dark, onToggleTheme = { scope.launch { app.store.put(K.theme, if (dark) 1 else 2) } },
+                    themeMode = prefs.theme,
+                    onToggleTheme = {
+                        val nx = (prefs.theme + 1) % 3
+                        scope.launch { app.store.put(K.theme, nx) }
+                        Toast.makeText(ctx, "Theme: " + listOf("Same as device", "Light", "Dark")[nx], Toast.LENGTH_SHORT).show()
+                    },
                     profile = prefs.profile, onProfile = { profileDialog = true },
                 )
             },

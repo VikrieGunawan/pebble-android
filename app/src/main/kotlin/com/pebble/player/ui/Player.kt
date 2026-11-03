@@ -172,6 +172,8 @@ private fun deviceLabel(d: AudioDeviceInfo): String = when (d.type) {
     else -> d.productName.toString().ifBlank { "Bluetooth audio" }
 }
 
+private fun isSsa(f: Format) = f.sampleMimeType == MimeTypes.TEXT_SSA || f.codecs == MimeTypes.TEXT_SSA || f.sampleMimeType?.contains("ssa", true) == true
+
 private fun listOutputs(am: AudioManager): List<AudioDeviceInfo> {
     val all = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter {
         isBt(it) || it.type in listOf(
@@ -239,7 +241,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val wasPlaying = if (firstLoad) curPrefs.autoplay else player.playWhenReady
         val b = MediaItem.Builder().setUri(video.uri)
         subUri?.let { u ->
-            val mime = if (subName.endsWith(".vtt", true)) MimeTypes.TEXT_VTT else MimeTypes.APPLICATION_SUBRIP
+            val mime = when { subName.endsWith(".vtt", true) -> MimeTypes.TEXT_VTT; subName.endsWith(".ass", true) || subName.endsWith(".ssa", true) -> MimeTypes.TEXT_SSA; else -> MimeTypes.APPLICATION_SUBRIP }
             b.setSubtitleConfigurations(listOf(MediaItem.SubtitleConfiguration.Builder(u).setMimeType(mime).setLanguage("und").setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()))
         }
         var start = keep
@@ -288,6 +290,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var vSize by remember { mutableStateOf(VideoSize.UNKNOWN) }
     var tracks by remember(video.id) { mutableStateOf(Tracks.EMPTY) }
     var cueText by remember(video.id) { mutableStateOf("") }
+    var cueList by remember(video.id) { mutableStateOf<List<Cue>>(emptyList()) }
+    // .ass/.ssa (loaded or inside the video) keep their own look; the app's subtitle settings only apply to other formats
+    val assMode = (subUri != null && (subName.endsWith(".ass", true) || subName.endsWith(".ssa", true))) ||
+        tracks.groups.any { g -> g.type == C.TRACK_TYPE_TEXT && g.isSelected && g.length > 0 && g.getTrackFormat(0).let { isSsa(it) } }
 
     DisposableEffect(player) {
         val l = object : Player.Listener {
@@ -301,7 +307,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             }
             override fun onVideoSizeChanged(v: VideoSize) { vSize = v }
             override fun onTracksChanged(t: Tracks) { tracks = t }
-            override fun onCues(cueGroup: CueGroup) { cueText = cueGroup.cues.mapNotNull { it.text?.toString() }.joinToString("\n").trim() }
+            override fun onCues(cueGroup: CueGroup) { cueList = cueGroup.cues; cueText = cueGroup.cues.mapNotNull { it.text?.toString() }.joinToString("\n").trim() }
             override fun onPlayerError(e: PlaybackException) { failing = e }
         }
         player.addListener(l)
@@ -529,7 +535,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             Icon("speed", null, Modifier.size(22.dp), tint = cs.primary)
             Text("${fmtSpeed(curPrefs.holdSpeed)} speed", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
         }
-        if (subs && cueText.isNotBlank()) {
+        if (subs && assMode && cueList.isNotEmpty()) AssCues(cueList, vSize, Modifier.padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)))
+        if (subs && !assMode && cueText.isNotBlank()) {
             val subBottom by animateDpAsState(if (show) 112.dp else 30.dp, label = "subBottom")
             val sp = listOf(14, 16, 19, 24)[subSize].sp
             Box(
@@ -708,10 +715,13 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                                 Sl("subtitles", "Subtitle tracks")
                                 textTr.forEachIndexed { i, g -> Opt("closed_caption", trackLabel(g.getTrackFormat(0), i, "Subtitle"), g.isSelected) { pickTrack(g) } }
                             }
-                            Sl("format_size", "Text size")
-                            Chips(listOf("Small", "Medium", "Large", "XL"), subSize) { subSize = it }
-                            Sl("palette", "Background")
-                            Chips(listOf("None", "Soft", "Solid"), subBg, 3) { subBg = it }
+                            if (assMode) Sl("info", "Styled by the .ass file: its own colors, size and position")
+                            else {
+                                Sl("format_size", "Text size")
+                                Chips(listOf("Small", "Medium", "Large", "XL"), subSize) { subSize = it }
+                                Sl("palette", "Background")
+                                Chips(listOf("None", "Soft", "Solid"), subBg, 3) { subBg = it }
+                            }
                             if (subUri != null) Wide("delete", "Remove subtitles") { subUri = null; subName = "" }
                         }
                         "audio" -> {
@@ -847,6 +857,11 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
     var devices by remember { mutableStateOf(listOutputs(am)) }
     var chosen by remember { mutableIntStateOf(-1) } // device id, -1 = automatic
     val lostPolicy by rememberUpdatedState(onLost)
+    // Re-routing needs a fresh audio track on some phones, so a seek in place makes the new output take effect right away.
+    fun route(d: AudioDeviceInfo?) {
+        player.setPreferredAudioDevice(d)
+        player.seekTo(player.currentPosition)
+    }
 
     DisposableEffect(am) {
         val cb = object : AudioDeviceCallback() {
@@ -854,7 +869,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
             override fun onAudioDevicesRemoved(removed: Array<out AudioDeviceInfo>) {
                 devices = listOutputs(am)
                 removed.firstOrNull { isBt(it) || it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET }?.let {
-                    if (it.id == chosen) { chosen = -1; player.setPreferredAudioDevice(null) }
+                    if (it.id == chosen) { chosen = -1; route(null) }
                     Toast.makeText(ctx, "${deviceLabel(it)} disconnected" + if (lostPolicy == 1) " · still playing" else " · paused", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -869,7 +884,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
             ?: devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET } ?: devices.firstOrNull()
         Column(
             Modifier.padding(16.dp).widthIn(max = 420.dp).fillMaxWidth().heightIn(max = 560.dp)
-                .clip(RoundedCornerShape(30.dp)).background(pDialog).padding(16.dp),
+                .clip(RoundedCornerShape(30.dp)).background(pDialog).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -891,7 +906,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 }
             }
             Sl("devices", "Choose where sound plays")
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 @Composable
                 fun item(icon: String, label: String, sub: String, sel: Boolean, onClick: () -> Unit) {
                     Row(
@@ -908,8 +923,8 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                         if (sel) Icon("check", null, Modifier.size(22.dp), tint = cs.primary)
                     }
                 }
-                item("tune", "Automatic", "Let Android choose the best output", chosen == -1) { chosen = -1; player.setPreferredAudioDevice(null) }
-                devices.forEach { d -> item(audioIcon(d), deviceLabel(d), audioKind(d), chosen == d.id) { chosen = d.id; player.setPreferredAudioDevice(d) } }
+                item("tune", "Automatic", "Let Android choose the best output", chosen == -1) { chosen = -1; route(null) }
+                devices.forEach { d -> item(audioIcon(d), deviceLabel(d), audioKind(d), chosen == d.id) { chosen = d.id; route(d) } }
             }
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pSoft).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon("info", null, Modifier.size(20.dp), tint = pFg2)
@@ -949,7 +964,7 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
     val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
-    val amp by animateFloatAsState(if (drag) 0f else 1f, label = "wave")
+    val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, label = "wave")
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
         modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
@@ -965,7 +980,7 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     ) {
         LinearWavyProgressIndicator(
             progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
-            color = cs.primary, trackColor = pTrack, amplitude = { amp }, waveSpeed = if (playing && !drag) 40.dp else 0.01.dp,
+            color = cs.primary, trackColor = pTrack, amplitude = { amp },
         )
         Box(
             Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }

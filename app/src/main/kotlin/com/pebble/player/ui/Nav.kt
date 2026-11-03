@@ -134,8 +134,8 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
 @Composable
 fun PebbleTopBar(
     showLogo: Boolean, query: String, onQuery: (String) -> Unit, placeholder: String,
-    settingsOn: Boolean, onSettings: () -> Unit, dark: Boolean, onToggleTheme: () -> Unit,
-    profile: Profile, onProfile: () -> Unit,
+    settingsOn: Boolean, onSettings: () -> Unit, onToggleTheme: () -> Unit,
+    profile: Profile, onProfile: () -> Unit, themeMode: Int = 0,
 ) {
     val focus = LocalFocusManager.current
     val imeOn = WindowInsets.isImeVisible
@@ -178,7 +178,7 @@ fun PebbleTopBar(
                 searchField(Modifier.weight(1f))
                 Spacer(Modifier.width(10.dp))
                 Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
+                    roundBtn(listOf("contrast", "light_mode", "dark_mode")[themeMode.coerceIn(0, 2)], false, "Theme", onToggleTheme)
                     roundBtn("settings", settingsOn, "Settings", onSettings)
                 }
                 Spacer(Modifier.width(10.dp))
@@ -192,7 +192,7 @@ fun PebbleTopBar(
                 }
                 Spacer(Modifier.weight(1f))
                 Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    roundBtn(if (dark) "light_mode" else "dark_mode", false, "Theme", onToggleTheme)
+                    roundBtn(listOf("contrast", "light_mode", "dark_mode")[themeMode.coerceIn(0, 2)], false, "Theme", onToggleTheme)
                     roundBtn("settings", settingsOn, "Settings", onSettings)
                 }
                 Spacer(Modifier.width(10.dp))
