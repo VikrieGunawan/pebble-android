@@ -1,9 +1,7 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Whole artwork stays inside the 66dp safe circle, so circle / squircle / square masks all show it fully -->
+    <!-- Only the play symbol: the launcher's own mask (circle, squircle, rounded square...) gives the icon its shape -->
     <group android:translateX="20.52" android:translateY="20.52" android:scaleX="1.395" android:scaleY="1.395">
-        <path android:strokeColor="#59FFFFFF" android:strokeWidth="1.5"
-            android:pathData="M18,5H30A13,13 0 0 1 43,18V30A13,13 0 0 1 30,43H18A13,13 0 0 1 5,30V18A13,13 0 0 1 18,5Z"/>
         <group android:translateX="9" android:translateY="9" android:scaleX="1.25" android:scaleY="1.25">
             <path android:fillColor="#FFFFFFFF" android:pathData="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18c.62-.39.62-1.29 0-1.69L9.54 5.98C8.87 5.55 8 6.03 8 6.82z"/>
         </group>
