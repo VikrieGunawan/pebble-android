@@ -1,5 +1,7 @@
 package com.pebble.player.ui
 
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -57,6 +59,8 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
         if (v.added <= 0L) "-" else SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date(if (v.added < 100_000_000_000L) v.added * 1000 else v.added))
     }
     val place = v.path.ifEmpty { v.folder }
+    val ctx = LocalContext.current
+    val info by produceState<VideoInfo?>(null, v.id) { value = loadVideoInfo(ctx, v) }
     DetailsFrame(onClose) {
         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(cs.surfaceContainerHighest)) {
             if (bmp != null) Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -76,8 +80,18 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
                 PlayStat("hard_drive", fmtSize(v.size), "Size", Modifier.weight(1f))
                 PlayStat("movie", v.ext.ifEmpty { "-" }.uppercase(), "Format", Modifier.weight(1f))
             }
+            info?.let { i ->
+                i.resolution?.let { InfoRow("hd", "Resolution", it) }
+                i.video?.let { InfoRow("smart_display", "Video", it) }
+                InfoRow("music_note", "Audio", if (i.audio.isEmpty()) "No audio track" else i.audio.joinToString("\n"))
+                InfoRow("closed_caption", "Subtitles in the file", if (i.subs.isEmpty()) "None built in" else i.subs.joinToString("\n"))
+                i.container?.let { InfoRow("movie", "Container", it) }
+                i.source?.let { InfoRow("link", "Source", it) }
+                i.storage?.let { InfoRow("hard_drive", "Storage", it) }
+            }
             InfoRow("folder", "Location", place)
             InfoRow("calendar_month", "Added", added)
+            info?.modified?.let { InfoRow("edit", "Modified", it) }
             InfoRow("favorite", "Favorite", if (fav) "Yes, pinned in Favorites" else "No")
             InfoRow(
                 "history", "Watched",
@@ -146,7 +160,7 @@ private fun InfoRow(icon: String, label: String, value: String) {
         IconTile(icon, 38.dp)
         Column(Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant, fontWeight = FontWeight.Bold)
-            Text(value, fontWeight = FontWeight.ExtraBold, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            Text(value, fontWeight = FontWeight.ExtraBold, maxLines = 8, overflow = TextOverflow.Ellipsis)
         }
     }
 }

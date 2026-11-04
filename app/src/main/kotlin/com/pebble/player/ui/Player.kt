@@ -1,5 +1,7 @@
 package com.pebble.player.ui
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.media3.common.text.Cue
@@ -256,7 +258,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val keep = if (firstLoad) 0L else player.currentPosition
         val wasPlaying = if (firstLoad) curPrefs.autoplay else player.playWhenReady
         val b = MediaItem.Builder().setUri(video.uri)
-        subUri?.let { u ->
+        subUri?.takeIf { !isAssName(subName) }?.let { u ->
             val mime = when { subName.endsWith(".vtt", true) -> MimeTypes.TEXT_VTT; subName.endsWith(".ass", true) || subName.endsWith(".ssa", true) -> MimeTypes.TEXT_SSA; else -> MimeTypes.APPLICATION_SUBRIP }
             b.setSubtitleConfigurations(listOf(MediaItem.SubtitleConfiguration.Builder(u).setMimeType(mime).setLanguage("und").setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()))
         }
@@ -307,6 +309,17 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var tracks by remember(video.id) { mutableStateOf(Tracks.EMPTY) }
     var cueText by remember(video.id) { mutableStateOf("") }
     var cueList by remember(video.id) { mutableStateOf<List<Cue>>(emptyList()) }
+    var assScript by remember(video.id) { mutableStateOf<AssScript?>(null) }
+    LaunchedEffect(subUri, subName) {
+        assScript = null
+        val u = subUri
+        if (u != null && isAssName(subName)) {
+            assScript = withContext(Dispatchers.IO) { runCatching { ctx.contentResolver.openInputStream(u)!!.bufferedReader().use { parseAss(it.readText()) } }.getOrNull() }
+            if (assScript == null) Toast.makeText(ctx, "Couldn't read this subtitle file", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val cueLines = remember(cueList) { cueItems(cueList) }
+    val noTime = remember { mutableLongStateOf(0L) }
     // .ass/.ssa (loaded or inside the video) keep their own look; the app's subtitle settings only apply to other formats
     val assMode = (subUri != null && (subName.endsWith(".ass", true) || subName.endsWith(".ssa", true))) ||
         tracks.groups.any { g -> g.type == C.TRACK_TYPE_TEXT && g.isSelected && g.length > 0 && g.getTrackFormat(0).let { isSsa(it) } }
@@ -339,8 +352,18 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { player.pause() }
     var userBright by remember { mutableFloatStateOf(-1f) } // brightness set with the swipe gesture, -1 = system
     val winFocused = LocalWindowInfo.current.isWindowFocused
-    LaunchedEffect(winFocused, userBright) {
-        if (userBright >= 0f) act?.window?.let { w -> if (w.attributes.screenBrightness != userBright) w.attributes = w.attributes.also { it.screenBrightness = userBright } }
+    fun applyBright() {
+        val w = act?.window ?: return
+        val want = if (userBright >= 0f) userBright else android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        if (w.attributes.screenBrightness != want) w.attributes = w.attributes.also { it.screenBrightness = want }
+    }
+    LaunchedEffect(winFocused, userBright) { applyBright() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { applyBright() }
+    DisposableEffect(act) { // the system volume panel takes focus for a moment: put the brightness back the instant the window is ours again
+        val v = act?.window?.decorView
+        val l = android.view.ViewTreeObserver.OnWindowFocusChangeListener { applyBright() }
+        v?.viewTreeObserver?.addOnWindowFocusChangeListener(l)
+        onDispose { v?.viewTreeObserver?.removeOnWindowFocusChangeListener(l) }
     }
 
     LaunchedEffect(orient, vSize, prefs.autoFs) {
@@ -428,17 +451,21 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         if (save) scope.launch { store.put(K.speed, s) }
     }
     fun applyFit(v: Int) { fit = v; scope.launch { store.put(K.fit, v) } }
-    fun enterPip() {
-        try {
-            val b = android.app.PictureInPictureParams.Builder()
+    fun pipParams(): android.app.PictureInPictureParams {
+        val b = android.app.PictureInPictureParams.Builder().setActions(mediaSess.pipActions())
             if (vSize.width > 0 && vSize.height > 0) {
                 val r = vSize.width.toFloat() / vSize.height
                 if (r in 0.45f..2.3f) b.setAspectRatio(android.util.Rational(vSize.width, vSize.height))
             }
+        return b.build()
+    }
+    fun enterPip() {
+        try {
             show = false; panel = null
-            act?.enterPictureInPictureMode(b.build())
+            act?.enterPictureInPictureMode(pipParams())
         } catch (_: Exception) { Toast.makeText(ctx, "Picture-in-picture isn't available", Toast.LENGTH_SHORT).show() }
     }
+    LaunchedEffect(isPlaying, prev, next, vSize) { if (act?.isInPictureInPictureMode == true) act.setPictureInPictureParams(pipParams()) }
     fun go(v: Video?) { if (v != null) onSelect(v) }
     fun pickNext(): Video? = if (shuffle) queue.filter { it.id != video.id }.randomOrNull() else next
     fun togglePanel(id: String) { panel = if (panel == id) null else id; tick++ }
@@ -557,7 +584,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             Icon("speed", null, Modifier.size(22.dp), tint = cs.primary)
             Text("${fmtSpeed(curPrefs.holdSpeed)} speed", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
         }
-        if (subs && assMode && cueList.isNotEmpty()) AssCues(cueList, vSize, Modifier.padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)))
+        val subArea = Modifier.padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp))
+        val ass = assScript
+        if (subs && ass != null) AssFile(ass, player, vSize, subArea)
+        else if (subs && assMode && cueLines.isNotEmpty()) SubLayer(cueLines, vSize, noTime, subArea)
         if (subs && !assMode && cueText.isNotBlank()) {
             val subBottom by animateDpAsState(if (show) 112.dp else 30.dp, label = "subBottom")
             val sp = listOf(14, 16, 19, 24)[subSize].sp
@@ -881,8 +911,9 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
     val lostPolicy by rememberUpdatedState(onLost)
     // Re-routing needs a fresh audio track on some phones, so a seek in place makes the new output take effect right away.
     fun route(d: AudioDeviceInfo?) {
-        player.setPreferredAudioDevice(d)
-        if (d != null && !isBt(d)) player.seekTo(player.currentPosition) // only needed to pull the sound off Bluetooth
+        // Pinning a Bluetooth device makes the audio stutter, so Bluetooth is left to Android's own routing; the phone, wired and USB are pinned.
+        player.setPreferredAudioDevice(if (d != null && !isBt(d)) d else null)
+        player.seekTo(player.currentPosition) // a fresh audio track makes the new output take effect right away
     }
 
     DisposableEffect(am) {
@@ -986,6 +1017,7 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
     val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
+    val wa by animateFloatAsState(if (playing && !drag) 1f else 0f, tween(350), label = "wave")
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
         modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
@@ -999,12 +1031,13 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
             },
         contentAlignment = Alignment.CenterStart,
     ) {
-        if (playing && !drag) LinearWavyProgressIndicator(
-            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
-            color = cs.primary, trackColor = pTrack,
-        ) else LinearProgressIndicator(
-            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
+        LinearProgressIndicator(
+            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = 1f - wa },
             color = cs.primary, trackColor = pTrack, drawStopIndicator = {},
+        )
+        if (wa > 0.01f) LinearWavyProgressIndicator(
+            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = wa },
+            color = cs.primary, trackColor = pTrack,
         )
         Box(
             Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }

@@ -1,5 +1,11 @@
 package com.pebble.player.ui
 
+import androidx.core.content.ContextCompat
+import androidx.compose.runtime.DisposableEffect
+import android.os.Looper
+import android.os.Handler
+import android.database.ContentObserver
+import android.content.BroadcastReceiver
 import android.Manifest
 import android.bluetooth.BluetoothManager
 import android.content.Context
@@ -76,6 +82,20 @@ fun DevicePage() {
     fun setAuto(on: Boolean) {
         auto = on
         try { Settings.System.putInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS_MODE, if (on) Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC else Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL) } catch (_: Exception) { }
+    }
+
+    // follow the system in real time: brightness (notification shade, auto-brightness) and volume (hardware keys)
+    DisposableEffect(Unit) {
+        val obs = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) { bri = readBrightness(ctx); auto = readAuto(ctx) }
+        }
+        ctx.contentResolver.registerContentObserver(Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS), false, obs)
+        ctx.contentResolver.registerContentObserver(Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS_MODE), false, obs)
+        val rc = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, i: Intent) { vol = am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() }
+        }
+        ContextCompat.registerReceiver(ctx, rc, IntentFilter("android.media.VOLUME_CHANGED_ACTION"), ContextCompat.RECEIVER_NOT_EXPORTED)
+        onDispose { ctx.contentResolver.unregisterContentObserver(obs); try { ctx.unregisterReceiver(rc) } catch (_: Exception) { } }
     }
 
     val battery by produceState(Pair(-1, false)) {
