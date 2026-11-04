@@ -139,11 +139,11 @@ suspend fun fetchUpdate(ctx: Context): Result<UpdateInfo?> = withContext(Dispatc
 private fun prefs(ctx: Context) = ctx.getSharedPreferences("pebble_update", Context.MODE_PRIVATE)
 fun skipVersion(ctx: Context, v: String) { prefs(ctx).edit().putString("skip", v).apply() }
 
-/** Automatic check on launch: at most every 12 hours, never for a version the user skipped. */
+/** Automatic check (the app repeats it every 5 minutes while open): never for a version the user skipped. */
 suspend fun checkUpdateAuto(ctx: Context): UpdateInfo? {
     val p = prefs(ctx)
     val now = System.currentTimeMillis()
-    if (now - p.getLong("last", 0L) < 12 * 3600_000L) return null
+    if (now - p.getLong("last", 0L) < 60_000L) return null
     p.edit().putLong("last", now).apply()
     val u = fetchUpdate(ctx).getOrNull() ?: return null
     return if (u.version == p.getString("skip", null)) null else u

@@ -1,5 +1,7 @@
 package com.pebble.player.ui
 
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.layout.statusBarsPadding
 import android.widget.Toast
 import androidx.compose.ui.unit.sp
@@ -169,7 +171,16 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var folderMenu by remember { mutableStateOf<String?>(null) }
     var profileDialog by remember { mutableStateOf(false) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    LaunchedEffect(Unit) { update = checkUpdateAuto(ctx) }
+    var dismissedVer by remember { mutableStateOf<String?>(null) } // "Later" hides a version until the app restarts
+    var resumeN by remember { mutableIntStateOf(0) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumeN++ }
+    // Look for a new release on launch, on every return to the app, and every 5 minutes while it is open (never during playback)
+    LaunchedEffect(resumeN) {
+        while (true) {
+            if (update == null && playing == null) checkUpdateAuto(ctx)?.let { if (it.version != dismissedVer) update = it }
+            delay(5 * 60_000L)
+        }
+    }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
 
     LaunchedEffect(granted, rescan) {
@@ -301,7 +312,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         }
     }
 
-    update?.let { u -> UpdateDialog(u, { update = null }, { skipVersion(ctx, u.version); update = null }) }
+    update?.let { u -> UpdateDialog(u, { dismissedVer = u.version; update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }
 

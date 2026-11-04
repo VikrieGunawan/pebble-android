@@ -1,5 +1,7 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.media3.common.text.Cue
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.withFrameNanos
@@ -236,6 +238,19 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     }
 
     val curPlayer by rememberUpdatedState(player)
+    // Android media controls in the notification shade / lock screen
+    val curPrev by rememberUpdatedState(prev)
+    val artBmp = rememberThumb(video)
+    val mediaSess = remember(player) { PlayerMediaSession(ctx, player, { curPrev?.let { curSelect(it) } }, { curNext?.let { curSelect(it) } }) }
+    DisposableEffect(mediaSess) { onDispose { mediaSess.release() } }
+    LaunchedEffect(mediaSess, video.id, artBmp, prev, next) { mediaSess.info(video.name, artBmp?.asAndroidBitmap(), prev != null, next != null) }
+    val askNotif = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            val sp = ctx.getSharedPreferences("pebble_misc", Context.MODE_PRIVATE)
+            if (!sp.getBoolean("asked_notif", false)) { sp.edit().putBoolean("asked_notif", true).apply(); askNotif.launch(android.Manifest.permission.POST_NOTIFICATIONS) }
+        }
+    }
     var firstLoad by remember(video.id) { mutableStateOf(true) }
     LaunchedEffect(player, subUri) {
         val keep = if (firstLoad) 0L else player.currentPosition
@@ -306,7 +321,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     (if (curShuffle) curQueue.filter { it.id != curId }.randomOrNull() else curNext)?.let { curSelect(it) }
                 }
             }
-            override fun onVideoSizeChanged(v: VideoSize) { vSize = v }
+            override fun onVideoSizeChanged(v: VideoSize) { if (v.width > 0 && v.height > 0) vSize = v } // a momentary empty size would flip the screen orientation
             override fun onTracksChanged(t: Tracks) { tracks = t }
             override fun onCues(cueGroup: CueGroup) { cueList = cueGroup.cues; cueText = cueGroup.cues.mapNotNull { it.text?.toString() }.joinToString("\n").trim() }
             override fun onPlayerError(e: PlaybackException) { failing = e }
@@ -322,6 +337,11 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { player.pause() }
+    var userBright by remember { mutableFloatStateOf(-1f) } // brightness set with the swipe gesture, -1 = system
+    val winFocused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(winFocused, userBright) {
+        if (userBright >= 0f) act?.window?.let { w -> if (w.attributes.screenBrightness != userBright) w.attributes = w.attributes.also { it.screenBrightness = userBright } }
+    }
 
     LaunchedEffect(orient, vSize, prefs.autoFs) {
         act?.requestedOrientation = when {
@@ -486,9 +506,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         val d = -dy / size.height * 1.4f
                         if (left) {
                             val win = act?.window ?: return@detectVerticalDragGestures
-                            val cur = win.attributes.screenBrightness.let { if (it < 0f) 0.5f else it }
+                            val cur = win.attributes.screenBrightness.let { if (it < 0f) readBrightness(ctx) / 255f else it }
                             val nv = (cur + d).coerceIn(0.02f, 1f)
                             win.attributes = win.attributes.also { it.screenBrightness = nv }
+                            userBright = nv
                             hud = "brightness_6" to nv
                         } else {
                             val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -861,7 +882,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
     // Re-routing needs a fresh audio track on some phones, so a seek in place makes the new output take effect right away.
     fun route(d: AudioDeviceInfo?) {
         player.setPreferredAudioDevice(d)
-        player.seekTo(player.currentPosition)
+        if (d != null && !isBt(d)) player.seekTo(player.currentPosition) // only needed to pull the sound off Bluetooth
     }
 
     DisposableEffect(am) {
@@ -965,7 +986,6 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
     val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
-    val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, label = "wave")
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
         modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
@@ -979,9 +999,12 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
             },
         contentAlignment = Alignment.CenterStart,
     ) {
-        LinearWavyProgressIndicator(
+        if (playing && !drag) LinearWavyProgressIndicator(
             progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
-            color = cs.primary, trackColor = pTrack, amplitude = { amp },
+            color = cs.primary, trackColor = pTrack,
+        ) else LinearProgressIndicator(
+            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
+            color = cs.primary, trackColor = pTrack, drawStopIndicator = {},
         )
         Box(
             Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }
