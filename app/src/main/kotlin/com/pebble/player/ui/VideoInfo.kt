@@ -6,12 +6,14 @@ import android.provider.MediaStore
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Format
-import androidx.media3.exoplayer.MetadataRetriever
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.Tracks
+import androidx.media3.exoplayer.ExoPlayer
 import com.pebble.player.data.Video
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -80,18 +82,21 @@ private fun containerName(mime: String?, ext: String) = when (mime) {
     else -> ext.ifBlank { mime.substringAfter('/').uppercase() }
 }
 
-private suspend fun readTracks(ctx: Context, uri: Uri): androidx.media3.exoplayer.source.TrackGroupArray? {
-    val r = MetadataRetriever.Builder(ctx, MediaItem.fromUri(uri)).build()
+/** Opens the file in a throw-away player (no picture, no sound) just to read its tracks, including built-in subtitles. */
+private suspend fun readTracks(ctx: Context, uri: Uri): Tracks? = withContext(Dispatchers.Main) {
+    val p = ExoPlayer.Builder(ctx).build()
     try {
-        val f = r.retrieveTrackGroups()
-        val out = withTimeoutOrNull(8000) {
-            suspendCancellableCoroutine<androidx.media3.exoplayer.source.TrackGroupArray?> { cont ->
-                f.addListener({ cont.resume(try { f.get() } catch (_: Exception) { null }) }, Executor { it.run() })
+        withTimeoutOrNull(8000) {
+            suspendCancellableCoroutine<Tracks?> { cont ->
+                p.addListener(object : Player.Listener {
+                    override fun onTracksChanged(tracks: Tracks) { if (tracks.groups.isNotEmpty() && cont.isActive) cont.resume(tracks) }
+                    override fun onPlayerError(error: PlaybackException) { if (cont.isActive) cont.resume(null) }
+                })
+                p.setMediaItem(MediaItem.fromUri(uri))
+                p.prepare()
             }
         }
-        if (out == null) f.cancel(true)
-        return out
-    } finally { r.close() }
+    } finally { p.release() }
 }
 
 internal suspend fun loadVideoInfo(ctx: Context, v: Video): VideoInfo = withContext(Dispatchers.IO) {
@@ -106,9 +111,9 @@ internal suspend fun loadVideoInfo(ctx: Context, v: Video): VideoInfo = withCont
     var video: Format? = null
     val audio = ArrayList<String>(); val subs = ArrayList<String>()
     val groups = try { readTracks(ctx, v.uri) } catch (_: Exception) { null }
-    if (groups != null) for (i in 0 until groups.length) {
-        val g = groups[i]
-        val f = g.getFormat(0)
+    if (groups != null) for (g in groups.groups) {
+        if (g.length == 0) continue
+        val f = g.getTrackFormat(0)
         when (g.type) {
             C.TRACK_TYPE_VIDEO -> if (video == null) video = f
             C.TRACK_TYPE_AUDIO -> audio += listOfNotNull(
