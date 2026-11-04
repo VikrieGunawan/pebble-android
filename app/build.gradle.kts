@@ -13,8 +13,8 @@ android {
         applicationId = "com.pebble.player"
         minSdk = 29          // Android 10
         targetSdk = 36       // Android 16
-        versionCode = 7
-        versionName = "1.1.2"
+        versionCode = 8
+        versionName = "1.1.3"
     }
 
     // One fixed key for every build, so updates install over the old version.
