@@ -130,11 +130,21 @@ suspend fun fetchUpdate(ctx: Context): Result<UpdateInfo?> = withContext(Dispatc
             val j = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
             val v = j.getString("version")
             if (!newer(v, currentVersion(ctx))) null else {
-                UpdateInfo(v.removePrefix("v"), parseNotes(j.opt("notes")), j.getString("apk"), j.optLong("size"))
+                val apk = j.getString("apk")
+                // the pop-up appears only once the new APK is really downloadable
+                if (!apkReady(apk)) null else UpdateInfo(v.removePrefix("v"), parseNotes(j.opt("notes")), apk, j.optLong("size"))
             }
         } finally { c.disconnect() }
     }
 }
+
+private fun apkReady(url: String): Boolean = runCatching {
+    val c = URL(url).openConnection() as HttpURLConnection
+    c.requestMethod = "HEAD"
+    c.connectTimeout = 8000
+    c.readTimeout = 8000
+    try { c.responseCode in 200..399 } finally { c.disconnect() }
+}.getOrDefault(false)
 
 private fun prefs(ctx: Context) = ctx.getSharedPreferences("pebble_update", Context.MODE_PRIVATE)
 fun skipVersion(ctx: Context, v: String) { prefs(ctx).edit().putString("skip", v).apply() }
