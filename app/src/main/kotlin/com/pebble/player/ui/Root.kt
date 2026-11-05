@@ -214,6 +214,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     val pagerVisible by remember { derivedStateOf { sp.value < 1f } }
     val settingsVisible by remember { derivedStateOf { sp.value > 0f } }
     BackHandler(tab == 4) { tab = lastTab }
+    var askExit by remember { mutableStateOf(false) }
+    BackHandler(tab == 0 && playing == null) { askExit = true }
 
     Box(Modifier.fillMaxSize()) {
         val cfg = androidx.compose.ui.platform.LocalConfiguration.current
@@ -313,6 +315,11 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     }
 
     update?.let { u -> UpdateDialog(u, { dismissedVer = u.version; update = null }, { skipVersion(ctx, u.version); update = null }) }
+    if (askExit) AlertDialog(
+        onDismissRequest = { askExit = false }, title = { Text("Exit Pebble?") }, text = { Text("Do you want to close the app?") },
+        confirmButton = { TextButton({ askExit = false; (ctx as? android.app.Activity)?.finish() }) { Text("Exit") } },
+        dismissButton = { TextButton({ askExit = false }) { Text("Stay") } },
+    )
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }
 

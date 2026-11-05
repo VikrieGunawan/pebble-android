@@ -1,12 +1,14 @@
 package com.pebble.player.ui
 
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import kotlin.math.PI
+import kotlin.math.sin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.Spring
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +23,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.only
@@ -716,7 +717,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     PBtn("close", "Close", 36.dp, onClick = { panel = null })
                 }
                 if (shown == "queue") {
-                    QueuePanel(queue, video, prefs, isPlaying, shuffle, autoNext, Modifier.weight(1f, fill = false),
+                    QueuePanel(queue, video, prefs, shuffle, autoNext, Modifier.weight(1f, fill = false),
                         { shuffle = !shuffle }, { autoNext = !autoNext }) { panel = null; onSelect(it) }
                 } else Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (shown) {
@@ -1000,7 +1001,14 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
     var last by remember { mutableFloatStateOf(0f) }
     var drag by remember { mutableStateOf(false) }
     val handleW by animateDpAsState(if (drag) 2.dp else 4.dp, label = "handleW")
-    val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, spring(stiffness = Spring.StiffnessLow), label = "wave")
+    val amp by animateFloatAsState(if (playing && !drag) 1f else 0f, spring(stiffness = Spring.StiffnessMediumLow), label = "wave")
+    var phase by remember { mutableFloatStateOf(0f) }
+    // the wave keeps moving while its amplitude shrinks, then stops once it is flat
+    LaunchedEffect(playing, drag) {
+        var t0 = 0L
+        while ((playing && !drag) || amp > 0.005f) { withFrameNanos { n -> if (t0 != 0L) phase += (n - t0) / 1e9f * 6f; t0 = n } }
+    }
+    val trackC = pTrack
     fun upd(x: Float) { last = (x / w).coerceIn(0f, 1f); onChange(last) }
     Box(
         modifier.height(32.dp).onSizeChanged { w = it.width.toFloat().coerceAtLeast(1f) }
@@ -1014,14 +1022,21 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
             },
         contentAlignment = Alignment.CenterStart,
     ) {
-        // Material 3 Expressive: the wave amplitude itself animates between wavy and flat (no fade)
-        if (amp > 0.005f || (playing && !drag)) LinearWavyProgressIndicator(
-            progress = { (value() + amp * 1e-5f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
-            color = cs.primary, trackColor = pTrack, amplitude = { amp },
-        ) else LinearProgressIndicator(
-            progress = { value().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
-            color = cs.primary, trackColor = pTrack, drawStopIndicator = {},
-        )
+        // Material 3 Expressive style: the wave amplitude animates between wavy and flat
+        Canvas(Modifier.fillMaxWidth().height(16.dp)) {
+            val sw = 4.dp.toPx()
+            val cy = size.height / 2f
+            val px = value().coerceIn(0f, 1f) * size.width
+            val a = amp * 2.5.dp.toPx()
+            val lam = 36.dp.toPx()
+            if (px < size.width) drawLine(trackC, Offset(px, cy), Offset(size.width, cy), sw, StrokeCap.Round)
+            val path = Path().apply {
+                moveTo(0f, cy + a * sin(-phase))
+                var x = 0f
+                while (x < px) { x = minOf(x + 3f, px); lineTo(x, cy + a * sin(2f * PI.toFloat() * x / lam - phase)) }
+            }
+            drawPath(path, cs.primary, style = Stroke(sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
         Box(
             Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }
                 .size(handleW.coerceAtLeast(1.dp), 24.dp).clip(RoundedCornerShape(50)).background(cs.primary),
@@ -1031,106 +1046,48 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
 
 
 @Composable
-private fun QEq(on: Boolean, tint: Color) {
-    val t = rememberInfiniteTransition(label = "eq")
-    val a by t.animateFloat(0.25f, 1f, infiniteRepeatable(tween(520, easing = LinearEasing), RepeatMode.Reverse), label = "a")
-    val b by t.animateFloat(0.25f, 1f, infiniteRepeatable(tween(410, easing = LinearEasing), RepeatMode.Reverse), label = "b")
-    val c by t.animateFloat(0.25f, 1f, infiniteRepeatable(tween(640, easing = LinearEasing), RepeatMode.Reverse), label = "c")
-    Row(Modifier.size(16.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
-        for (h in listOf(a, b, c)) Box(Modifier.width(3.dp).fillMaxHeight(if (on) h else 0.3f).clip(RoundedCornerShape(2.dp)).background(tint))
-    }
-}
-
-@Composable
-private fun QThumb(q: Video, prefs: Prefs, modifier: Modifier, big: Boolean, overlay: @Composable BoxScope.() -> Unit = {}) {
-    val th = rememberThumb(q)
-    val pr = prefs.progress[q.uri.toString()]
-    val f = if (pr != null && pr.dur > 0) (pr.pos.toFloat() / pr.dur).coerceIn(0f, 1f) else 0f
-    Box(modifier.clip(RoundedCornerShape(if (big) 18.dp else 12.dp)).background(pSoft2), contentAlignment = Alignment.Center) {
-        if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(if (big) 34.dp else 22.dp), tint = pFg)
-        overlay()
-        if (f > 0.01f) Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Color.Black.copy(alpha = 0.45f))) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(MaterialTheme.colorScheme.primary))
-        }
-    }
-}
-
-@Composable
-private fun QHead(text: String, count: Int? = null) {
-    Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text.uppercase(), color = pFg2, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, modifier = Modifier.weight(1f))
-        if (count != null) Text("$count", color = pFg3, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
 private fun QueuePanel(
-    queue: List<Video>, video: Video, prefs: Prefs, playing: Boolean, shuffle: Boolean, autoNext: Boolean,
+    queue: List<Video>, video: Video, prefs: Prefs, shuffle: Boolean, autoNext: Boolean,
     modifier: Modifier, onShuffle: () -> Unit, onAuto: () -> Unit, onPick: (Video) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     val idx = queue.indexOfFirst { it.id == video.id }
-    val upcoming = if (idx >= 0) queue.drop(idx + 1) else queue
-    val earlier = if (idx > 0) queue.take(idx) else emptyList()
-    var left = upcoming.sumOf { it.dur }
+    val ls = rememberLazyListState(initialFirstVisibleItemIndex = (idx - 1).coerceAtLeast(0))
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Toggle("shuffle", "Shuffle", shuffle, Modifier.weight(1f), onShuffle)
             Toggle("skip_next", "Autoplay", autoNext, Modifier.weight(1f), onAuto)
         }
-        LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (idx >= 0) {
-                item(key = "h_now") { QHead("Now playing") }
-                item(key = "now") {
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(cs.primary.copy(alpha = 0.22f)).padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QThumb(video, prefs, Modifier.fillMaxWidth().aspectRatio(16f / 9f), true) {
-                            Box(Modifier.align(Alignment.BottomEnd).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.6f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                                Text(fmt(video.dur), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
+        LazyColumn(Modifier.weight(1f, fill = false), state = ls, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            itemsIndexed(queue, key = { _, q -> q.id }) { i, q ->
+                val cur = i == idx
+                val th = rememberThumb(q)
+                val pr = prefs.progress[q.uri.toString()]
+                val f = if (pr != null && pr.dur > 0) (pr.pos.toFloat() / pr.dur).coerceIn(0f, 1f) else 0f
+                val played = idx >= 0 && i < idx
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (cur) cs.primary.copy(alpha = 0.24f) else pSoft)
+                        .clickable { onPick(q) }.padding(6.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(Modifier.size(width = 104.dp, height = 58.dp).clip(RoundedCornerShape(12.dp)).background(pSoft2), contentAlignment = Alignment.Center) {
+                        if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(22.dp), tint = pFg)
+                        Text(
+                            fmt(q.dur), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.6f)).padding(horizontal = 5.dp, vertical = 1.dp),
+                        )
+                        if (f > 0.01f) Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Color.Black.copy(alpha = 0.45f))) {
+                            Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(cs.primary))
                         }
-                        Row(Modifier.padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            QEq(playing, cs.primary)
-                            Text(video.name, color = pFg, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                        }
+                    }
+                    Column(Modifier.weight(1f).graphicsLayer { alpha = if (played) 0.6f else 1f }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(q.name, color = pFg, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        val tag = if (cur) "Now playing" else if (i == idx + 1) "Next" else null
+                        if (tag != null) Text(tag, color = cs.primary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        else Text("${i + 1} of ${queue.size}", color = pFg2, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-            if (upcoming.isNotEmpty()) {
-                item(key = "h_up") { QHead("Up next", upcoming.size) }
-                items(upcoming, key = { "u${it.id}" }) { q ->
-                    val first = q.id == upcoming.first().id
-                    QRow(q, prefs, if (first) "NEXT" else null, 1f, onPick)
-                }
-                item(key = "left") {
-                    Text("${upcoming.size} left · ${fmt(left)}", color = pFg3, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
-                }
-            } else item(key = "end") {
-                Text("End of the queue", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp))
-            }
-            if (earlier.isNotEmpty()) {
-                item(key = "h_prev") { QHead("Played", earlier.size) }
-                items(earlier, key = { "e${it.id}" }) { q -> QRow(q, prefs, null, 0.6f, onPick) }
-            }
         }
-    }
-}
-
-@Composable
-private fun QRow(q: Video, prefs: Prefs, tag: String?, alpha: Float, onPick: (Video) -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).clickable { onPick(q) }.padding(6.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        QThumb(q, prefs, Modifier.size(width = 96.dp, height = 54.dp).graphicsLayer { this.alpha = alpha }, false) {
-            Box(Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.6f)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                Text(fmt(q.dur), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-        Column(Modifier.weight(1f).graphicsLayer { this.alpha = alpha }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(q.name, color = pFg, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            Text("${q.folder} · ${fmtSize(q.size)}", color = pFg2, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        if (tag != null) Text(tag, color = cs.onPrimary, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 3.dp))
     }
 }
