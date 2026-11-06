@@ -44,6 +44,7 @@ data class Prefs(
     val blacklist: Set<String> = emptySet(),
     val favs: Set<String> = emptySet(),
     val progress: Map<String, Prog> = emptyMap(),
+    val vset: String = "",         // per-video settings (subtitle file, subtitle style)
 )
 
 object K {
@@ -72,6 +73,7 @@ object K {
     val bl = stringSetPreferencesKey("bl")
     val favs = stringSetPreferencesKey("favs")
     val prog = stringPreferencesKey("prog")
+    val vset = stringPreferencesKey("vset")
 }
 
 class Store(context: Context) {
@@ -104,6 +106,7 @@ class Store(context: Context) {
             blacklist = p[K.bl] ?: emptySet(),
             favs = p[K.favs] ?: emptySet(),
             progress = parseProg(p[K.prog]),
+            vset = p[K.vset] ?: "",
         )
     }
 
@@ -122,6 +125,13 @@ class Store(context: Context) {
             if (oldest != null) o.remove(oldest)
         }
         it[K.prog] = o.toString()
+    }
+
+    suspend fun saveVset(uri: String, v: JSONObject?) = ds.edit {
+        val o = readJson(it[K.vset])
+        if (v == null) o.remove(uri) else o.put(uri, v)
+        while (o.length() > 300) o.remove(o.keys().next())
+        it[K.vset] = o.toString()
     }
 
     suspend fun toggleFav(uri: String) = ds.edit {
