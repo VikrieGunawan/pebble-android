@@ -62,7 +62,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -291,10 +290,12 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 }
                 if (settingsVisible) Box(Modifier.fillMaxSize().graphicsLayer { translationX = (1f - sp.value) * size.width }) {
                     SettingsScreen(prefs, app.store, all, { refresh() }, startClear, query)
-                    if (refreshing) Box(
-                        Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp).size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                        contentAlignment = Alignment.Center,
-                    ) { androidx.compose.material3.LoadingIndicator(Modifier.size(36.dp)) }
+                    // the same indicator as Home's pull-to-refresh: it slides in, spins, then slides away
+                    val pst = rememberPullToRefreshState()
+                    LaunchedEffect(refreshing) { if (refreshing) pst.animateToThreshold() else pst.animateToHidden() }
+                    Box(Modifier.align(Alignment.TopCenter).statusBarsPadding()) {
+                        PullToRefreshDefaults.LoadingIndicator(state = pst, isRefreshing = refreshing)
+                    }
                 }
             }
         }

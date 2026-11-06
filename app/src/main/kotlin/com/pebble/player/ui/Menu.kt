@@ -1,5 +1,12 @@
 package com.pebble.player.ui
 
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.rememberModalBottomSheetState
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
@@ -155,7 +162,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
+    PSheet(onDismiss) {
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.width(84.dp).height(48.dp).clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainerHigh)) {
@@ -241,7 +248,7 @@ private val SORT_OPTS = listOf(
 @Composable
 fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
+    PSheet(onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconTile("sort", 46.dp, filled = true)
@@ -304,7 +311,7 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
     val vids = remember(path, videos) { videos.filter { it.path.startsWith(path) }.sortedWith { a, b -> NaturalOrder.compare(a.name, b.name) } }
     val name = path.trimEnd('/').substringAfterLast('/').ifBlank { "Videos" }
     var details by remember { mutableStateOf(false) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
+    PSheet(onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconTile("folder", 48.dp, filled = true)
@@ -328,4 +335,26 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
         }
     }
     if (details) FolderDetailsDialog(name, path, vids) { details = false }
+}
+
+/** Slower motion for the bottom sheets, so they glide away instead of snapping shut. */
+private class SlowMotion(private val b: MotionScheme) : MotionScheme by b {
+    override fun <T> defaultSpatialSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 170f)
+    override fun <T> fastSpatialSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 170f)
+}
+
+/** Bottom sheet that always slides away smoothly (tap outside, Back or swipe), then reports the dismissal. */
+@Composable
+private fun PSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val state = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    val cur by rememberUpdatedState(onDismiss)
+    val base = MaterialTheme.motionScheme
+    MaterialExpressiveTheme(colorScheme = cs, motionScheme = remember(base) { SlowMotion(base) }, typography = MaterialTheme.typography) {
+        ModalBottomSheet(
+            onDismissRequest = { scope.launch { state.hide() }.invokeOnCompletion { cur() } },
+            sheetState = state, containerColor = cs.surfaceContainer, content = content,
+        )
+    }
 }
