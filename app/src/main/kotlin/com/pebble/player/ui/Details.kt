@@ -1,5 +1,11 @@
 package com.pebble.player.ui
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.height
+import androidx.compose.animation.animateContentSize
+import kotlinx.coroutines.delay
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
@@ -61,8 +67,13 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
     }
     val place = v.path.ifEmpty { v.folder }
     val ctx = LocalContext.current
-    val info by produceState<VideoInfo?>(null, v.id) { value = loadVideoInfo(ctx, v) }
-    DetailsFrame(onClose) {
+    val info by produceState<VideoInfo?>(null, v.id) {
+        val t0 = System.currentTimeMillis()
+        val r = loadVideoInfo(ctx, v)
+        delay((450 - (System.currentTimeMillis() - t0)).coerceAtLeast(0)) // no flicker when it loads instantly
+        value = r
+    }
+    DetailsFrame(onClose, loading = info == null) {
         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(cs.surfaceContainerHighest)) {
             if (bmp != null) Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             else Icon("movie", null, Modifier.align(Alignment.Center).size(40.dp), tint = cs.onSurfaceVariant)
@@ -80,13 +91,6 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
                 PlayStat("schedule", fmt(v.dur), "Length", Modifier.weight(1f))
                 PlayStat("hard_drive", fmtSize(v.size), "Size", Modifier.weight(1f))
                 PlayStat("movie", v.ext.ifEmpty { "-" }.uppercase(), "Format", Modifier.weight(1f))
-            }
-            if (info == null) Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainer).padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                LoadingIndicator(Modifier.size(44.dp))
-                Text("Reading video data…", fontWeight = FontWeight.Bold, color = cs.onSurfaceVariant)
             }
             info?.let { i ->
                 i.resolution?.let { InfoRow("hd", "Resolution", it) }
@@ -115,7 +119,9 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
 fun FolderDetailsDialog(name: String, path: String, vids: List<Video>, onClose: () -> Unit) {
     val longest = vids.maxByOrNull { it.dur }
     val subs = vids.map { it.path }.distinct().count { it != path }
-    DetailsFrame(onClose) {
+    var ready by remember { mutableStateOf(false) }
+    LaunchedEffect(path) { delay(450); ready = true }
+    DetailsFrame(onClose, loading = !ready) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("folder", 52.dp, filled = true)
@@ -141,12 +147,16 @@ fun FolderDetailsDialog(name: String, path: String, vids: List<Video>, onClose: 
 }
 
 @Composable
-private fun DetailsFrame(onClose: () -> Unit, content: @Composable () -> Unit) {
+private fun DetailsFrame(onClose: () -> Unit, loading: Boolean, content: @Composable () -> Unit) {
     Dialog(onClose, DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             Modifier.padding(16.dp).widthIn(max = 460.dp).fillMaxWidth().heightIn(max = 640.dp)
-                .clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).verticalScroll(rememberScrollState()),
-        ) { content() }
+                .clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).animateContentSize().verticalScroll(rememberScrollState()),
+        ) {
+            // everything is covered by the loading indicator until the data is ready
+            if (loading) Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(72.dp)) }
+            else content()
+        }
     }
 }
 
