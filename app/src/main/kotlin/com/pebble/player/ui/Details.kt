@@ -1,5 +1,6 @@
 package com.pebble.player.ui
 
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import android.content.ClipData
@@ -79,6 +80,13 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
                 PlayStat("schedule", fmt(v.dur), "Length", Modifier.weight(1f))
                 PlayStat("hard_drive", fmtSize(v.size), "Size", Modifier.weight(1f))
                 PlayStat("movie", v.ext.ifEmpty { "-" }.uppercase(), "Format", Modifier.weight(1f))
+            }
+            if (info == null) Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainer).padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                LoadingIndicator(Modifier.size(44.dp))
+                Text("Reading video data…", fontWeight = FontWeight.Bold, color = cs.onSurfaceVariant)
             }
             info?.let { i ->
                 i.resolution?.let { InfoRow("hd", "Resolution", it) }
