@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Path
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.Spring
@@ -216,16 +215,26 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     val curQueue by rememberUpdatedState(queue)
     val curId = video.id
 
-    var subUri by remember(video.id) { mutableStateOf<Uri?>(null) }
-    var subName by remember(video.id) { mutableStateOf("") }
-    var subs by remember(video.id) { mutableStateOf(true) }
+    // what you set up for this video (subtitle file, subtitle style) is remembered and restored next time
+    val saved = remember(video.id) { runCatching { org.json.JSONObject(prefs.vset).optJSONObject(uriStr) }.getOrNull() }
+    var subUri by remember(video.id) {
+        mutableStateOf<Uri?>(saved?.optString("uri")?.takeIf { it.isNotEmpty() }?.let { Uri.parse(it) }?.takeIf { java.io.File(it.path ?: "").exists() })
+    }
+    var subName by remember(video.id) { mutableStateOf(if (subUri != null) saved?.optString("name") ?: "" else "") }
+    var subs by remember(video.id) { mutableStateOf(saved?.optBoolean("on", true) ?: true) }
 
     var loop by remember { mutableStateOf(false) }
     var autoNext by remember { mutableStateOf(true) }
     var shuffle by remember { mutableStateOf(false) }
     var ratio by remember { mutableFloatStateOf(0f) }
-    var subSize by remember { mutableIntStateOf(1) }
-    var subBg by remember { mutableIntStateOf(1) }
+    var subSize by remember(video.id) { mutableIntStateOf(saved?.optInt("size", 1) ?: 1) }
+    var subBg by remember(video.id) { mutableIntStateOf(saved?.optInt("bg", 1) ?: 1) }
+    val savedStr = remember(video.id) { arrayOf(saved?.toString()) }
+    LaunchedEffect(video.id, subUri, subName, subs, subSize, subBg) {
+        val o = if (subUri == null && subs && subSize == 1 && subBg == 1) null
+        else org.json.JSONObject().put("uri", subUri?.toString() ?: "").put("name", subName).put("on", subs).put("size", subSize).put("bg", subBg)
+        if (o?.toString() != savedStr[0]) { savedStr[0] = o?.toString(); store.saveVset(uriStr, o) }
+    }
     var boost by remember { mutableIntStateOf(0) }
     var muted by remember { mutableStateOf(false) }
     var sleepEnd by remember { mutableLongStateOf(0L) }
@@ -447,8 +456,18 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
 
     val pickSub = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { u ->
         if (u != null) {
-            subName = try { ctx.contentResolver.query(u, null, null, null, null)?.use { q -> if (q.moveToFirst()) q.getString(q.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME)) else "" } ?: "" } catch (_: Exception) { "" }
-            subUri = u; subs = true
+            val n = try { ctx.contentResolver.query(u, null, null, null, null)?.use { q -> if (q.moveToFirst()) q.getString(q.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME)) else "" } ?: "" } catch (_: Exception) { "" }
+            // keep a copy inside the app so the subtitle is still there next time
+            scope.launch {
+                val f = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val out = java.io.File(java.io.File(ctx.filesDir, "subs").apply { mkdirs() }, "${video.id}_$n".replace(Regex("[\\\\/:*?\"<>|]"), "_"))
+                        ctx.contentResolver.openInputStream(u)!!.use { i -> out.outputStream().use { o -> i.copyTo(o) } }
+                        out
+                    }.getOrNull()
+                }
+                subName = n; subUri = if (f != null) Uri.fromFile(f) else u; subs = true
+            }
         }
     }
 
@@ -1052,41 +1071,90 @@ private fun QueuePanel(
 ) {
     val cs = MaterialTheme.colorScheme
     val idx = queue.indexOfFirst { it.id == video.id }
-    val ls = rememberLazyListState(initialFirstVisibleItemIndex = (idx - 1).coerceAtLeast(0))
+    val upcoming = if (idx >= 0) queue.drop(idx + 1) else queue
+    val earlier = if (idx > 0) queue.take(idx) else emptyList()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Toggle("shuffle", "Shuffle", shuffle, Modifier.weight(1f), onShuffle)
             Toggle("skip_next", "Autoplay", autoNext, Modifier.weight(1f), onAuto)
         }
-        LazyColumn(Modifier.weight(1f, fill = false), state = ls, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            itemsIndexed(queue, key = { _, q -> q.id }) { i, q ->
-                val cur = i == idx
-                val th = rememberThumb(q)
-                val pr = prefs.progress[q.uri.toString()]
+        LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (idx >= 0) item(key = "hero") {
+                val th = rememberThumb(video)
+                val pr = prefs.progress[video.uri.toString()]
                 val f = if (pr != null && pr.dur > 0) (pr.pos.toFloat() / pr.dur).coerceIn(0f, 1f) else 0f
-                val played = idx >= 0 && i < idx
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (cur) cs.primary.copy(alpha = 0.24f) else pSoft)
-                        .clickable { onPick(q) }.padding(6.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(Modifier.size(width = 104.dp, height = 58.dp).clip(RoundedCornerShape(12.dp)).background(pSoft2), contentAlignment = Alignment.Center) {
-                        if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(22.dp), tint = pFg)
-                        Text(
-                            fmt(q.dur), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.6f)).padding(horizontal = 5.dp, vertical = 1.dp),
-                        )
-                        if (f > 0.01f) Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Color.Black.copy(alpha = 0.45f))) {
-                            Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(cs.primary))
-                        }
+                Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(24.dp)).background(pSoft2).clickable { onPick(video) }) {
+                    if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else Icon("movie", null, Modifier.align(Alignment.Center).size(40.dp), tint = pFg)
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.78f)), startY = 120f)))
+                    Row(
+                        Modifier.align(Alignment.TopStart).padding(12.dp).clip(RoundedCornerShape(50)).background(cs.primary).padding(start = 6.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon("play_arrow", null, Modifier.size(16.dp), tint = cs.onPrimary)
+                        Text("Now playing", color = cs.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                     }
-                    Column(Modifier.weight(1f).graphicsLayer { alpha = if (played) 0.6f else 1f }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(q.name, color = pFg, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        val tag = if (cur) "Now playing" else if (i == idx + 1) "Next" else null
-                        if (tag != null) Text(tag, color = cs.primary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-                        else Text("${i + 1} of ${queue.size}", color = pFg2, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(video.name, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                        Text("${idx + 1} of ${queue.size} · ${fmt(video.dur)}", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (f > 0.01f) Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.25f))) {
+                        Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(cs.primary))
                     }
                 }
+            }
+            item(key = "h_up") {
+                Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Up next", color = pFg, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                    if (upcoming.isNotEmpty()) Text("${upcoming.size}", color = cs.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 2.dp))
+                    Spacer(Modifier.weight(1f))
+                    if (upcoming.isNotEmpty()) Text("${fmt(upcoming.sumOf { it.dur })} left", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (upcoming.isEmpty()) item(key = "end") {
+                Text("This is the last video in the queue", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).padding(18.dp))
+            }
+            itemsIndexed(upcoming, key = { _, q -> "u${q.id}" }) { i, q -> QRow(q, idx + 2 + i, i == 0, prefs, false, onPick) }
+            if (earlier.isNotEmpty()) {
+                item(key = "h_prev") {
+                    Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Played", color = pFg2, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                        Text("${earlier.size}", color = pFg3, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                itemsIndexed(earlier, key = { _, q -> "e${q.id}" }) { i, q -> QRow(q, i + 1, false, prefs, true, onPick) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QRow(q: Video, n: Int, next: Boolean, prefs: Prefs, dim: Boolean, onPick: (Video) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val th = rememberThumb(q)
+    val pr = prefs.progress[q.uri.toString()]
+    val f = if (pr != null && pr.dur > 0) (pr.pos.toFloat() / pr.dur).coerceIn(0f, 1f) else 0f
+    Row(
+        Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.6f else 1f }.clip(RoundedCornerShape(20.dp))
+            .background(if (next) cs.primary.copy(alpha = 0.18f) else pSoft).clickable { onPick(q) }.padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("$n", color = if (next) cs.primary else pFg3, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.width(20.dp))
+        Box(Modifier.size(width = 96.dp, height = 54.dp).clip(RoundedCornerShape(14.dp)).background(pSoft2), contentAlignment = Alignment.Center) {
+            if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else Icon("movie", null, Modifier.size(22.dp), tint = pFg)
+            Text(
+                fmt(q.dur), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.65f)).padding(horizontal = 5.dp, vertical = 1.dp),
+            )
+            if (f > 0.01f) Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Color.Black.copy(alpha = 0.45f))) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(cs.primary))
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(q.name, color = pFg, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (next) Text("NEXT", color = cs.onPrimary, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 7.dp, vertical = 2.dp))
+                Text(fmtSize(q.size), color = pFg2, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
     }

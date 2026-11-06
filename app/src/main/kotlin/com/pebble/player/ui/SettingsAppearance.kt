@@ -73,8 +73,8 @@ fun AppearancePage(prefs: Prefs, store: Store) {
 
         SectionLabel("grid_view", "Library look")
         TileChoiceCard(
-            "grid_view", "Layout", "Cards in a grid, or one video per row.",
-            listOf("grid_view", "view_list"), listOf("Grid", "List"), prefs.layout,
+            "grid_view", "Layout", if (gridAllowed()) "Cards in a grid, or one video per row." else "Grid is available in landscape.",
+            listOf("grid_view", "view_list"), listOf("Grid", "List"), if (gridAllowed()) prefs.layout else 1, if (gridAllowed()) emptySet() else setOf(0),
         ) { put(K.layout, it) }
         PAnim(prefs.layout == 0) {
             TileChoiceCard(
@@ -152,7 +152,7 @@ private fun LookPreview(prefs: Prefs) {
 
 /** Card with a title and a row of big icon tiles to pick from. */
 @Composable
-internal fun TileChoiceCard(icon: String, title: String, desc: String, icons: List<String>, labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+internal fun TileChoiceCard(icon: String, title: String, desc: String, icons: List<String>, labels: List<String>, selected: Int, disabled: Set<Int> = emptySet(), onSelect: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     PlayCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -168,7 +168,7 @@ internal fun TileChoiceCard(icon: String, title: String, desc: String, icons: Li
                 val bg by animateColorAsState(if (on) cs.primary else cs.surfaceContainerHighest, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tcBg")
                 val fg by animateColorAsState(if (on) cs.onPrimary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "tcFg")
                 Column(
-                    Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(bg).clickable { onSelect(i) }.padding(vertical = 14.dp),
+                    Modifier.weight(1f).alpha(if (i in disabled) 0.35f else 1f).clip(RoundedCornerShape(20.dp)).background(bg).clickable(enabled = i !in disabled) { onSelect(i) }.padding(vertical = 14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(icons[i], null, Modifier.size(26.dp), tint = fg)

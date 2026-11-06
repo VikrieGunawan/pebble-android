@@ -167,14 +167,23 @@ fun SectionLabel(icon: String, text: String, count: Int? = null) {
 }
 
 /** Grid / list switch (the website's two-button toggle). */
+/** Phones can use the grid only in landscape; tablets always can. */
+@Composable
+fun gridAllowed(): Boolean {
+    val cfg = LocalConfiguration.current
+    return minOf(cfg.screenWidthDp, cfg.screenHeightDp) >= 600 || cfg.screenWidthDp > cfg.screenHeightDp
+}
+
 @Composable
 fun LayoutToggle(layout: Int, onChange: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val ok = gridAllowed()
     Row(Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHigh).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         listOf("grid_view" to 0, "view_list" to 1).forEach { (ic, v) ->
-            val on = layout == v
+            val on = (if (ok) layout else 1) == v
+            val enabled = ok || v == 1
             Box(
-                Modifier.size(width = 46.dp, height = 38.dp).clip(RoundedCornerShape(50)).background(if (on) cs.primary else Color.Transparent).clickable { onChange(v) },
+                Modifier.size(width = 46.dp, height = 38.dp).alpha(if (enabled) 1f else 0.35f).clip(RoundedCornerShape(50)).background(if (on) cs.primary else Color.Transparent).clickable(enabled = enabled) { onChange(v) },
                 contentAlignment = Alignment.Center,
             ) { Icon(ic, null, Modifier.size(22.dp), tint = if (on) cs.onPrimary else cs.onSurfaceVariant) }
         }
@@ -205,11 +214,9 @@ fun VideoCollection(
     folders: List<Pair<String, Int>> = emptyList(), onFolder: (String) -> Unit = {},
 ) {
     val folderMenu = LocalFolderMenu.current
-    val row = prefs.layout == 1
-    val cfg = LocalConfiguration.current
-    val phone = minOf(cfg.screenWidthDp, cfg.screenHeightDp) < 600 // phones: grid = one big card per row
+    val row = prefs.layout == 1 || !gridAllowed()
     LazyVerticalGrid(
-        columns = if (row || phone) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
+        columns = if (row) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
