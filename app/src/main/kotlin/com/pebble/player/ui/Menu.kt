@@ -1,27 +1,6 @@
 package com.pebble.player.ui
 
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.Dialog
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.animation.core.spring
+import androidx.compose.material3.ModalBottomSheet
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
@@ -46,7 +25,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -176,7 +154,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
         }
     }
 
-    PSheet(onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.width(84.dp).height(48.dp).clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainerHigh)) {
@@ -262,7 +240,7 @@ private val SORT_OPTS = listOf(
 @Composable
 fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    PSheet(onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconTile("sort", 46.dp, filled = true)
@@ -325,7 +303,7 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
     val vids = remember(path, videos) { videos.filter { it.path.startsWith(path) }.sortedWith { a, b -> NaturalOrder.compare(a.name, b.name) } }
     val name = path.trimEnd('/').substringAfterLast('/').ifBlank { "Videos" }
     var details by remember { mutableStateOf(false) }
-    PSheet(onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconTile("folder", 48.dp, filled = true)
@@ -349,49 +327,4 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
         }
     }
     if (details) FolderDetailsDialog(name, path, vids) { details = false }
-}
-
-/** Bottom sheet: opens with a soft bounce, and glides away slowly (tap outside, Back or swipe down). */
-@Composable
-private fun PSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val scope = rememberCoroutineScope()
-    val cur by rememberUpdatedState(onDismiss)
-    val prog = remember { Animatable(0f) } // 0 = hidden, 1 = shown (a little above 1 while it bounces)
-    var closing by remember { mutableStateOf(false) }
-    var h by remember { mutableFloatStateOf(1f) }
-    fun close() {
-        if (closing) return
-        closing = true
-        scope.launch { prog.animateTo(0f, tween(560, easing = FastOutSlowInEasing)); cur() }
-    }
-    LaunchedEffect(Unit) { prog.animateTo(1f, spring(dampingRatio = 0.62f, stiffness = 230f)) }
-    Dialog({ close() }, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnClickOutside = false)) {
-        (LocalView.current.parent as? DialogWindowProvider)?.window?.setDimAmount(0f)
-        Box(
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f * prog.value.coerceIn(0f, 1f))).pointerInput(Unit) { detectTapGestures { close() } },
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            val extra = with(LocalDensity.current) { 48.dp.toPx() }
-            Column(
-                Modifier.widthIn(max = 640.dp).fillMaxWidth().heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.92f).dp)
-                    .onSizeChanged { h = it.height.toFloat().coerceAtLeast(1f) }
-                    .graphicsLayer { translationY = (1f - prog.value) * h + extra }
-                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(cs.surfaceContainer)
-                    .pointerInput(Unit) { detectTapGestures { } },
-            ) {
-                Box(
-                    Modifier.fillMaxWidth().height(30.dp).pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragEnd = { if (prog.value < 0.75f) close() else scope.launch { prog.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 400f)) } },
-                            onDragCancel = { scope.launch { prog.animateTo(1f) } },
-                        ) { c, dy -> c.consume(); if (!closing) scope.launch { prog.snapTo((prog.value - dy / h).coerceIn(0f, 1.05f)) } }
-                    },
-                    contentAlignment = Alignment.Center,
-                ) { Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(50)).background(cs.onSurfaceVariant.copy(alpha = 0.4f))) }
-                Column(Modifier.weight(1f, fill = false), content = content)
-                Spacer(Modifier.height(48.dp)) // hidden below the screen; shows only while the sheet bounces
-            }
-        }
-    }
 }

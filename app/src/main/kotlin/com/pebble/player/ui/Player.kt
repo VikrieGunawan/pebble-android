@@ -580,7 +580,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 },
         )
 
-        if ((buffering || failing != null) && error == null) androidx.compose.material3.LoadingIndicator(Modifier.align(Alignment.Center).size(56.dp))
+        if ((buffering || failing != null) && error == null) Box(
+            Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
+            contentAlignment = Alignment.Center,
+        ) { androidx.compose.material3.LoadingIndicator(Modifier.size(56.dp)) }
         if (pfA.value > 0f) Box(
             Modifier.align(Alignment.Center).size(88.dp).graphicsLayer { alpha = pfA.value; scaleX = pfS.value; scaleY = pfS.value }
                 .clip(CircleShape).background(Color(0x99000000)),

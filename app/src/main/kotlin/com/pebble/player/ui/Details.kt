@@ -1,5 +1,7 @@
 package com.pebble.player.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +72,7 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
     val info by produceState<VideoInfo?>(null, v.id) {
         val t0 = System.currentTimeMillis()
         val r = loadVideoInfo(ctx, v)
-        delay((450 - (System.currentTimeMillis() - t0)).coerceAtLeast(0)) // no flicker when it loads instantly
+        delay((300 - (System.currentTimeMillis() - t0)).coerceAtLeast(0)) // no flicker when it loads instantly
         value = r
     }
     DetailsFrame(onClose, loading = info == null) {
@@ -120,7 +122,7 @@ fun FolderDetailsDialog(name: String, path: String, vids: List<Video>, onClose: 
     val longest = vids.maxByOrNull { it.dur }
     val subs = vids.map { it.path }.distinct().count { it != path }
     var ready by remember { mutableStateOf(false) }
-    LaunchedEffect(path) { delay(450); ready = true }
+    LaunchedEffect(path) { delay(300); ready = true }
     DetailsFrame(onClose, loading = !ready) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -151,7 +153,7 @@ private fun DetailsFrame(onClose: () -> Unit, loading: Boolean, content: @Compos
     Dialog(onClose, DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             Modifier.padding(16.dp).widthIn(max = 460.dp).fillMaxWidth().heightIn(max = 640.dp)
-                .clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).animateContentSize().verticalScroll(rememberScrollState()),
+                .clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).animateContentSize(tween(180, easing = FastOutSlowInEasing)).verticalScroll(rememberScrollState()),
         ) {
             // everything is covered by the loading indicator until the data is ready
             if (loading) Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(72.dp)) }
