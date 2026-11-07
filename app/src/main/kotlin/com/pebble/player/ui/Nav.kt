@@ -125,7 +125,6 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
             }
             NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(n.id) } }
         }
-        NavButton("settings", "Settings", tab == 4, 58.dp, 34.dp, 11f, Modifier.fillMaxWidth()) { onTab(4) }
     }
 }
 

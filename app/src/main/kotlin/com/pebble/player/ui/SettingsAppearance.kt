@@ -1,7 +1,14 @@
 package com.pebble.player.ui
 
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.remember
+import com.pebble.player.data.Video
+import android.net.Uri
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.platform.LocalConfiguration
 import android.os.Build
@@ -20,7 +27,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +48,7 @@ import kotlinx.coroutines.launch
 
 /** Settings → Appearance: live preview, theme, colors and how the library looks. */
 @Composable
-fun AppearancePage(prefs: Prefs, store: Store) {
+fun AppearancePage(prefs: Prefs, store: Store, vids: List<Video> = emptyList()) {
     val scope = rememberCoroutineScope()
     fun <T> put(k: Preferences.Key<T>, v: T) { scope.launch { store.put(k, v) } }
     val dynOk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -52,8 +57,8 @@ fun AppearancePage(prefs: Prefs, store: Store) {
     val themes = listOf("System", "Light", "Dark")
     val colorName = if (useDyn) "Material You" else ACCENTS.firstOrNull { it.second == prefs.accent }?.first ?: "Custom"
 
-    Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        LookPreview(prefs)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LookPreview(prefs, vids)
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PlayStat("contrast", themes[prefs.theme.coerceIn(0, 2)], "Theme", Modifier.weight(1f))
@@ -81,8 +86,8 @@ fun AppearancePage(prefs: Prefs, store: Store) {
         PAnim(prefs.layout == 0 && isPhoneScreen()) {
             val can3 = maxGridCols() >= 3
             TileChoiceCard(
-                "view_comfy", "Columns in landscape", if (can3) "Cards per row when the phone is on its side. Portrait shows one." else "Your screen fits 2 per row when on its side. Portrait shows one.",
-                listOf("view_comfy", "view_compact"), listOf("2", "3"), if (prefs.gridSize == 0 && can3) 1 else 0, if (can3) emptySet() else setOf(1),
+                "grid_view", "Columns in landscape", if (can3) "Cards per row when the phone is on its side. Portrait shows one." else "Your screen fits 2 per row when on its side. Portrait shows one.",
+                listOf("cols_2", "cols_3"), listOf("2", "3"), if (prefs.gridSize == 0 && can3) 1 else 0, if (can3) emptySet() else setOf(1),
             ) { put(K.gridSize, if (it == 1) 0 else 1) }
         }
         PAnim(prefs.layout == 0 && !isPhoneScreen()) {
@@ -110,56 +115,37 @@ fun AppearancePage(prefs: Prefs, store: Store) {
     }
 }
 
-/** A tiny copy of the app drawn with the live colors, in the shape and orientation of this phone or tablet. */
+/** A miniature of the real app (real header, navigation and video cards), in the shape and orientation of this screen. */
 @Composable
-private fun LookPreview(prefs: Prefs) {
+private fun LookPreview(prefs: Prefs, vids: List<Video>) {
     val cs = MaterialTheme.colorScheme
     val cfg = LocalConfiguration.current
-    val ratio = (cfg.screenWidthDp.toFloat() / cfg.screenHeightDp.coerceAtLeast(1)).coerceIn(0.4f, 2.6f)
-    val land = ratio > 1f
-    val phone = isPhoneScreen()
-    val cols = if (phone) phoneCols(prefs) else (((cfg.screenWidthDp - 32) / (listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)] + 12)).coerceIn(1, 6))
-    val shape = RoundedCornerShape(if (land) 18.dp else 22.dp)
-    val thumb = Brush.linearGradient(listOf(cs.primaryContainer, cs.tertiaryContainer))
-    val bar = cs.onSurfaceVariant.copy(alpha = 0.35f)
+    val sw = cfg.screenWidthDp
+    val sh = cfg.screenHeightDp.coerceAtLeast(1)
+    val ratio = sw.toFloat() / sh
+    val wide = (sw >= 744 && sh >= 560) || sw > sh
+    val sample = remember(vids) {
+        if (vids.size >= 6) vids.take(6)
+        else List(6) { i -> Video(-1L - i, Uri.EMPTY, "Sample video ${i + 1}", "Movies", "Movies/", 1_500_000L + i * 400_000L, 300_000_000L + i * 40_000_000L, 0L, "mp4") }
+    }
+    val shape = RoundedCornerShape(if (wide) 20.dp else 28.dp)
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        val w = minOf(maxWidth, 270.dp * ratio)
-        Row(
-            Modifier.width(w).aspectRatio(ratio).clip(shape).background(cs.background).border(1.5.dp, cs.outlineVariant, shape).padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            if (land) Column(Modifier.fillMaxHeight().width(20.dp).clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainer).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                repeat(4) { i -> Box(Modifier.size(9.dp).clip(CircleShape).background(if (i == 0) cs.primary else cs.onSurfaceVariant.copy(alpha = 0.5f))) }
-            }
-            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(10.dp).clip(CircleShape).background(cs.primary))
-                    Box(Modifier.weight(1f).height(10.dp).clip(CircleShape).background(cs.surfaceContainer))
-                }
-                Column(Modifier.weight(1f).clipToBounds(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    if (prefs.layout == 0) repeat(3) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            repeat(cols) {
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(RoundedCornerShape(6.dp)).background(thumb))
-                                    Box(Modifier.fillMaxWidth(0.8f).height(3.dp).clip(CircleShape).background(bar))
-                                }
-                            }
-                        }
-                    } else repeat(4) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(Modifier.width(if (land) 44.dp else 34.dp).aspectRatio(16f / 10f).clip(RoundedCornerShape(5.dp)).background(thumb))
-                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Box(Modifier.width(if (land) 80.dp else 44.dp).height(4.dp).clip(CircleShape).background(bar))
-                                Box(Modifier.width(if (land) 46.dp else 26.dp).height(3.dp).clip(CircleShape).background(bar.copy(alpha = 0.2f)))
-                            }
-                        }
-                    }
-                }
-                if (!land) Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainer).padding(4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    repeat(4) { i -> Box(Modifier.size(7.dp).clip(CircleShape).background(if (i == 0) cs.primary else cs.onSurfaceVariant.copy(alpha = 0.5f))) }
+        val w = minOf(maxWidth, 280.dp * ratio)
+        val s = w.value / sw
+        Box(Modifier.width(w).aspectRatio(ratio).clip(shape).background(cs.background).border(1.5.dp, cs.outlineVariant, shape)) {
+            Box(Modifier.requiredSize(sw.dp, sh.dp).graphicsLayer { scaleX = s; scaleY = s; transformOrigin = TransformOrigin(0f, 0f) }) {
+                @Composable
+                fun top(logo: Boolean) = PebbleTopBar(logo, "", {}, "Search your videos", false, {}, {}, prefs.profile, {}, prefs.theme)
+                if (wide) Row(Modifier.fillMaxSize()) {
+                    PebbleRail(0) {}
+                    Column(Modifier.weight(1f)) { top(false); Box(Modifier.weight(1f)) { VideoCollection(sample, prefs, {}) } }
+                } else Column(Modifier.fillMaxSize()) {
+                    top(true)
+                    Box(Modifier.weight(1f)) { VideoCollection(sample, prefs, {}) }
+                    PebbleTabBar(0) {}
                 }
             }
+            Box(Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { } }) // look only, no touches
         }
     }
 }

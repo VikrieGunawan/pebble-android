@@ -74,7 +74,7 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
     val used = ((total - free).toFloat() / total).coerceIn(0f, 1f)
     val frac by animateFloatAsState(used, tween(700), label = "storage")
 
-    Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("database", 46.dp, filled = true)

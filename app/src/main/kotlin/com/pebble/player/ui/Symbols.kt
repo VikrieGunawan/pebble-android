@@ -165,6 +165,7 @@ private val CP = mapOf(
 
 @Composable
 fun Icon(name: String, contentDescription: String?, modifier: Modifier = Modifier, tint: Color = LocalContentColor.current, fill: Boolean = true) {
+    if (name.startsWith("cols_")) { ColsGlyph(name.removePrefix("cols_").toIntOrNull() ?: 2, contentDescription, modifier, tint); return }
     val glyph = remember(name) { CP[name]?.let { String(Character.toChars(it)) } ?: "" }
     BoxWithConstraints(modifier.semantics { if (contentDescription != null) this.contentDescription = contentDescription }) {
         val side = if (constraints.minWidth == constraints.maxWidth && constraints.maxWidth > 0) maxWidth else 24.dp
@@ -219,4 +220,20 @@ fun PebbleSlider(
         value = value, onValueChange = onValueChange, modifier = modifier,
         valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
     )
+}
+
+/** "n columns" glyph: n rounded bars side by side (cols_2, cols_3). */
+@Composable
+private fun ColsGlyph(n: Int, desc: String?, modifier: Modifier, tint: Color) {
+    BoxWithConstraints(modifier.semantics { if (desc != null) this.contentDescription = desc }) {
+        val side = if (constraints.minWidth == constraints.maxWidth && constraints.maxWidth > 0) maxWidth else 24.dp
+        androidx.compose.foundation.Canvas(Modifier.size(side)) {
+            val total = size.width * 0.84f
+            val gap = size.width * 0.08f
+            val bw = (total - gap * (n - 1)) / n
+            val bh = size.height * 0.72f
+            val r = androidx.compose.ui.geometry.CornerRadius(bw * 0.28f)
+            for (i in 0 until n) drawRoundRect(tint, androidx.compose.ui.geometry.Offset(size.width * 0.08f + i * (bw + gap), (size.height - bh) / 2f), androidx.compose.ui.geometry.Size(bw, bh), r)
+        }
+    }
 }

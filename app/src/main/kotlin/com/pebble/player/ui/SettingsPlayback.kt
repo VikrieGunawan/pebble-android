@@ -46,7 +46,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
     val speedI = SPEEDS.indexOf(prefs.speed).let { if (it < 0) 1 else it }
     val fits = listOf("Fit", "Zoom", "Stretch")
 
-    Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PlayCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("play_circle", 46.dp, filled = true)

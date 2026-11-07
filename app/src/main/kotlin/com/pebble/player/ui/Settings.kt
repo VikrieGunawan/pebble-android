@@ -120,6 +120,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
 
     var page by remember { mutableStateOf<String?>(null) }
     val cs = MaterialTheme.colorScheme
+    val land = androidx.compose.ui.platform.LocalConfiguration.current.let { it.screenWidthDp > it.screenHeightDp }
     val cats = listOf(
         Cat("playback", "play_circle", "Playback", "Autoplay, skipping and controls"),
         Cat("appearance", "palette", "Appearance", "Theme, colors and layout"),
@@ -132,7 +133,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
     val hubScroll = rememberScrollState() // kept while a sub page is open, so coming back lands where you were
     PredictiveBack(page != null, { page = null }) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(
+        if (!land) Row(
             Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -152,11 +153,16 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
                 }
             }
         }
-        AnimatedContent(page, Modifier.weight(1f), transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "setPage") { p ->
+        AnimatedContent(page, Modifier.weight(1f).padding(top = if (land) 0.dp else 14.dp), transitionSpec = { slideTransition(if (targetState != null) 1 else -1) }, label = "setPage") { p ->
         Column(Modifier.fillMaxSize().verticalScroll(if (p == null) hubScroll else rememberScrollState())) {
+        if (land) {
+            // landscape: the header scrolls away with the page so more of it fits
+            Spacer(Modifier.height(8.dp))
+            SetHeadStatic(cats.firstOrNull { it.id == p }, if (p != null) ({ page = null }) else null)
+            Spacer(Modifier.height(14.dp))
+        }
         if (p == null) {
             val shown = cats.filter { query.isBlank() || it.title.contains(query, true) || it.sub.contains(query, true) }
-            Spacer(Modifier.height(14.dp))
             val hits = if (query.isBlank()) emptyList() else HITS.filter { it.title.contains(query, true) || it.sub.contains(query, true) }
             if (shown.isEmpty() && hits.isEmpty()) EmptyCard("info", "No results", "Try another word.")
             shown.chunked(2).forEach { r ->
@@ -189,7 +195,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             }
         }
 
-        if (p == "appearance") AppearancePage(prefs, store)
+        if (p == "appearance") AppearancePage(prefs, store, all)
 
         if (p == "playback") PlaybackPage(prefs, store)
 
@@ -215,3 +221,20 @@ internal fun isBt(d: AudioDeviceInfo) = d.type == AudioDeviceInfo.TYPE_BLUETOOTH
 internal fun readBrightness(ctx: Context): Float = try {
     Settings.System.getInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS).toFloat().coerceIn(1f, 255f)
 } catch (_: Exception) { 128f }
+
+/** The page header as a plain card (landscape: it lives inside the scrolling page). */
+@Composable
+private fun SetHeadStatic(c: Cat?, onBack: (() -> Unit)?) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (onBack != null) Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { onBack() }, contentAlignment = Alignment.Center) { Icon("arrow_back", "Back", Modifier.size(22.dp)) }
+        IconTile(c?.icon ?: "tune", 52.dp, filled = true)
+        Column {
+            Text(c?.title ?: "Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+            Text(c?.sub ?: "Make Pebble work the way you like", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+        }
+    }
+}

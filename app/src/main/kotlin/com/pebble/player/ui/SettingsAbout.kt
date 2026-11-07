@@ -48,7 +48,7 @@ internal fun AboutPage() {
     val android = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
     val info = "Pebble Player v$version\n${ctx.packageName}\n$device\n$android\nABI: $abi"
 
-    Column(Modifier.fillMaxWidth().padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // Hero
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp))

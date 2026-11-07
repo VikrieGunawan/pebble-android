@@ -47,7 +47,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
     val total = all.sumOf { it.size }
     val list = folders.filter { q.isBlank() || it.name.contains(q, true) || it.path.contains(q, true) }
 
-    Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PlayCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("video_library", 46.dp, filled = true)

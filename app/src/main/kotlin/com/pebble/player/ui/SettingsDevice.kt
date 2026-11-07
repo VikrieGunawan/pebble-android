@@ -114,7 +114,7 @@ fun DevicePage() {
     val volPct = (vol / maxVol * 100).roundToInt()
     val briPct = (bri / 255f * 100).roundToInt()
 
-    Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PlayCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("phone_android", 46.dp, filled = true)
