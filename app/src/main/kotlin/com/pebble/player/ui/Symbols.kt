@@ -222,18 +222,19 @@ fun PebbleSlider(
     )
 }
 
-/** "n columns" glyph: n rounded bars side by side (cols_2, cols_3). */
+/** "n columns" glyph: an n x n block of small squares (cols_2 = 4 squares, cols_3 = 9 squares). */
 @Composable
 private fun ColsGlyph(n: Int, desc: String?, modifier: Modifier, tint: Color) {
     BoxWithConstraints(modifier.semantics { if (desc != null) this.contentDescription = desc }) {
         val side = if (constraints.minWidth == constraints.maxWidth && constraints.maxWidth > 0) maxWidth else 24.dp
         androidx.compose.foundation.Canvas(Modifier.size(side)) {
             val total = size.width * 0.84f
-            val gap = size.width * 0.08f
-            val bw = (total - gap * (n - 1)) / n
-            val bh = size.height * 0.72f
-            val r = androidx.compose.ui.geometry.CornerRadius(bw * 0.28f)
-            for (i in 0 until n) drawRoundRect(tint, androidx.compose.ui.geometry.Offset(size.width * 0.08f + i * (bw + gap), (size.height - bh) / 2f), androidx.compose.ui.geometry.Size(bw, bh), r)
+            val gap = size.width * 0.09f
+            val cell = (total - gap * (n - 1)) / n
+            val r = androidx.compose.ui.geometry.CornerRadius(cell * 0.22f)
+            val o = size.width * 0.08f
+            for (i in 0 until n) for (j in 0 until n)
+                drawRoundRect(tint, androidx.compose.ui.geometry.Offset(o + j * (cell + gap), o + i * (cell + gap)), androidx.compose.ui.geometry.Size(cell, cell), r)
         }
     }
 }

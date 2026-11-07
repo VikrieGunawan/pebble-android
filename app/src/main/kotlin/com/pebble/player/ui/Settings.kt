@@ -195,7 +195,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
             }
         }
 
-        if (p == "appearance") AppearancePage(prefs, store, all)
+        if (p == "appearance") AppearancePage(prefs, store)
 
         if (p == "playback") PlaybackPage(prefs, store)
 
