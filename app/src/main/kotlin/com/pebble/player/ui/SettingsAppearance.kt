@@ -1,8 +1,11 @@
 package com.pebble.player.ui
 
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalConfiguration
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,10 +75,17 @@ fun AppearancePage(prefs: Prefs, store: Store) {
 
         SectionLabel("grid_view", "Library look")
         TileChoiceCard(
-            "grid_view", "Layout", if (gridAllowed()) "Cards in a grid, or one video per row." else "Grid is available in landscape.",
-            listOf("grid_view", "view_list"), listOf("Grid", "List"), if (gridAllowed()) prefs.layout else 1, if (gridAllowed()) emptySet() else setOf(0),
+            "grid_view", "Layout", "Cards in a grid, or one video per row.",
+            listOf("grid_view", "view_list"), listOf("Grid", "List"), prefs.layout,
         ) { put(K.layout, it) }
-        PAnim(prefs.layout == 0) {
+        PAnim(prefs.layout == 0 && isPhoneScreen()) {
+            val can3 = maxGridCols() >= 3
+            TileChoiceCard(
+                "view_comfy", "Columns in landscape", if (can3) "Cards per row when the phone is on its side. Portrait shows one." else "Your screen fits 2 per row when on its side. Portrait shows one.",
+                listOf("view_comfy", "view_compact"), listOf("2", "3"), if (prefs.gridSize == 0 && can3) 1 else 0, if (can3) emptySet() else setOf(1),
+            ) { put(K.gridSize, if (it == 1) 0 else 1) }
+        }
+        PAnim(prefs.layout == 0 && !isPhoneScreen()) {
             TileChoiceCard(
                 "zoom_in", "Card size", "How big the video cards are in the grid.",
                 listOf("view_compact", "view_comfy", "zoom_in"), listOf("Compact", "Normal", "Large"), prefs.gridSize,
@@ -101,49 +110,54 @@ fun AppearancePage(prefs: Prefs, store: Store) {
     }
 }
 
-/** A tiny copy of the app drawn with the live colors, so every change shows up right here. */
+/** A tiny copy of the app drawn with the live colors, in the shape and orientation of this phone or tablet. */
 @Composable
 private fun LookPreview(prefs: Prefs) {
     val cs = MaterialTheme.colorScheme
-    val cols = listOf(4, 3, 2)[prefs.gridSize.coerceIn(0, 2)]
-    val shape = RoundedCornerShape(28.dp)
+    val cfg = LocalConfiguration.current
+    val ratio = (cfg.screenWidthDp.toFloat() / cfg.screenHeightDp.coerceAtLeast(1)).coerceIn(0.4f, 2.6f)
+    val land = ratio > 1f
+    val phone = isPhoneScreen()
+    val cols = if (phone) phoneCols(prefs) else (((cfg.screenWidthDp - 32) / (listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)] + 12)).coerceIn(1, 6))
+    val shape = RoundedCornerShape(if (land) 18.dp else 22.dp)
     val thumb = Brush.linearGradient(listOf(cs.primaryContainer, cs.tertiaryContainer))
     val bar = cs.onSurfaceVariant.copy(alpha = 0.35f)
-    Column(
-        Modifier.fillMaxWidth().clip(shape).background(cs.background).border(1.5.dp, cs.outlineVariant, shape).padding(14.dp).animateContentSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(28.dp).clip(CircleShape).background(cs.primary))
-            Box(Modifier.weight(1f).height(28.dp).clip(CircleShape).background(cs.surfaceContainer))
-            Box(Modifier.size(28.dp).clip(CircleShape).background(cs.primaryContainer))
-        }
-        if (prefs.layout == 0) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(cols) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(RoundedCornerShape(10.dp)).background(thumb))
-                        Box(Modifier.fillMaxWidth(0.8f).height(6.dp).clip(CircleShape).background(bar))
-                    }
-                }
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val w = minOf(maxWidth, 270.dp * ratio)
+        Row(
+            Modifier.width(w).aspectRatio(ratio).clip(shape).background(cs.background).border(1.5.dp, cs.outlineVariant, shape).padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (land) Column(Modifier.fillMaxHeight().width(20.dp).clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainer).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                repeat(4) { i -> Box(Modifier.size(9.dp).clip(CircleShape).background(if (i == 0) cs.primary else cs.onSurfaceVariant.copy(alpha = 0.5f))) }
             }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(2) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.width(76.dp).aspectRatio(16f / 10f).clip(RoundedCornerShape(10.dp)).background(thumb))
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(Modifier.width(120.dp).height(7.dp).clip(CircleShape).background(bar))
-                            Box(Modifier.width(70.dp).height(6.dp).clip(CircleShape).background(bar.copy(alpha = 0.2f)))
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(Modifier.size(10.dp).clip(CircleShape).background(cs.primary))
+                    Box(Modifier.weight(1f).height(10.dp).clip(CircleShape).background(cs.surfaceContainer))
+                }
+                Column(Modifier.weight(1f).clipToBounds(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    if (prefs.layout == 0) repeat(3) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            repeat(cols) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(RoundedCornerShape(6.dp)).background(thumb))
+                                    Box(Modifier.fillMaxWidth(0.8f).height(3.dp).clip(CircleShape).background(bar))
+                                }
+                            }
+                        }
+                    } else repeat(4) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(Modifier.width(if (land) 44.dp else 34.dp).aspectRatio(16f / 10f).clip(RoundedCornerShape(5.dp)).background(thumb))
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Box(Modifier.width(if (land) 80.dp else 44.dp).height(4.dp).clip(CircleShape).background(bar))
+                                Box(Modifier.width(if (land) 46.dp else 26.dp).height(3.dp).clip(CircleShape).background(bar.copy(alpha = 0.2f)))
+                            }
                         }
                     }
                 }
-            }
-        }
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainer).padding(6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            repeat(4) { i ->
-                Box(Modifier.size(44.dp, 24.dp).clip(CircleShape).background(if (i == 0) cs.primaryContainer else Color.Transparent), contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(10.dp).clip(CircleShape).background(if (i == 0) cs.primary else cs.onSurfaceVariant.copy(alpha = 0.5f)))
+                if (!land) Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainer).padding(4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    repeat(4) { i -> Box(Modifier.size(7.dp).clip(CircleShape).background(if (i == 0) cs.primary else cs.onSurfaceVariant.copy(alpha = 0.5f))) }
                 }
             }
         }

@@ -1,12 +1,9 @@
 package com.pebble.player.ui
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.height
-import androidx.compose.animation.animateContentSize
 import kotlinx.coroutines.delay
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.produceState
@@ -153,7 +150,7 @@ private fun DetailsFrame(onClose: () -> Unit, loading: Boolean, content: @Compos
     Dialog(onClose, DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             Modifier.padding(16.dp).widthIn(max = 460.dp).fillMaxWidth().heightIn(max = 640.dp)
-                .clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).animateContentSize(tween(180, easing = FastOutSlowInEasing)).verticalScroll(rememberScrollState()),
+                .clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).verticalScroll(rememberScrollState()),
         ) {
             // everything is covered by the loading indicator until the data is ready
             if (loading) Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(72.dp)) }

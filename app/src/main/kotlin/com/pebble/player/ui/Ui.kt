@@ -16,7 +16,6 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.SharedTransitionLayout
@@ -53,7 +52,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -167,23 +165,37 @@ fun SectionLabel(icon: String, text: String, count: Int? = null) {
 }
 
 /** Grid / list switch (the website's two-button toggle). */
-/** Phones can use the grid only in landscape; tablets always can. */
+/** Phones (short side under 600dp) get fixed columns; tablets keep the adaptive grid. */
 @Composable
-fun gridAllowed(): Boolean {
-    val cfg = LocalConfiguration.current
-    return minOf(cfg.screenWidthDp, cfg.screenHeightDp) >= 600 || cfg.screenWidthDp > cfg.screenHeightDp
+fun isPhoneScreen(): Boolean {
+    val c = LocalConfiguration.current
+    return minOf(c.screenWidthDp, c.screenHeightDp) < 600
+}
+
+/** Most columns a phone can show in landscape: 3 only on long screens (about 20:9), otherwise 2. */
+@Composable
+fun maxGridCols(): Int {
+    val c = LocalConfiguration.current
+    val hi = maxOf(c.screenWidthDp, c.screenHeightDp).toFloat()
+    val lo = minOf(c.screenWidthDp, c.screenHeightDp).toFloat().coerceAtLeast(1f)
+    return if (hi / lo >= 2f) 3 else 2
+}
+
+/** Columns used by the grid on a phone: 1 in portrait, 2 or 3 in landscape (3 only when the screen allows it and it is chosen). */
+@Composable
+fun phoneCols(prefs: Prefs): Int {
+    val c = LocalConfiguration.current
+    return if (c.screenWidthDp <= c.screenHeightDp) 1 else if (prefs.gridSize == 0 && maxGridCols() >= 3) 3 else 2
 }
 
 @Composable
 fun LayoutToggle(layout: Int, onChange: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
-    val ok = gridAllowed()
     Row(Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHigh).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         listOf("grid_view" to 0, "view_list" to 1).forEach { (ic, v) ->
-            val on = (if (ok) layout else 1) == v
-            val enabled = ok || v == 1
+            val on = layout == v
             Box(
-                Modifier.size(width = 46.dp, height = 38.dp).alpha(if (enabled) 1f else 0.35f).clip(RoundedCornerShape(50)).background(if (on) cs.primary else Color.Transparent).clickable(enabled = enabled) { onChange(v) },
+                Modifier.size(width = 46.dp, height = 38.dp).clip(RoundedCornerShape(50)).background(if (on) cs.primary else Color.Transparent).clickable { onChange(v) },
                 contentAlignment = Alignment.Center,
             ) { Icon(ic, null, Modifier.size(22.dp), tint = if (on) cs.onPrimary else cs.onSurfaceVariant) }
         }
@@ -214,9 +226,11 @@ fun VideoCollection(
     folders: List<Pair<String, Int>> = emptyList(), onFolder: (String) -> Unit = {},
 ) {
     val folderMenu = LocalFolderMenu.current
-    val row = prefs.layout == 1 || !gridAllowed()
+    val row = prefs.layout == 1
+    val phone = isPhoneScreen()
+    val cols = phoneCols(prefs)
     LazyVerticalGrid(
-        columns = if (row) GridCells.Fixed(1) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
+        columns = if (row) GridCells.Fixed(1) else if (phone) GridCells.Fixed(cols) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
