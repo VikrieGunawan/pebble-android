@@ -23,6 +23,6 @@ jobs:
 
       - uses: actions/upload-artifact@v5
         with:
-          name: PebblePlayer-1.1.3
+          name: PebblePlayer-1.1.4
           path: app/build/outputs/apk/release/*.apk
 
