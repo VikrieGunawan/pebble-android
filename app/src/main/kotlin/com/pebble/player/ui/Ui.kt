@@ -282,7 +282,7 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMor
             }
             val more: @Composable () -> Unit = {
                 if (onMore != null) Box(sh("fm-$name", 1f, false).size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
-                    Icon("more_vert", "Folder menu", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                    Icon("more_vert", t("Folder menu"), Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 }
             }
             if (r) Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick)) {
@@ -335,7 +335,7 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
             Modifier.size(40.dp).alpha(upA).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHigh)
                 .clickable(enabled = cur.isNotEmpty()) { onPath(if (cur.size <= 1) null else cur.dropLast(1).joinToString("/") + "/") },
             contentAlignment = Alignment.Center,
-        ) { Icon("arrow_upward", "Up one level", Modifier.size(22.dp)) }
+        ) { Icon("arrow_upward", t("Up one level"), Modifier.size(22.dp)) }
         Row(Modifier.weight(1f).horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             Crumb("video_library", t("Library"), cur.isEmpty(), false, if (cur.isEmpty()) Modifier.bringIntoViewRequester(active) else Modifier) { onPath(null) }
             segs.forEachIndexed { i, name ->
@@ -405,7 +405,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
                 if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
             }
             Box(Modifier.layoutId("more").clip(CircleShape).clickable { menu(v) }, contentAlignment = Alignment.Center) {
-                Icon("more_vert", "More", Modifier.size(22.dp), tint = cs.onSurfaceVariant)
+                Icon("more_vert", t("More"), Modifier.size(22.dp), tint = cs.onSurfaceVariant)
             }
         },
         modifier = modifier.fillMaxWidth().clip(shape).clickable(onClick = onClick),

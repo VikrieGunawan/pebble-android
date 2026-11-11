@@ -158,10 +158,10 @@ internal val pPanel: Color get() = if (PLIGHT) Color(0xF5FFFFFF) else GLASS
 internal val pDialog: Color get() = if (PLIGHT) Color(0xF7FFFFFF) else Color(0xF2181330)
 internal val pTrack: Color get() = if (PLIGHT) Color(0x331B1730) else Color(0x40FFFFFF)
 internal val pScrim: Color get() = if (PLIGHT) Color(0xCCFFFFFF) else Color(0xCC000000)
-private val RATIOS = listOf(0f to "Auto", (16f / 9f) to "16:9", (4f / 3f) to "4:3", (21f / 9f) to "21:9", 1f to "1:1", (9f / 16f) to "9:16")
+private val RATIOS get() = listOf(0f to t("Auto"), (16f / 9f) to "16:9", (4f / 3f) to "4:3", (21f / 9f) to "21:9", 1f to "1:1", (9f / 16f) to "9:16")
 internal val PRESETS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
-private val FITS get() = listOf(t("Fit"), t("Crop"), t("Stretch"), "Width")
-internal val ORIENTS = listOf("Auto", "Portrait", "Landscape")
+private val FITS get() = listOf(t("Fit"), t("Crop"), t("Stretch"), t("Width"))
+internal val ORIENTS get() = listOf(t("Auto"), t("Portrait"), t("Landscape"))
 
 internal fun fmtSpeed(v: Float): String = String.format(java.util.Locale.US, "%.2f", v).trimEnd('0').trimEnd('.') + "×"
 
@@ -175,12 +175,12 @@ internal tailrec fun Context.activity(): Activity? = when (this) {
 }
 
 private fun deviceLabel(d: AudioDeviceInfo): String = when (d.type) {
-    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Phone speaker"
-    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Phone earpiece"
-    AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headphones"
-    AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_USB_HEADSET -> d.productName.toString().ifBlank { "USB audio" }
+    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> t("Phone speaker")
+    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> t("Phone earpiece")
+    AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> t("Wired headphones")
+    AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_USB_HEADSET -> d.productName.toString().ifBlank { t("USB audio") }
     AudioDeviceInfo.TYPE_HDMI -> "HDMI"
-    else -> d.productName.toString().ifBlank { "Bluetooth audio" }
+    else -> d.productName.toString().ifBlank { t("Bluetooth audio") }
 }
 
 private fun isSsa(f: Format) = f.sampleMimeType == MimeTypes.TEXT_SSA || f.codecs == MimeTypes.TEXT_SSA || f.sampleMimeType?.contains("ssa", true) == true
@@ -306,7 +306,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             val w = sleepEnd - SystemClock.elapsedRealtime()
             if (w > 0) delay(w)
             player.pause(); sleepEnd = 0L
-            Toast.makeText(ctx, "Sleep timer ended", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, t("Sleep timer ended"), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -331,7 +331,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val u = subUri
         if (u != null && isAssName(subName)) {
             assScript = withContext(Dispatchers.IO) { runCatching { ctx.contentResolver.openInputStream(u)!!.bufferedReader().use { parseAss(it.readText()) } }.getOrNull() }
-            if (assScript == null) Toast.makeText(ctx, "Couldn't read this subtitle file", Toast.LENGTH_SHORT).show()
+            if (assScript == null) Toast.makeText(ctx, t("Couldn't read this subtitle file"), Toast.LENGTH_SHORT).show()
         }
     }
     val cueLines = remember(cueList) { cueItems(cueList) }
@@ -489,7 +489,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         try {
             show = false; panel = null
             act?.enterPictureInPictureMode(pipParams())
-        } catch (_: Exception) { Toast.makeText(ctx, "Picture-in-picture isn't available", Toast.LENGTH_SHORT).show() }
+        } catch (_: Exception) { Toast.makeText(ctx, t("Picture-in-picture isn't available"), Toast.LENGTH_SHORT).show() }
     }
     LaunchedEffect(isPlaying, prev, next, vSize) { if (act?.isInPictureInPictureMode == true) act.setPictureInPictureParams(pipParams()) }
     fun go(v: Video?) { if (v != null) onSelect(v) }
@@ -584,17 +584,22 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,
         ) { androidx.compose.material3.LoadingIndicator(Modifier.size(56.dp)) }
-        if (pfA.value > 0f) Box(
-            Modifier.align(Alignment.Center).size(88.dp).graphicsLayer { alpha = pfA.value; scaleX = pfS.value; scaleY = pfS.value }
-                .clip(CircleShape).background(Color(0x99000000)),
+        if (pfA.value > 0f || seekFlash.isNotEmpty()) Box(
+            Modifier.fillMaxSize().padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,
-        ) { Icon(if (playFlash) "play_arrow" else "pause", null, Modifier.size(48.dp), tint = Color.White, fill = true) }
-        if (seekFlash.isNotEmpty()) Row(
-            Modifier.align(Alignment.Center).clip(RoundedCornerShape(28.dp)).background(Color(0x99000000)).padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(if (seekFlash[0] == 'r') "replay_10" else "forward_10", null, Modifier.size(30.dp), tint = Color.White)
-            Text(seekFlash.drop(1), color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (pfA.value > 0f) Box(
+                Modifier.size(88.dp).graphicsLayer { alpha = pfA.value; scaleX = pfS.value; scaleY = pfS.value }
+                    .clip(CircleShape).background(Color(0x99000000)),
+                contentAlignment = Alignment.Center,
+            ) { Icon(if (playFlash) "play_arrow" else "pause", null, Modifier.size(48.dp), tint = Color.White, fill = true) }
+            if (seekFlash.isNotEmpty()) Row(
+                Modifier.clip(RoundedCornerShape(28.dp)).background(Color(0x99000000)).padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(if (seekFlash[0] == 'r') "replay_10" else "forward_10", null, Modifier.size(30.dp), tint = Color.White)
+                Text(seekFlash.drop(1), color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
         }
         hud?.let { (ic, v) ->
             Row(
@@ -666,8 +671,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         Modifier.size(58.dp).clip(RoundedCornerShape(corner.coerceAtLeast(0.dp))).background(cs.primary)
                             .clickable { if (player.isPlaying) player.pause() else player.play(); tick++ },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(if (isPlaying) "pause" else "play_arrow", "Play or pause", Modifier.size(32.dp), tint = cs.onPrimary) }
-                    PBtn("forward_10", "Forward", 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); tick++ })
+                    ) { Icon(if (isPlaying) "pause" else "play_arrow", t("Play or pause"), Modifier.size(32.dp), tint = cs.onPrimary) }
+                    PBtn("forward_10", t("Forward"), 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); tick++ })
                     PBtn("skip_next", t("Next"), 36.dp, enabled = pickNext() != null, bg = glass, onClick = { go(pickNext()) })
                 }
 
@@ -713,8 +718,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         ) {
             val shown = shownPanel ?: lastPanel
             val (pIcon, pTitle, pSub) = when (shown) {
-                "speed" -> Triple("speed", t("Playback speed"), if (speed == 1f) "Normal" else fmtSpeed(speed))
-                "subs" -> Triple("closed_caption", t("Subtitles"), if (subUri != null) subName else "No file loaded")
+                "speed" -> Triple("speed", t("Playback speed"), if (speed == 1f) t("Normal") else fmtSpeed(speed))
+                "subs" -> Triple("closed_caption", t("Subtitles"), if (subUri != null) subName else t("No file loaded"))
                 "audio" -> Triple("graphic_eq", t("Audio"), t("Volume and sound"))
                 "ratio" -> Triple("aspect_ratio", t("Video ratio"), FITS[fit])
                 "queue" -> Triple("queue_music", t("Up next"), "${queue.size} videos")
@@ -750,7 +755,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                                 PebbleSlider(speed, { applySpeed((it * 20).roundToInt() / 20f, false) }, Modifier.weight(1f), valueRange = 0.25f..3f, onValueChangeFinished = { applySpeed(speed, true) })
                                 PBtn("add", t("Faster"), 44.dp, bg = pSoft, onClick = { applySpeed(speed + 0.05f, true) })
                             }
-                            Sl("tune", "Presets")
+                            Sl("tune", t("Presets"))
                             Chips(PRESETS.map { fmtSpeed(it) }, PRESETS.indexOfFirst { kotlin.math.abs(it - speed) < 0.01f }) { applySpeed(PRESETS[it], true) }
                             Wide("restart_alt", t("Normal speed")) { applySpeed(1f, true) }
                         }
@@ -770,46 +775,46 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             }
                             val textTr = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
                             if (textTr.isNotEmpty()) {
-                                Sl("subtitles", "Subtitle tracks")
-                                textTr.forEachIndexed { i, g -> Opt("closed_caption", trackLabel(g.getTrackFormat(0), i, "Subtitle"), g.isSelected) { pickTrack(g) } }
+                                Sl("subtitles", t("Subtitle tracks"))
+                                textTr.forEachIndexed { i, g -> Opt("closed_caption", trackLabel(g.getTrackFormat(0), i, t("Subtitle")), g.isSelected) { pickTrack(g) } }
                             }
-                            if (assMode) Sl("info", "Styled by the .ass file: its own colors, size and position")
+                            if (assMode) Sl("info", t("Styled by the .ass file: its own colors, size and position"))
                             else {
                                 Sl("format_size", t("Text size"))
                                 Chips(listOf(t("Small"), t("Medium"), t("Large"), "XL"), subSize) { subSize = it }
                                 Sl("palette", t("Background"))
-                                Chips(listOf("None", t("Soft"), t("Solid")), subBg, 3) { subBg = it }
+                                Chips(listOf(t("None"), t("Soft"), t("Solid")), subBg, 3) { subBg = it }
                             }
                             if (subUri != null) Wide("delete", t("Remove subtitles")) { subUri = null; subName = "" }
                         }
                         "audio" -> {
                             var vol by remember { mutableFloatStateOf(am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)) }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                PBtn(if (muted || vol <= 0f) "volume_off" else "volume_up", "Mute", 52.dp, bg = if (muted) cs.primary else pSoft, tint = if (muted) cs.onPrimary else pFg, onClick = { muted = !muted })
+                                PBtn(if (muted || vol <= 0f) "volume_off" else "volume_up", t("Mute"), 52.dp, bg = if (muted) cs.primary else pSoft, tint = if (muted) cs.onPrimary else pFg, onClick = { muted = !muted })
                                 Column {
                                     Text("${(vol * 100).roundToInt()}%", color = pFg, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-                                    Text(if (muted) "Muted" else t("Volume"), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(if (muted) t("Muted") else t("Volume"), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                             PebbleSlider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, (it * am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).roundToInt(), 0) }, Modifier.fillMaxWidth())
-                            Sl("equalizer", "Volume boost")
+                            Sl("equalizer", t("Volume boost"))
                             Chips(listOf(t("Off"), "+3 dB", "+6 dB", "+9 dB"), boost) { boost = it }
                             val aTr = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
                             if (aTr.size > 1) {
                                 Sl("graphic_eq", t("Audio tracks"))
-                                aTr.forEachIndexed { i, g -> Opt("music_note", trackLabel(g.getTrackFormat(0), i, "Track"), g.isSelected) { pickTrack(g) } }
+                                aTr.forEachIndexed { i, g -> Opt("music_note", trackLabel(g.getTrackFormat(0), i, t("Track")), g.isSelected) { pickTrack(g) } }
                             }
                             Wide("headphones", t("Audio output")) { audioDlg = true }
                         }
                         "ratio" -> {
-                            Sl("aspect_ratio", "Scaling")
+                            Sl("aspect_ratio", t("Scaling"))
                             Chips(FITS, fit) { applyFit(it) }
-                            Sl("crop", "Aspect ratio")
+                            Sl("crop", t("Aspect ratio"))
                             Chips(RATIOS.map { it.second }, RATIOS.indexOfFirst { kotlin.math.abs(it.first - ratio) < 0.01f }, 3) { ratio = RATIOS[it].first }
                             Text("A chosen aspect ratio crops the picture to that frame. Pick Auto to use the video's own shape.", color = pFg2, fontSize = 12.sp)
                         }
                         else -> {
-                            Sl("timer", "Pause playback after")
+                            Sl("timer", t("Pause playback after"))
                             val mins = listOf(0, 15, 30, 45, 60, 90)
                             Chips(mins.map { if (it == 0) t("Off") else "$it min" }, if (sleepEnd == 0L) 0 else -1, 3) {
                                 sleepEnd = if (mins[it] == 0) 0L else SystemClock.elapsedRealtime() + mins[it] * 60000L
@@ -950,7 +955,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 Box(Modifier.size(42.dp).clip(RoundedCornerShape(15.dp)).background(cs.primary), contentAlignment = Alignment.Center) { Icon("headphones", null, Modifier.size(24.dp), tint = cs.onPrimary) }
                 Column(Modifier.weight(1f)) {
                     Text(t("Audio output"), color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
-                    Text(if (chosen == -1) "Automatic" else "Fixed to one device", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(if (chosen == -1) t("Automatic") else t("Fixed to one device"), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 PBtn("close", t("Close"), 36.dp, bg = pSoft, onClick = onClose)
             }
@@ -961,10 +966,10 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 Box(Modifier.size(48.dp).clip(CircleShape).background(pSoft2), contentAlignment = Alignment.Center) { Icon(audioIcon(active), null, Modifier.size(26.dp), tint = pFg) }
                 Column(Modifier.weight(1f)) {
                     Text("PLAYING ON", color = pFg2, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-                    Text(active?.let { deviceLabel(it) } ?: "Phone speaker", color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(active?.let { deviceLabel(it) } ?: t("Phone speaker"), color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Sl("devices", "Choose where sound plays")
+            Sl("devices", t("Choose where sound plays"))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 @Composable
                 fun item(icon: String, label: String, sub: String, sel: Boolean, onClick: () -> Unit) {
@@ -982,7 +987,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                         if (sel) Icon("check", null, Modifier.size(22.dp), tint = cs.primary)
                     }
                 }
-                item("tune", "Automatic", "Let Android choose the best output", chosen == -1) { chosen = -1; route(null) }
+                item("tune", t("Automatic"), t("Let Android choose the best output"), chosen == -1) { chosen = -1; route(null) }
                 devices.forEach { d -> item(audioIcon(d), deviceLabel(d), audioKind(d), chosen == d.id) { chosen = d.id; route(d) } }
             }
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pSoft).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1009,10 +1014,10 @@ private fun audioIcon(d: AudioDeviceInfo?): String = when {
 
 private fun audioKind(d: AudioDeviceInfo): String = when {
     isBt(d) -> "Bluetooth"
-    d.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER || d.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Built in"
+    d.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER || d.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> t("Built in")
     d.type == AudioDeviceInfo.TYPE_USB_DEVICE || d.type == AudioDeviceInfo.TYPE_USB_HEADSET -> "USB"
     d.type == AudioDeviceInfo.TYPE_HDMI -> "HDMI"
-    else -> "Wired"
+    else -> t("Wired")
 }
 
 /** Material 3 Expressive seek bar: a wavy track that ripples while playing, flattens when paused or dragged, with a pill handle. */

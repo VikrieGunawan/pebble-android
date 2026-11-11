@@ -63,7 +63,7 @@ internal fun AboutPage() {
                 modifier = Modifier.clip(CircleShape).background(cs.primary).padding(horizontal = 14.dp, vertical = 5.dp),
             )
             Text(
-                "A calm, fast video player built with Material 3 Expressive.",
+                t("A calm, fast video player built with Material 3 Expressive."),
                 style = MaterialTheme.typography.bodyMedium, color = cs.onPrimaryContainer, textAlign = TextAlign.Center,
             )
         }
@@ -71,25 +71,25 @@ internal fun AboutPage() {
         PlayCard { UpdateRow() }
 
         PlayCard {
-            SectionLabel("info", "App info")
-            InfoRow("info", "Version", "$version (build $build)")
+            SectionLabel("info", t("App info"))
+            InfoRow("info", t("Version"), "$version (build $build)")
             InfoRow("label", "Package", ctx.packageName)
-            InfoRow("calendar_month", "Last updated", updated)
-            InfoRow("settings", "Requires", "Android 10 or newer")
+            InfoRow("calendar_month", t("Last updated"), updated)
+            InfoRow("settings", t("Requires"), "Android 10 or newer")
         }
 
         PlayCard {
-            AboutAction("content_copy", "Copy app info") {
+            AboutAction("content_copy", t("Copy app info")) {
                 (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Pebble Player", info))
-                Toast.makeText(ctx, "Copied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, t("Copied"), Toast.LENGTH_SHORT).show()
             }
-            AboutAction("share", "Share Pebble Player") {
+            AboutAction("share", t("Share Pebble Player")) {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, "Pebble Player – a calm, fast video player\n$REPO")
-                ctx.startActivity(Intent.createChooser(send, "Share Pebble Player").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                ctx.startActivity(Intent.createChooser(send, t("Share Pebble Player")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
-            AboutAction("open_in_new", "Source code on GitHub") {
+            AboutAction("open_in_new", t("Source code on GitHub")) {
                 try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (_: Exception) { Toast.makeText(ctx, "No browser found", Toast.LENGTH_SHORT).show() }
+                catch (_: Exception) { Toast.makeText(ctx, t("No browser found"), Toast.LENGTH_SHORT).show() }
             }
         }
 

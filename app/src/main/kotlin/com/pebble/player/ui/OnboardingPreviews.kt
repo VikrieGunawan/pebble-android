@@ -99,9 +99,9 @@ private fun PreviewCard(label: String, icon: String, selected: Boolean, modifier
 fun ThemeStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     val primary = Color(0xFF7B61FF) // locked: previews never change with the current theme
-    StepTitle("Light or dark?", "Tap a preview. The whole app follows right away.")
+    StepTitle(t("Light or dark?"), t("Tap a preview. The whole app follows right away."))
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf(Triple("System", "contrast", 0), Triple(t("Light"), "light_mode", 1), Triple(t("Dark"), "dark_mode", 2)).forEach { (l, ic, v) ->
+        listOf(Triple(t("System"), "contrast", 0), Triple(t("Light"), "light_mode", 1), Triple(t("Dark"), "dark_mode", 2)).forEach { (l, ic, v) ->
             PreviewCard(l, ic, prefs.theme == v, Modifier.weight(1f), { scope.launch { store.put(K.theme, v) } }) {
                 Canvas(Modifier.fillMaxWidth().aspectRatio(100f / 166f)) {
                     when (v) {
@@ -119,7 +119,7 @@ fun ThemeStep(prefs: Prefs, store: Store) {
     Spacer(Modifier.height(18.dp))
     AnimatedContent(prefs.theme, label = "tdesc") { t ->
         Text(
-            when (t) { 1 -> "Always light."; 2 -> "Always dark, easy on the eyes."; else -> "Follows your phone: light by day, dark by night." },
+            when (t) { 1 -> t("Always light."); 2 -> t("Always dark, easy on the eyes."); else -> t("Follows your phone: light by day, dark by night.") },
             color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
         )
     }
@@ -130,7 +130,7 @@ fun LayoutStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     val cs = MaterialTheme.colorScheme
     val bg = cs.surfaceContainerHigh; val thumb = cs.surfaceContainerHighest; val ink = cs.onSurfaceVariant; val pr = cs.primary
-    StepTitle("How do you browse?", "Pick how your videos are laid out.")
+    StepTitle(t("How do you browse?"), t("Pick how your videos are laid out."))
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         listOf(Triple(t("Grid"), "grid_view", 0), Triple(t("List"), "view_list", 1)).forEach { (l, ic, v) ->
             PreviewCard(l, ic, prefs.layout == v, Modifier.weight(1f), { scope.launch { store.put(K.layout, v) } }) {
@@ -159,6 +159,6 @@ fun LayoutStep(prefs: Prefs, store: Store) {
     }
     Spacer(Modifier.height(18.dp))
     AnimatedContent(prefs.layout, label = "ldesc") { t ->
-        Text(if (t == 1) "Compact rows with the title and folder." else "Big thumbnails, two per row.", color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
+        Text(if (t == 1) t("Compact rows with the title and folder.") else t("Big thumbnails, two per row."), color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }

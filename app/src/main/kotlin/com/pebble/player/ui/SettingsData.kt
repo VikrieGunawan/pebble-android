@@ -93,23 +93,23 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Stat("history", prefs.progress.size, "In history", Modifier.weight(1f))
+            Stat("history", prefs.progress.size, t("In history"), Modifier.weight(1f))
             Stat("favorite", prefs.favs.size, t("Favorites"), Modifier.weight(1f))
             Stat("movie", all.size, t("Videos"), Modifier.weight(1f))
         }
 
-        SectionLabel("cleaning_services", "Clean up")
-        DataRow("delete_sweep", t("Clear watch history"), "Forget where you stopped in every video.", t("Clear"), false, prefs.progress.isNotEmpty()) { scope.launch { store.clearHistory() } }
-        DataRow("heart_broken", t("Clear favorites"), "Remove the heart from every video.", t("Clear"), false, prefs.favs.isNotEmpty()) { scope.launch { store.clearFavs() } }
+        SectionLabel("cleaning_services", t("Clean up"))
+        DataRow("delete_sweep", t("Clear watch history"), t("Forget where you stopped in every video."), t("Clear"), false, prefs.progress.isNotEmpty()) { scope.launch { store.clearHistory() } }
+        DataRow("heart_broken", t("Clear favorites"), t("Remove the heart from every video."), t("Clear"), false, prefs.favs.isNotEmpty()) { scope.launch { store.clearFavs() } }
         DataRow("hide_image", t("Remove cover images"), "Back to the original thumbnails ($covers set).", "Remove", false, covers > 0) {
             app.media.coverFile(0L).parentFile?.listFiles()?.forEach { it.delete() }
             ThumbCache.clear()
             ThumbCache.ver.intValue++
         }
-        DataRow("restart_alt", t("Reset settings"), "Return every option to its default.", t("Reset"), false, true) { scope.launch { store.resetSettings() } }
+        DataRow("restart_alt", t("Reset settings"), t("Return every option to its default."), t("Reset"), false, true) { scope.launch { store.resetSettings() } }
 
-        SectionLabel("warning", "Danger zone")
-        DataRow("cleaning_services", t("Clear app data"), "Delete everything Pebble keeps on this phone: history, favorites, settings and your profile.", t("Clear all"), true, true) { onClearAll() }
+        SectionLabel("warning", t("Danger zone"))
+        DataRow("cleaning_services", t("Clear app data"), t("Delete everything Pebble keeps on this phone: history, favorites, settings and your profile."), t("Clear all"), true, true) { onClearAll() }
     }
 }
 
@@ -155,7 +155,7 @@ private fun DataRow(icon: String, title: String, desc: String, action: String, d
             AnimatedContent(armed, transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(100)) }, label = "confirm") { a ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(if (a) "check" else icon, null, Modifier.size(20.dp), tint = btnFg)
-                    Text(if (a) "Tap again to confirm" else if (!enabled) "Nothing to clear" else action, color = btnFg, fontWeight = FontWeight.ExtraBold)
+                    Text(if (a) t("Tap again to confirm") else if (!enabled) t("Nothing to clear") else action, color = btnFg, fontWeight = FontWeight.ExtraBold)
                 }
             }
         }

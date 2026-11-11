@@ -173,7 +173,7 @@ private fun PickCard(title: String, content: @Composable () -> Unit) {
 fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
     val cs = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        PickCard("Emoji") {
+        PickCard(t("Emoji")) {
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 5) {
                 EMOJIS.forEach { e ->
                     val sel = p.photo.isEmpty() && p.emoji == e
@@ -197,7 +197,7 @@ fun EmojiColorPicker(p: Profile, onChange: (Profile) -> Unit) {
 @Composable
 fun SwatchGrid(selected: Int, autoOption: Boolean, enabled: Boolean = true, onPick: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
-    val list = (if (autoOption) listOf("Auto" to 0) else emptyList()) + ACCENTS.drop(if (autoOption) 1 else 0)
+    val list = (if (autoOption) listOf(t("Auto") to 0) else emptyList()) + ACCENTS.drop(if (autoOption) 1 else 0)
     val cur = list.firstOrNull { it.second == selected } ?: list.first()
     fun col(c: Int) = if (c == 0) cs.primary else Color(c)
     fun onCol(c: Color) = if (c.luminance() > 0.55f) Color(0xFF111111) else Color.White

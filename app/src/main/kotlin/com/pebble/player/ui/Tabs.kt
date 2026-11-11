@@ -183,7 +183,7 @@ fun HomeTab(
         }
 
         if (videos.isEmpty() || hero == null) {
-            EmptyCard("movie", t("No videos found"), "Add videos to your phone, then tap Scan again.")
+            EmptyCard("movie", t("No videos found"), t("Add videos to your phone, then tap Scan again."))
             return@Column
         }
         Spacer(Modifier.height(18.dp))
@@ -268,7 +268,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
             VideoCollection(
                 list, prefs, { v -> play(v, list) },
                 header = { if (compact) top() },
-                empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else t("No results"), if (query.isBlank()) "Check Settings → Library for hidden folders." else t("Try another word.")) },
+                empty = { EmptyCard("video_library", if (query.isBlank()) t("No videos here") else t("No results"), if (query.isBlank()) t("Check Settings → Library for hidden folders.") else t("Try another word.")) },
                 folders = if (query.isBlank()) kids else emptyList(),
                 onFolder = { onFolder(it) },
             )
@@ -299,7 +299,7 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
                 }
             }
         },
-        empty = { EmptyCard("favorite", t("No favorites yet"), "Open a video menu and tap Favorite to pin it here.") },
+        empty = { EmptyCard("favorite", t("No favorites yet"), t("Open a video menu and tap Favorite to pin it here.")) },
     )
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false }, title = { Text("Clear all favorites?") }, text = { Text("Your videos stay on the phone. Only the pins are removed.") },
@@ -319,13 +319,13 @@ fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List
         list, prefs, { v -> play(v, list) },
         header = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                PageHeader("history", t("History"), "Videos you started watching") {
+                PageHeader("history", t("History"), t("Videos you started watching")) {
                     if (list.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", t("Clear history"), Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
                 }
                 if (list.isNotEmpty()) LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
             }
         },
-        empty = { EmptyCard("history", t("Nothing here yet"), "Start a video and it will appear in your history.") },
+        empty = { EmptyCard("history", t("Nothing here yet"), t("Start a video and it will appear in your history.")) },
     )
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false }, title = { Text("Clear history?") }, text = { Text("Resume positions will be removed.") },

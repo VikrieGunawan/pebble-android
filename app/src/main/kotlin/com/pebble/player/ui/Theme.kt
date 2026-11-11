@@ -24,15 +24,15 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 /** 30 accent colors (name to ARGB). */
-val ACCENTS: List<Pair<String, Int>> = listOf(
-    "Pebble" to 0xFF7B61FF, "Coral" to 0xFFE8502B, "Rose" to 0xFFE5336D, "Violet" to 0xFF7B5CFF,
-    "Ocean" to 0xFF1E88E5, "Emerald" to 0xFF12A77A, "Amber" to 0xFFD98200, "Crimson" to 0xFFD32F2F,
-    "Scarlet" to 0xFFFF3B30, "Tangerine" to 0xFFFF6D00, "Sunflower" to 0xFFF5B700, "Mustard" to 0xFFC9A227,
-    "Lime" to 0xFF7CB305, "Forest" to 0xFF2E7D32, "Mint" to 0xFF00BFA5, "Teal" to 0xFF00897B,
-    "Cyan" to 0xFF00ACC1, "Sky" to 0xFF29B6F6, "Cobalt" to 0xFF2F5BEA, "Indigo" to 0xFF3949AB,
-    "Grape" to 0xFF8E24AA, "Orchid" to 0xFFBA68C8, "Magenta" to 0xFFD81B60, "Blush" to 0xFFF06292,
-    "Peach" to 0xFFFF8A65, "Clay" to 0xFF8D6E63, "Slate" to 0xFF546E7A, "Steel" to 0xFF78909C,
-    "Graphite" to 0xFF455A64, "Plum" to 0xFF6A1B9A,
+val ACCENTS: List<Pair<String, Int>> get() = listOf(
+    "Pebble" to 0xFF7B61FF, t("Coral") to 0xFFE8502B, t("Rose") to 0xFFE5336D, t("Violet") to 0xFF7B5CFF,
+    t("Ocean") to 0xFF1E88E5, t("Emerald") to 0xFF12A77A, t("Amber") to 0xFFD98200, t("Crimson") to 0xFFD32F2F,
+    t("Scarlet") to 0xFFFF3B30, t("Tangerine") to 0xFFFF6D00, t("Sunflower") to 0xFFF5B700, t("Mustard") to 0xFFC9A227,
+    t("Lime") to 0xFF7CB305, t("Forest") to 0xFF2E7D32, t("Mint") to 0xFF00BFA5, t("Teal") to 0xFF00897B,
+    t("Cyan") to 0xFF00ACC1, t("Sky") to 0xFF29B6F6, t("Cobalt") to 0xFF2F5BEA, t("Indigo") to 0xFF3949AB,
+    t("Grape") to 0xFF8E24AA, t("Orchid") to 0xFFBA68C8, t("Magenta") to 0xFFD81B60, t("Blush") to 0xFFF06292,
+    t("Peach") to 0xFFFF8A65, t("Clay") to 0xFF8D6E63, t("Slate") to 0xFF546E7A, t("Steel") to 0xFF78909C,
+    t("Graphite") to 0xFF455A64, t("Plum") to 0xFF6A1B9A,
 ).map { it.first to it.second.toInt() }
 
 @Composable

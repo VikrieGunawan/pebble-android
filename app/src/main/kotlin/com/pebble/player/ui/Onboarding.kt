@@ -94,13 +94,13 @@ import kotlin.random.Random
 
 val LocalWide = compositionLocalOf { false }
 
-private val STEP_TITLES = mapOf(
-    1 to ("What should we call you?" to "Your name shows in the greeting. You can skip this."),
-    2 to ("Pick your avatar" to "Choose an emoji and a color."),
-    3 to ("Light or dark?" to "Tap a preview. The whole app follows right away."),
-    4 to ("Pick your color" to "Choose one color, or let your wallpaper decide."),
-    5 to ("How do you browse?" to "Pick how your videos are laid out."),
-    6 to ("Playback and feel" to "Switch on what you like."),
+private val STEP_TITLES get() = mapOf(
+    1 to (t("What should we call you?") to t("Your name shows in the greeting. You can skip this.")),
+    2 to (t("Pick your avatar") to t("Choose an emoji and a color.")),
+    3 to (t("Light or dark?") to t("Tap a preview. The whole app follows right away.")),
+    4 to (t("Pick your color") to t("Choose one color, or let your wallpaper decide.")),
+    5 to (t("How do you browse?") to t("Pick how your videos are laid out.")),
+    6 to (t("Playback and feel") to t("Switch on what you like.")),
 )
 
 private const val LAST = 7 // processing step index
@@ -216,7 +216,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
                         }
                     }
                     Button(onClick = { go(step + 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.weight(1f).height(56.dp)) {
-                        Text(if (step == 0) "Get started" else if (step == LAST - 1) "Finish" else t("Next"), fontWeight = FontWeight.SemiBold)
+                        Text(if (step == 0) t("Get started") else if (step == LAST - 1) t("Finish") else t("Next"), fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.width(8.dp))
                         Icon("arrow_forward", null, Modifier.size(20.dp))
                     }
@@ -277,7 +277,7 @@ fun StaticMark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier)
 private fun WelcomeStep() {
     AppMark(128)
     Spacer(Modifier.height(28.dp))
-    val words = listOf("Welcome", "to", "Pebble")
+    val words = listOf(t("Welcome"), "to", "Pebble")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         words.forEachIndexed { i, w ->
             var on by remember { mutableStateOf(false) }
@@ -297,7 +297,7 @@ private fun WelcomeStep() {
 @Composable
 private fun NameStep(p: Profile, onChange: (Profile) -> Unit) {
     val focusMgr = androidx.compose.ui.platform.LocalFocusManager.current
-    StepTitle("What should we call you?", "Your name shows in the greeting. You can skip this.")
+    StepTitle(t("What should we call you?"), t("Your name shows in the greeting. You can skip this."))
     PhotoAvatar(p, 132.dp) { onChange(p.copy(photo = it, emoji = "")) }
     Spacer(Modifier.height(24.dp))
     OutlinedTextField(
@@ -310,7 +310,7 @@ private fun NameStep(p: Profile, onChange: (Profile) -> Unit) {
 
 @Composable
 private fun AvatarStep(p: Profile, onChange: (Profile) -> Unit) {
-    StepTitle("Pick your avatar", "Choose an emoji and a color.")
+    StepTitle(t("Pick your avatar"), t("Choose an emoji and a color."))
     Avatar(p, 112.dp)
     Spacer(Modifier.height(20.dp))
     EmojiColorPicker(p, onChange)
@@ -323,7 +323,7 @@ private fun AccentStep(prefs: Prefs, store: Store) {
     val cs = MaterialTheme.colorScheme
     val canYou = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val you = canYou && prefs.dynamic
-    StepTitle("Pick your color", "Choose one color, or let your wallpaper decide.")
+    StepTitle(t("Pick your color"), t("Choose one color, or let your wallpaper decide."))
     if (canYou) {
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(if (you) cs.primaryContainer else cs.surfaceContainer)
@@ -333,7 +333,7 @@ private fun AccentStep(prefs: Prefs, store: Store) {
             Icon("palette", null, Modifier.size(28.dp), tint = if (you) cs.onPrimaryContainer else cs.primary)
             Column(Modifier.weight(1f)) {
                 Text("Material You", fontWeight = FontWeight.Bold)
-                Text(if (you) "Colors come from your wallpaper" else "Use colors from your wallpaper", style = MaterialTheme.typography.bodySmall, color = if (you) cs.onPrimaryContainer else cs.onSurfaceVariant)
+                Text(if (you) t("Colors come from your wallpaper") else t("Use colors from your wallpaper"), style = MaterialTheme.typography.bodySmall, color = if (you) cs.onPrimaryContainer else cs.onSurfaceVariant)
             }
             PebbleSwitch(prefs.dynamic, { v -> scope.launch { store.put(K.dyn, v) } })
         }
@@ -368,11 +368,11 @@ private fun ToggleRow(icon: String, title: String, sub: String, checked: Boolean
 @Composable
 private fun PlaybackStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
-    StepTitle("Playback and feel", "Switch on what you like.")
+    StepTitle(t("Playback and feel"), t("Switch on what you like."))
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ToggleRow("play_circle", t("Autoplay"), "Start as soon as a video opens", prefs.autoplay) { v -> scope.launch { store.put(K.autoplay, v) } }
-        ToggleRow("fullscreen", "Rotate with the video", "Wide videos go landscape automatically", prefs.autoFs) { v -> scope.launch { store.put(K.autoFs, v) } }
-        ToggleRow("blur_on", t("Resume where you stopped"), "Continue from your last position", prefs.resume) { v -> scope.launch { store.put(K.resume, v) } }
+        ToggleRow("play_circle", t("Autoplay"), t("Start as soon as a video opens"), prefs.autoplay) { v -> scope.launch { store.put(K.autoplay, v) } }
+        ToggleRow("fullscreen", t("Rotate with the video"), t("Wide videos go landscape automatically"), prefs.autoFs) { v -> scope.launch { store.put(K.autoFs, v) } }
+        ToggleRow("blur_on", t("Resume where you stopped"), t("Continue from your last position"), prefs.resume) { v -> scope.launch { store.put(K.resume, v) } }
     }
 }
 
@@ -408,12 +408,12 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
     val cs = MaterialTheme.colorScheme
     val accentName = ACCENTS.firstOrNull { it.second == prefs.accent }?.first ?: "Pebble"
     val labels = listOf(
-        "Saving your profile" to (profile.name.ifBlank { "Guest" }),
-        "Applying your theme" to listOf("System", t("Light"), t("Dark"))[prefs.theme.coerceIn(0, 2)],
-        "Painting your accent color" to (if (prefs.dynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "Material You" else accentName),
-        "Arranging your library" to (if (prefs.layout == 1) "List view" else "Grid view"),
-        "Tuning playback" to listOf(if (prefs.autoplay) t("Autoplay") else "", if (prefs.autoFs) "Auto rotate" else "", if (prefs.resume) "Resume" else "").filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "Defaults" },
-        "Getting everything ready" to "Ready to go",
+        t("Saving your profile") to (profile.name.ifBlank { t("Guest") }),
+        t("Applying your theme") to listOf(t("System"), t("Light"), t("Dark"))[prefs.theme.coerceIn(0, 2)],
+        t("Painting your accent color") to (if (prefs.dynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "Material You" else accentName),
+        t("Arranging your library") to (if (prefs.layout == 1) t("List view") else t("Grid view")),
+        t("Tuning playback") to listOf(if (prefs.autoplay) t("Autoplay") else "", if (prefs.autoFs) t("Auto rotate") else "", if (prefs.resume) t("Resume") else "").filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { t("Defaults") },
+        t("Getting everything ready") to t("Ready to go"),
     )
     var done by remember { mutableIntStateOf(0) }
     var finished by remember { mutableStateOf(false) }
@@ -468,7 +468,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                Text(if (profile.name.isBlank()) "You're all set" else "You're all set, ${profile.name}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                Text(if (profile.name.isBlank()) t("You're all set") else "You're all set, ${profile.name}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                 Text("Enjoy Pebble.", color = cs.onSurfaceVariant)
             }
         }

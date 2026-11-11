@@ -190,13 +190,13 @@ private suspend fun download(ctx: Context, info: UpdateInfo, onProgress: (Long, 
                 }
             }
         }
-        if (total > 0 && done != total) error("Incomplete download")
+        if (total > 0 && done != total) error(t("Incomplete download"))
         val pm = ctx.packageManager
         val pkg = if (Build.VERSION.SDK_INT >= 33) pm.getPackageArchiveInfo(part.path, PackageManager.PackageInfoFlags.of(0))
         else @Suppress("DEPRECATION") pm.getPackageArchiveInfo(part.path, 0)
-        if (pkg?.packageName != ctx.packageName) error("The file isn't a Pebble Player APK")
+        if (pkg?.packageName != ctx.packageName) error(t("The file isn't a Pebble Player APK"))
         out.delete()
-        if (!part.renameTo(out)) error("Couldn't save the file")
+        if (!part.renameTo(out)) error(t("Couldn't save the file"))
         out
     } catch (e: Exception) {
         part.delete()
@@ -207,7 +207,7 @@ private suspend fun download(ctx: Context, info: UpdateInfo, onProgress: (Long, 
 /** Opens Android's own installer. If installs from this app aren't allowed yet, opens that setting first. */
 private fun install(ctx: Context, f: File) {
     if (Build.VERSION.SDK_INT >= 26 && !ctx.packageManager.canRequestPackageInstalls()) {
-        Toast.makeText(ctx, "Allow installs from Pebble Player, then tap Install again", Toast.LENGTH_LONG).show()
+        Toast.makeText(ctx, t("Allow installs from Pebble Player, then tap Install again"), Toast.LENGTH_LONG).show()
         ctx.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         return
     }
@@ -246,7 +246,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                err = e.message ?: "Download failed"
+                err = e.message ?: t("Download failed")
                 phase = Phase.Failed
             }
         }
@@ -285,7 +285,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                 ) { phaseNow ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        when (phaseNow) { Phase.Idle -> "Update available"; Phase.Loading -> "Downloading update"; Phase.Ready -> "Ready to install"; Phase.Failed -> "Download failed" },
+                        when (phaseNow) { Phase.Idle -> t("Update available"); Phase.Loading -> t("Downloading update"); Phase.Ready -> t("Ready to install"); Phase.Failed -> t("Download failed") },
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -308,7 +308,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     info.notes.forEach { (title, lines) ->
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             if (title.isNotBlank()) Text(
-                                                (if (title == "New") t("Added") else title) + ":", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold,
+                                                (if (title == "New") t("Added") else t(title)) + ":", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold,
                                                 color = if (title == "Fixed") cs.error else cs.primary,
                                             )
                                             lines.forEachIndexed { i, l ->
@@ -321,10 +321,10 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     }
                                 }
                             }
-                            Btn("Download update", "download", true) { start() }
+                            Btn(t("Download update"), "download", true) { start() }
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Btn(t("Later"), null, false, Modifier.weight(1f), onLater)
-                                Btn("Skip version", null, false, Modifier.weight(1f), onSkip)
+                                Btn(t("Skip version"), null, false, Modifier.weight(1f), onSkip)
                             }
                         }
                         Phase.Loading -> {
@@ -340,7 +340,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                         }
                         Phase.Ready -> {
                             Text("Android will ask you to confirm the install. Your videos and settings stay as they are.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, textAlign = TextAlign.Start)
-                            Btn("Install", "system_update", true) { file?.let { install(ctx, it) } }
+                            Btn(t("Install"), "system_update", true) { file?.let { install(ctx, it) } }
                             Btn(t("Close"), null, false, Modifier, onLater)
                         }
                         Phase.Failed -> {
@@ -394,8 +394,8 @@ fun UpdateRow() {
             scope.launch {
                 val r = fetchUpdate(ctx)
                 busy = false
-                r.onSuccess { u -> if (u == null) Toast.makeText(ctx, "You're up to date", Toast.LENGTH_SHORT).show() else found = u }
-                    .onFailure { Toast.makeText(ctx, "Couldn't check for updates", Toast.LENGTH_SHORT).show() }
+                r.onSuccess { u -> if (u == null) Toast.makeText(ctx, t("You're up to date"), Toast.LENGTH_SHORT).show() else found = u }
+                    .onFailure { Toast.makeText(ctx, t("Couldn't check for updates"), Toast.LENGTH_SHORT).show() }
             }
         }.padding(14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -403,7 +403,7 @@ fun UpdateRow() {
         IconTile("system_update", 42.dp, filled = true)
         Column(Modifier.weight(1f)) {
             Text(t("Check for updates"), fontWeight = FontWeight.ExtraBold)
-            Text(if (busy) "Checking…" else "Version ${currentVersion(ctx)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            Text(if (busy) t("Checking…") else "Version ${currentVersion(ctx)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
         Icon("refresh", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
     }

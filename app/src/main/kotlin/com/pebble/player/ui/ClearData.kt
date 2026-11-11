@@ -36,7 +36,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    val steps = listOf("Clearing watch history", "Removing favorites", "Resetting settings", "Deleting profile photo", "Clearing cache", "Wiping app data from the system")
+    val steps = listOf(t("Clearing watch history"), t("Removing favorites"), t("Resetting settings"), t("Deleting profile photo"), t("Clearing cache"), t("Wiping app data from the system"))
     var done by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         delay(500)

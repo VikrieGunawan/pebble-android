@@ -53,7 +53,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
                 Column {
                     Text("How videos play", fontWeight = FontWeight.ExtraBold)
                     Text(
-                        (if (prefs.autoplay) "Starts by itself" else "Waits for you to press play") + (if (prefs.resume) " · resumes" else ""),
+                        (if (prefs.autoplay) t("Starts by itself") else t("Waits for you to press play")) + (if (prefs.resume) " · resumes" else ""),
                         style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
                     )
                 }
@@ -61,28 +61,28 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PlayStat("forward_10", "${SKIPS[skipI]}s", "Skip step", Modifier.weight(1f))
+            PlayStat("forward_10", "${SKIPS[skipI]}s", t("Skip step"), Modifier.weight(1f))
             PlayStat("speed", SPEED_LABELS[speedI], t("Speed"), Modifier.weight(1f))
-            PlayStat("aspect_ratio", fits.getOrElse(prefs.fit) { t("Fit") }, "Video fit", Modifier.weight(1f))
+            PlayStat("aspect_ratio", fits.getOrElse(prefs.fit) { t("Fit") }, t("Video fit"), Modifier.weight(1f))
         }
 
-        SectionLabel("play_arrow", "Starting a video")
-        ToggleCard("play_circle", t("Autoplay"), "Start as soon as a video opens.", prefs.autoplay) { put(K.autoplay, it) }
-        ToggleCard("history", t("Resume where you stopped"), "Continue from your last position.", prefs.resume) { put(K.resume, it) }
-        ToggleCard("smartphone", t("Keep screen on"), "The screen stays awake while a video plays.", prefs.wake) { put(K.wake, it) }
+        SectionLabel("play_arrow", t("Starting a video"))
+        ToggleCard("play_circle", t("Autoplay"), t("Start as soon as a video opens."), prefs.autoplay) { put(K.autoplay, it) }
+        ToggleCard("history", t("Resume where you stopped"), t("Continue from your last position."), prefs.resume) { put(K.resume, it) }
+        ToggleCard("smartphone", t("Keep screen on"), t("The screen stays awake while a video plays."), prefs.wake) { put(K.wake, it) }
 
         SectionLabel("tune", t("Controls"))
-        ChoiceCard("forward_10", "Skip step", "How far the skip buttons and double-tap jump.", SKIPS.map { "${it}s" }, skipI) { put(K.skip, SKIPS[it]) }
-        ChoiceCard("speed", t("Default speed"), "The speed every video starts at.", SPEED_LABELS, speedI) { put(K.speed, SPEEDS[it]) }
-        ChoiceCard("speed", "Hold to speed up", "Press and hold the video to play faster. Let go to go back.", HOLD_LABELS, HOLDS.indexOf(prefs.holdSpeed).let { if (it < 0) 1 else it }) { put(K.holdSpeed, HOLDS[it]) }
-        ChoiceCard("aspect_ratio", "Video fit", "How the picture fills the screen.", fits, prefs.fit) { put(K.fit, it) }
+        ChoiceCard("forward_10", t("Skip step"), t("How far the skip buttons and double-tap jump."), SKIPS.map { "${it}s" }, skipI) { put(K.skip, SKIPS[it]) }
+        ChoiceCard("speed", t("Default speed"), t("The speed every video starts at."), SPEED_LABELS, speedI) { put(K.speed, SPEEDS[it]) }
+        ChoiceCard("speed", t("Hold to speed up"), t("Press and hold the video to play faster. Let go to go back."), HOLD_LABELS, HOLDS.indexOf(prefs.holdSpeed).let { if (it < 0) 1 else it }) { put(K.holdSpeed, HOLDS[it]) }
+        ChoiceCard("aspect_ratio", t("Video fit"), t("How the picture fills the screen."), fits, prefs.fit) { put(K.fit, it) }
 
-        SectionLabel("screen_rotation", "Screen")
-        ToggleCard("screen_rotation", "Rotate with the video", "Wide videos go landscape automatically.", prefs.autoFs) { put(K.autoFs, it) }
-        ChoiceCard("smartphone", "Screen rotation", "Lock the player to one direction, or let it follow the phone.", listOf("Auto", "Portrait", "Landscape"), prefs.orient) { put(K.orient, it) }
+        SectionLabel("screen_rotation", t("Screen"))
+        ToggleCard("screen_rotation", t("Rotate with the video"), t("Wide videos go landscape automatically."), prefs.autoFs) { put(K.autoFs, it) }
+        ChoiceCard("smartphone", t("Screen rotation"), t("Lock the player to one direction, or let it follow the phone."), listOf(t("Auto"), t("Portrait"), t("Landscape")), prefs.orient) { put(K.orient, it) }
 
-        SectionLabel("headphones", "Headphones")
-        ChoiceCard("headphones", "If Bluetooth or headphones disconnect", "What the video does when the sound device goes away.", listOf(t("Pause"), "Keep playing"), prefs.onLost) { put(K.onLost, it) }
+        SectionLabel("headphones", t("Headphones"))
+        ChoiceCard("headphones", t("If Bluetooth or headphones disconnect"), t("What the video does when the sound device goes away."), listOf(t("Pause"), t("Keep playing")), prefs.onLost) { put(K.onLost, it) }
     }
 }
 

@@ -87,15 +87,15 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(v.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, maxLines = 3, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PlayStat("schedule", fmt(v.dur), "Length", Modifier.weight(1f))
-                PlayStat("hard_drive", fmtSize(v.size), "Size", Modifier.weight(1f))
+                PlayStat("schedule", fmt(v.dur), t("Length"), Modifier.weight(1f))
+                PlayStat("hard_drive", fmtSize(v.size), t("Size"), Modifier.weight(1f))
                 PlayStat("movie", v.res.ifEmpty { "-" }, t("Resolution"), Modifier.weight(1f))
             }
             info?.let { i ->
                 i.resolution?.let { InfoRow("hd", t("Resolution"), it) }
-                i.video?.let { InfoRow("smart_display", "Video", it) }
-                InfoRow("music_note", t("Audio"), if (i.audio.isEmpty()) "No audio track" else i.audio.joinToString("\n"))
-                InfoRow("closed_caption", "Subtitles in the file", if (i.subs.isEmpty()) "None built in" else i.subs.joinToString("\n"))
+                i.video?.let { InfoRow("smart_display", t("Video"), it) }
+                InfoRow("music_note", t("Audio"), if (i.audio.isEmpty()) t("No audio track") else i.audio.joinToString("\n"))
+                InfoRow("closed_caption", t("Subtitles in the file"), if (i.subs.isEmpty()) t("None built in") else i.subs.joinToString("\n"))
                 i.container?.let { InfoRow("movie", t("Container"), it) }
                 i.source?.let { InfoRow("link", t("Source"), it) }
                 i.storage?.let { InfoRow("hard_drive", t("Storage"), it) }
@@ -103,7 +103,7 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
             InfoRow("folder", t("Location"), place)
             InfoRow("calendar_month", t("Added"), added)
             info?.modified?.let { InfoRow("edit", t("Modified"), it) }
-            InfoRow("favorite", t("Favorite"), if (fav) "Yes, pinned in Favorites" else "No")
+            InfoRow("favorite", t("Favorite"), if (fav) t("Yes, pinned in Favorites") else "No")
             InfoRow(
                 "history", t("Watched"),
                 if (prog == null || prog.dur <= 0) t("Not started") else "${fmt(prog.pos)} of ${fmt(prog.dur)} · ${(prog.pos * 100 / prog.dur).coerceIn(0, 100)}%",
@@ -134,12 +134,12 @@ fun FolderDetailsDialog(name: String, path: String, vids: List<Video>, onClose: 
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PlayStat("movie", "${vids.size}", t("Videos"), Modifier.weight(1f))
-                PlayStat("hard_drive", fmtSize(vids.sumOf { it.size }), "Size", Modifier.weight(1f))
-                PlayStat("schedule", fmt(vids.sumOf { it.dur }), "Length", Modifier.weight(1f))
+                PlayStat("hard_drive", fmtSize(vids.sumOf { it.size }), t("Size"), Modifier.weight(1f))
+                PlayStat("schedule", fmt(vids.sumOf { it.dur }), t("Length"), Modifier.weight(1f))
             }
             InfoRow("folder", t("Location"), path.ifEmpty { "/" })
-            InfoRow("folder_open", t("Subfolders"), if (subs == 0) "None" else "$subs")
-            if (longest != null) InfoRow("schedule", "Longest video", "${longest.name} · ${fmt(longest.dur)}")
+            InfoRow("folder_open", t("Subfolders"), if (subs == 0) t("None") else "$subs")
+            if (longest != null) InfoRow("schedule", t("Longest video"), "${longest.name} · ${fmt(longest.dur)}")
             CopyBtn(path.ifEmpty { "/" })
         }
     }
@@ -187,6 +187,6 @@ private fun CopyBtn(text: String) {
     val ctx = LocalContext.current
     ActionBtn("content_copy", t("Copy location"), true) {
         (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Pebble", text))
-        Toast.makeText(ctx, "Copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, t("Copied"), Toast.LENGTH_SHORT).show()
     }
 }

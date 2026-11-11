@@ -129,7 +129,7 @@ fun DevicePage() {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(if (charging) "bolt" else "battery_full", null, Modifier.size(18.dp), tint = cs.onSurfaceVariant)
                 Text(
-                    if (batLevel < 0) "Battery level unavailable" else "Battery $batLevel%" + if (charging) " · Charging" else "",
+                    if (batLevel < 0) t("Battery level unavailable") else "Battery $batLevel%" + if (charging) " · Charging" else "",
                     style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
                 )
             }
@@ -138,10 +138,10 @@ fun DevicePage() {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PlayStat("volume_up", "$volPct%", t("Volume"), Modifier.weight(1f))
             PlayStat("brightness_high", if (canWrite) "$briPct%" else "—", t("Brightness"), Modifier.weight(1f))
-            PlayStat("refresh", "$hz Hz", "Refresh rate", Modifier.weight(1f))
+            PlayStat("refresh", "$hz Hz", t("Refresh rate"), Modifier.weight(1f))
         }
 
-        SectionLabel("volume_up", "Sound")
+        SectionLabel("volume_up", t("Sound"))
         PlayCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Badge(if (vol <= 0f) "volume_off" else "volume_up", true)
@@ -151,7 +151,7 @@ fun DevicePage() {
                 }
             }
             PebbleSlider(vol, { setVol(it) }, valueRange = 0f..maxVol.toFloat(), steps = (maxVol - 1).coerceAtLeast(0))
-            Segments(listOf("Mute", "25%", "50%", "75%", "Max"), VOL_PRESETS.indexOfFirst { abs(vol / maxVol - it) < 0.07f }) { setVol(maxVol * VOL_PRESETS[it]) }
+            Segments(listOf(t("Mute"), "25%", "50%", "75%", t("Max")), VOL_PRESETS.indexOfFirst { abs(vol / maxVol - it) < 0.07f }) { setVol(maxVol * VOL_PRESETS[it]) }
         }
         val outs = remember(vol) { am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter { outputName(it) != null } }
         PlayCard {
@@ -174,7 +174,7 @@ fun DevicePage() {
             }
         }
 
-        SectionLabel("brightness_high", "Screen")
+        SectionLabel("brightness_high", t("Screen"))
         if (canWrite) {
             PlayCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -185,9 +185,9 @@ fun DevicePage() {
                     }
                 }
                 PebbleSlider(bri, { setBri(it) }, valueRange = 1f..255f)
-                Segments(listOf("Low", t("Medium"), "High", "Max"), if (auto) -1 else BRI_PRESETS.indexOfFirst { abs(bri / 255f - it) < 0.12f }) { setBri(255f * BRI_PRESETS[it]) }
+                Segments(listOf(t("Low"), t("Medium"), t("High"), t("Max")), if (auto) -1 else BRI_PRESETS.indexOfFirst { abs(bri / 255f - it) < 0.12f }) { setBri(255f * BRI_PRESETS[it]) }
             }
-            ToggleCard("brightness_auto", "Adaptive brightness", "Let the phone match the light around you.", auto) { setAuto(it) }
+            ToggleCard("brightness_auto", t("Adaptive brightness"), t("Let the phone match the light around you."), auto) { setAuto(it) }
         } else {
             PlayCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -197,7 +197,7 @@ fun DevicePage() {
                         Text("Allow Pebble to change system settings to control brightness.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
-                ActionBtn("lock", "Allow", true) { wl.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${ctx.packageName}"))) }
+                ActionBtn("lock", t("Allow"), true) { wl.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${ctx.packageName}"))) }
             }
         }
 
@@ -213,7 +213,7 @@ fun DevicePage() {
                         Text("Allow access to show real Bluetooth names.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
-                ActionBtn("lock", "Allow", true) { askBt.launch(Manifest.permission.BLUETOOTH_CONNECT) }
+                ActionBtn("lock", t("Allow"), true) { askBt.launch(Manifest.permission.BLUETOOTH_CONNECT) }
             }
         } else {
             val adapter = remember { (ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter }
@@ -228,8 +228,8 @@ fun DevicePage() {
                     }
                 }
                 OutlinedTextField(name, { name = it }, label = { Text("Bluetooth name") }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), enabled = adapter != null)
-                ActionBtn("check", "Apply name", adapter != null && name.isNotBlank()) {
-                    msg = try { if (adapter?.setName(name.trim()) == true) "Name updated" else "Couldn't change the name" } catch (_: SecurityException) { "Permission denied" }
+                ActionBtn("check", t("Apply name"), adapter != null && name.isNotBlank()) {
+                    msg = try { if (adapter?.setName(name.trim()) == true) t("Name updated") else t("Couldn't change the name") } catch (_: SecurityException) { t("Permission denied") }
                 }
                 if (msg.isNotEmpty()) Text(msg, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
             }
@@ -239,20 +239,20 @@ fun DevicePage() {
                     Badge("devices", bt.isNotEmpty())
                     Column(Modifier.weight(1f)) {
                         Text("Connected audio", fontWeight = FontWeight.ExtraBold)
-                        Text(if (bt.isEmpty()) "No Bluetooth audio connected." else bt.joinToString { it.productName.toString() }, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        Text(if (bt.isEmpty()) t("No Bluetooth audio connected.") else bt.joinToString { it.productName.toString() }, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
             }
         }
 
-        SectionLabel("info", "This device")
+        SectionLabel("info", t("This device"))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            InfoTile("phone_android", "Model", Build.MODEL, Modifier.weight(1f))
+            InfoTile("phone_android", t("Model"), Build.MODEL, Modifier.weight(1f))
             InfoTile("memory", "Android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            InfoTile("screenshot_monitor", "Screen", "${dm.widthPixels} × ${dm.heightPixels}", Modifier.weight(1f))
-            InfoTile("refresh", "Refresh rate", "$hz Hz", Modifier.weight(1f))
+            InfoTile("screenshot_monitor", t("Screen"), "${dm.widthPixels} × ${dm.heightPixels}", Modifier.weight(1f))
+            InfoTile("refresh", t("Refresh rate"), "$hz Hz", Modifier.weight(1f))
         }
     }
 }
@@ -270,10 +270,10 @@ private fun InfoTile(icon: String, label: String, value: String, modifier: Modif
 }
 
 private fun outputName(d: AudioDeviceInfo): String? = when (d.type) {
-    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Phone speaker"
-    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Earpiece"
-    AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headphones"
-    AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> "USB audio"
+    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> t("Phone speaker")
+    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> t("Earpiece")
+    AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> t("Wired headphones")
+    AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> t("USB audio")
     AudioDeviceInfo.TYPE_HDMI -> "HDMI"
     else -> if (isBt(d)) "Bluetooth" else null
 }

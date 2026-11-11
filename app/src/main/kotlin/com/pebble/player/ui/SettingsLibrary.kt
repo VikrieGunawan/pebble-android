@@ -60,9 +60,9 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PlayStat("movie", "$shownVideos", "Shown", Modifier.weight(1f))
+            PlayStat("movie", "$shownVideos", t("Shown"), Modifier.weight(1f))
             PlayStat("folder", "${folders.size - hidden}", t("Folders"), Modifier.weight(1f))
-            PlayStat("visibility_off", "$hidden", "Hidden", Modifier.weight(1f))
+            PlayStat("visibility_off", "$hidden", t("Hidden"), Modifier.weight(1f))
         }
 
         SectionLabel("folder", t("Folders"), folders.size)
@@ -82,7 +82,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
                 Column(Modifier.weight(1f)) {
                     Text(f.name.ifBlank { t("Videos") }, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        if (off) "Hidden from your library" else "${f.count} videos · ${fmtSize(f.bytes)}",
+                        if (off) t("Hidden from your library") else "${f.count} videos · ${fmtSize(f.bytes)}",
                         style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1,
                     )
                     Text(f.path, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -91,10 +91,10 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
             }
         }
         if (hidden > 0) {
-            SectionLabel("visibility_off", "Hidden")
+            SectionLabel("visibility_off", t("Hidden"))
             PlayCard {
                 Text("$hidden folder(s) are hidden from Home, Library and search.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                ActionBtn("folder_open", "Show all folders", true) { scope.launch { prefs.blacklist.toList().forEach { store.toggleBlacklist(it) } } }
+                ActionBtn("folder_open", t("Show all folders"), true) { scope.launch { prefs.blacklist.toList().forEach { store.toggleBlacklist(it) } } }
             }
         }
     }

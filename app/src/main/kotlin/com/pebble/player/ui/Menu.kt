@@ -138,11 +138,11 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
     val destPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
         if (tree != null) scope.launch {
             val name = realName()
-            busy = if (copyMode) "Copying…" else "Moving…"
+            busy = if (copyMode) t("Copying…") else t("Moving…")
             val ok = withContext(Dispatchers.IO) { copyToTree(ctx, v.uri, tree, name) }
             busy = null
             if (!ok) toast("Couldn't copy the video")
-            else if (copyMode) { toast("Copied"); onRescan(); onDismiss() }
+            else if (copyMode) { toast(t("Copied")); onRescan(); onDismiss() }
             else if (Build.VERSION.SDK_INT >= 30) {
                 toast("Copied — confirm to remove the original")
                 try { delLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(MediaStore.createDeleteRequest(ctx.contentResolver, listOf(v.uri)).intentSender).build()) }
@@ -220,8 +220,8 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
                 confirmDel = false
                 if (Build.VERSION.SDK_INT >= 30) {
                     try { delLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(MediaStore.createDeleteRequest(ctx.contentResolver, listOf(v.uri)).intentSender).build()) }
-                    catch (_: Exception) { Toast.makeText(ctx, "Couldn't delete", Toast.LENGTH_SHORT).show() }
-                } else Toast.makeText(ctx, "Delete needs Android 11 or newer", Toast.LENGTH_SHORT).show()
+                    catch (_: Exception) { Toast.makeText(ctx, t("Couldn't delete"), Toast.LENGTH_SHORT).show() }
+                } else Toast.makeText(ctx, t("Delete needs Android 11 or newer"), Toast.LENGTH_SHORT).show()
             }) { Text(t("Delete"), color = cs.error) }
         },
         dismissButton = { TextButton({ confirmDel = false }) { Text(t("Cancel")) } },

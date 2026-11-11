@@ -192,7 +192,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             if (first && app.media.reindex() > 0) all = app.media.scan()
             if (refreshing) {
                 val n = all.count { it.id !in before }
-                Toast.makeText(ctx, when (n) { 0 -> "No new videos found"; 1 -> "1 new video added"; else -> "$n new videos added" }, Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, when (n) { 0 -> t("No new videos found"); 1 -> "1 new video added"; else -> "$n new videos added" }, Toast.LENGTH_SHORT).show()
             }
         }
         if (refreshing) { delay(700); refreshing = false }
@@ -249,7 +249,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     onToggleTheme = {
                         val nx = (prefs.theme + 1) % 3
                         scope.launch { app.store.put(K.theme, nx) }
-                        Toast.makeText(ctx, "Theme: " + listOf(t("Same as device"), t("Light"), t("Dark"))[nx], Toast.LENGTH_SHORT).show()
+                        Toast.makeText(ctx, t("Theme") + ": " + listOf(t("Same as device"), t("Light"), t("Dark"))[nx], Toast.LENGTH_SHORT).show()
                     },
                     profile = prefs.profile, onProfile = { profileDialog = true },
                 )
