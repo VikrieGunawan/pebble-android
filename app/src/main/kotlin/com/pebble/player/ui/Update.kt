@@ -308,7 +308,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     info.notes.forEach { (title, lines) ->
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             if (title.isNotBlank()) Text(
-                                                (if (title == "New") "Added" else title) + ":", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold,
+                                                (if (title == "New") t("Added") else title) + ":", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold,
                                                 color = if (title == "Fixed") cs.error else cs.primary,
                                             )
                                             lines.forEachIndexed { i, l ->
@@ -323,7 +323,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                             }
                             Btn("Download update", "download", true) { start() }
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Btn("Later", null, false, Modifier.weight(1f), onLater)
+                                Btn(t("Later"), null, false, Modifier.weight(1f), onLater)
                                 Btn("Skip version", null, false, Modifier.weight(1f), onSkip)
                             }
                         }
@@ -336,17 +336,17 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
                                 )
                             }
-                            Btn("Cancel", null, false) { job?.cancel(); phase = Phase.Idle }
+                            Btn(t("Cancel"), null, false) { job?.cancel(); phase = Phase.Idle }
                         }
                         Phase.Ready -> {
                             Text("Android will ask you to confirm the install. Your videos and settings stay as they are.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, textAlign = TextAlign.Start)
                             Btn("Install", "system_update", true) { file?.let { install(ctx, it) } }
-                            Btn("Close", null, false, Modifier, onLater)
+                            Btn(t("Close"), null, false, Modifier, onLater)
                         }
                         Phase.Failed -> {
                             Text(err, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
-                            Btn("Try again", "refresh", true) { start() }
-                            Btn("Close", null, false, Modifier, onLater)
+                            Btn(t("Try again"), "refresh", true) { start() }
+                            Btn(t("Close"), null, false, Modifier, onLater)
                         }
                     }
                 }
@@ -380,7 +380,7 @@ private fun Chip(text: String, on: Boolean) {
     )
 }
 
-/** Settings → About: manual "Check for updates" row. */
+/** Settings → About: manual t("Check for updates") row. */
 @Composable
 fun UpdateRow() {
     val cs = MaterialTheme.colorScheme
@@ -402,7 +402,7 @@ fun UpdateRow() {
     ) {
         IconTile("system_update", 42.dp, filled = true)
         Column(Modifier.weight(1f)) {
-            Text("Check for updates", fontWeight = FontWeight.ExtraBold)
+            Text(t("Check for updates"), fontWeight = FontWeight.ExtraBold)
             Text(if (busy) "Checking…" else "Version ${currentVersion(ctx)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
         Icon("refresh", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)

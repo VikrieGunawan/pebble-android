@@ -160,7 +160,7 @@ internal val pTrack: Color get() = if (PLIGHT) Color(0x331B1730) else Color(0x40
 internal val pScrim: Color get() = if (PLIGHT) Color(0xCCFFFFFF) else Color(0xCC000000)
 private val RATIOS = listOf(0f to "Auto", (16f / 9f) to "16:9", (4f / 3f) to "4:3", (21f / 9f) to "21:9", 1f to "1:1", (9f / 16f) to "9:16")
 internal val PRESETS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
-private val FITS = listOf("Fit", "Crop", "Stretch", "Width")
+private val FITS = listOf(t("Fit"), t("Crop"), t("Stretch"), "Width")
 internal val ORIENTS = listOf("Auto", "Portrait", "Landscape")
 
 internal fun fmtSpeed(v: Float): String = String.format(java.util.Locale.US, "%.2f", v).trimEnd('0').trimEnd('.') + "×"
@@ -646,29 +646,29 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(Modifier.size(38.dp).clip(CircleShape).background(glass).border(1.dp, rim, CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                        Icon("arrow_back", "Back", Modifier.size(20.dp), tint = pFg)
+                        Icon("arrow_back", t("Back"), Modifier.size(20.dp), tint = pFg)
                     }
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 14.dp, vertical = 5.dp)) {
                         Text(video.name, color = pFg, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                     }
                     Row(Modifier.clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        PBtn("screen_rotation", "Rotate", 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else pFg,
+                        PBtn("screen_rotation", t("Rotate"), 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else pFg,
                             onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
-                        PBtn("queue_music", "Queue", 36.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else pFg, onClick = { togglePanel("queue") })
+                        PBtn("queue_music", t("Queue"), 36.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else pFg, onClick = { togglePanel("queue") })
                     }
                 }
 
                 // transport
                 Row(Modifier.align(Alignment.Center).padding(end = padEnd), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PBtn("skip_previous", "Previous", 36.dp, enabled = prev != null, bg = glass, onClick = { go(prev) })
-                    PBtn("replay_10", "Back", 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition - curPrefs.skip * 1000L).coerceAtLeast(0)); tick++ })
+                    PBtn("skip_previous", t("Previous"), 36.dp, enabled = prev != null, bg = glass, onClick = { go(prev) })
+                    PBtn("replay_10", t("Back"), 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition - curPrefs.skip * 1000L).coerceAtLeast(0)); tick++ })
                     Box(
                         Modifier.size(58.dp).clip(RoundedCornerShape(corner.coerceAtLeast(0.dp))).background(cs.primary)
                             .clickable { if (player.isPlaying) player.pause() else player.play(); tick++ },
                         contentAlignment = Alignment.Center,
                     ) { Icon(if (isPlaying) "pause" else "play_arrow", "Play or pause", Modifier.size(32.dp), tint = cs.onPrimary) }
                     PBtn("forward_10", "Forward", 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); tick++ })
-                    PBtn("skip_next", "Next", 36.dp, enabled = pickNext() != null, bg = glass, onClick = { go(pickNext()) })
+                    PBtn("skip_next", t("Next"), 36.dp, enabled = pickNext() != null, bg = glass, onClick = { go(pickNext()) })
                 }
 
                 // bottom card: seek bar, then the tools in two groups
@@ -690,15 +690,15 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     }
                     Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(Modifier.clip(RoundedCornerShape(20.dp)).background(pSoft).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IBtn("graphic_eq", "Audio", panel == "audio") { togglePanel("audio") }
-                            IBtn("speed", "Playback speed", panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
-                            IBtn("closed_caption", "Subtitles", panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
+                            IBtn("graphic_eq", t("Audio"), panel == "audio") { togglePanel("audio") }
+                            IBtn("speed", t("Playback speed"), panel == "speed" || speed != 1f, if (speed != 1f) fmtSpeed(speed) else null) { togglePanel("speed") }
+                            IBtn("closed_caption", t("Subtitles"), panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
                         }
                         Row(Modifier.clip(RoundedCornerShape(20.dp)).background(pSoft).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IBtn("repeat", "Loop", loop) { loop = !loop }
-                            IBtn("timer", "Sleep timer", panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
-                            IBtn("picture_in_picture_alt", "Pop-out", false) { enterPip() }
-                            IBtn("aspect_ratio", "Video ratio", panel == "ratio") { togglePanel("ratio") }
+                            IBtn("repeat", t("Loop"), loop) { loop = !loop }
+                            IBtn("timer", t("Sleep timer"), panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
+                            IBtn("picture_in_picture_alt", t("Pop-out"), false) { enterPip() }
+                            IBtn("aspect_ratio", t("Video ratio"), panel == "ratio") { togglePanel("ratio") }
                         }
                     }
                 }
@@ -713,12 +713,12 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         ) {
             val shown = shownPanel ?: lastPanel
             val (pIcon, pTitle, pSub) = when (shown) {
-                "speed" -> Triple("speed", "Playback speed", if (speed == 1f) "Normal" else fmtSpeed(speed))
-                "subs" -> Triple("closed_caption", "Subtitles", if (subUri != null) subName else "No file loaded")
-                "audio" -> Triple("graphic_eq", "Audio", "Volume and sound")
-                "ratio" -> Triple("aspect_ratio", "Video ratio", FITS[fit])
-                "queue" -> Triple("queue_music", "Up next", "${queue.size} videos")
-                else -> Triple("timer", "Sleep timer", if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else "Off")
+                "speed" -> Triple("speed", t("Playback speed"), if (speed == 1f) "Normal" else fmtSpeed(speed))
+                "subs" -> Triple("closed_caption", t("Subtitles"), if (subUri != null) subName else "No file loaded")
+                "audio" -> Triple("graphic_eq", t("Audio"), t("Volume and sound"))
+                "ratio" -> Triple("aspect_ratio", t("Video ratio"), FITS[fit])
+                "queue" -> Triple("queue_music", t("Up next"), "${queue.size} videos")
+                else -> Triple("timer", t("Sleep timer"), if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else t("Off"))
             }
             Column(
                 (if (land) Modifier.fillMaxHeight().width(300.dp)
@@ -736,7 +736,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         Text(pTitle, color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         Text(pSub, color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    PBtn("close", "Close", 36.dp, onClick = { panel = null })
+                    PBtn("close", t("Close"), 36.dp, onClick = { panel = null })
                 }
                 if (shown == "queue") {
                     QueuePanel(queue, video, prefs, shuffle, autoNext, Modifier.weight(1f, fill = false),
@@ -746,24 +746,24 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         "speed" -> {
                             Text(fmtSpeed(speed), color = pFg, fontSize = 34.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                PBtn("remove", "Slower", 44.dp, bg = pSoft, onClick = { applySpeed(speed - 0.05f, true) })
+                                PBtn("remove", t("Slower"), 44.dp, bg = pSoft, onClick = { applySpeed(speed - 0.05f, true) })
                                 PebbleSlider(speed, { applySpeed((it * 20).roundToInt() / 20f, false) }, Modifier.weight(1f), valueRange = 0.25f..3f, onValueChangeFinished = { applySpeed(speed, true) })
-                                PBtn("add", "Faster", 44.dp, bg = pSoft, onClick = { applySpeed(speed + 0.05f, true) })
+                                PBtn("add", t("Faster"), 44.dp, bg = pSoft, onClick = { applySpeed(speed + 0.05f, true) })
                             }
                             Sl("tune", "Presets")
                             Chips(PRESETS.map { fmtSpeed(it) }, PRESETS.indexOfFirst { kotlin.math.abs(it - speed) < 0.01f }) { applySpeed(PRESETS[it], true) }
-                            Wide("restart_alt", "Normal speed") { applySpeed(1f, true) }
+                            Wide("restart_alt", t("Normal speed")) { applySpeed(1f, true) }
                         }
                         "subs" -> {
                             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).clickable { subs = !subs }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon("closed_caption", null, Modifier.size(24.dp), tint = pFg)
-                                Text("Show subtitles", Modifier.weight(1f), color = pFg, fontWeight = FontWeight.Bold)
+                                Text(t("Show subtitles"), Modifier.weight(1f), color = pFg, fontWeight = FontWeight.Bold)
                                 PebbleSwitch(subs, { subs = it })
                             }
                             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).clickable { pickSub.launch(arrayOf("*/*")) }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon("upload_file", null, Modifier.size(24.dp), tint = cs.primary)
                                 Column(Modifier.weight(1f)) {
-                                    Text("Load subtitle file", color = pFg, fontWeight = FontWeight.Bold)
+                                    Text(t("Load subtitle file"), color = pFg, fontWeight = FontWeight.Bold)
                                     Text("SRT or VTT from your device", color = pFg2, fontSize = 12.sp)
                                 }
                                 Icon("chevron_right", null, Modifier.size(22.dp), tint = pFg3)
@@ -775,12 +775,12 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             }
                             if (assMode) Sl("info", "Styled by the .ass file: its own colors, size and position")
                             else {
-                                Sl("format_size", "Text size")
-                                Chips(listOf("Small", "Medium", "Large", "XL"), subSize) { subSize = it }
-                                Sl("palette", "Background")
-                                Chips(listOf("None", "Soft", "Solid"), subBg, 3) { subBg = it }
+                                Sl("format_size", t("Text size"))
+                                Chips(listOf(t("Small"), t("Medium"), t("Large"), "XL"), subSize) { subSize = it }
+                                Sl("palette", t("Background"))
+                                Chips(listOf("None", t("Soft"), t("Solid")), subBg, 3) { subBg = it }
                             }
-                            if (subUri != null) Wide("delete", "Remove subtitles") { subUri = null; subName = "" }
+                            if (subUri != null) Wide("delete", t("Remove subtitles")) { subUri = null; subName = "" }
                         }
                         "audio" -> {
                             var vol by remember { mutableFloatStateOf(am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)) }
@@ -788,18 +788,18 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                                 PBtn(if (muted || vol <= 0f) "volume_off" else "volume_up", "Mute", 52.dp, bg = if (muted) cs.primary else pSoft, tint = if (muted) cs.onPrimary else pFg, onClick = { muted = !muted })
                                 Column {
                                     Text("${(vol * 100).roundToInt()}%", color = pFg, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-                                    Text(if (muted) "Muted" else "Volume", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(if (muted) "Muted" else t("Volume"), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                             PebbleSlider(vol, { vol = it; am.setStreamVolume(AudioManager.STREAM_MUSIC, (it * am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).roundToInt(), 0) }, Modifier.fillMaxWidth())
                             Sl("equalizer", "Volume boost")
-                            Chips(listOf("Off", "+3 dB", "+6 dB", "+9 dB"), boost) { boost = it }
+                            Chips(listOf(t("Off"), "+3 dB", "+6 dB", "+9 dB"), boost) { boost = it }
                             val aTr = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
                             if (aTr.size > 1) {
-                                Sl("graphic_eq", "Audio tracks")
+                                Sl("graphic_eq", t("Audio tracks"))
                                 aTr.forEachIndexed { i, g -> Opt("music_note", trackLabel(g.getTrackFormat(0), i, "Track"), g.isSelected) { pickTrack(g) } }
                             }
-                            Wide("headphones", "Audio output") { audioDlg = true }
+                            Wide("headphones", t("Audio output")) { audioDlg = true }
                         }
                         "ratio" -> {
                             Sl("aspect_ratio", "Scaling")
@@ -811,7 +811,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         else -> {
                             Sl("timer", "Pause playback after")
                             val mins = listOf(0, 15, 30, 45, 60, 90)
-                            Chips(mins.map { if (it == 0) "Off" else "$it min" }, if (sleepEnd == 0L) 0 else -1, 3) {
+                            Chips(mins.map { if (it == 0) t("Off") else "$it min" }, if (sleepEnd == 0L) 0 else -1, 3) {
                                 sleepEnd = if (mins[it] == 0) 0L else SystemClock.elapsedRealtime() + mins[it] * 60000L
                             }
                         }
@@ -949,10 +949,10 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(42.dp).clip(RoundedCornerShape(15.dp)).background(cs.primary), contentAlignment = Alignment.Center) { Icon("headphones", null, Modifier.size(24.dp), tint = cs.onPrimary) }
                 Column(Modifier.weight(1f)) {
-                    Text("Audio output", color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                    Text(t("Audio output"), color = pFg, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
                     Text(if (chosen == -1) "Automatic" else "Fixed to one device", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
-                PBtn("close", "Close", 36.dp, bg = pSoft, onClick = onClose)
+                PBtn("close", t("Close"), 36.dp, bg = pSoft, onClick = onClose)
             }
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Brush.linearGradient(listOf(cs.primary.copy(alpha = 0.38f), cs.tertiary.copy(alpha = 0.26f)))).padding(14.dp),
@@ -993,7 +993,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 )
             }
             Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(16.dp)).background(cs.primary).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                Text("Done", color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
+                Text(t("Done"), color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
             }
         }
     }
@@ -1051,13 +1051,18 @@ private fun Scrubber(playing: Boolean, value: () -> Float, onChange: (Float) -> 
             val px = value().coerceIn(0f, 1f) * size.width
             val a = amp * 2.5.dp.toPx()
             val lam = 36.dp.toPx()
-            if (px < size.width) drawLine(trackC, Offset(px, cy), Offset(size.width, cy), sw, StrokeCap.Round)
-            val path = Path().apply {
-                moveTo(0f, cy + a * sin(-phase))
-                var x = 0f
-                while (x < px) { x = minOf(x + 3f, px); lineTo(x, cy + a * sin(2f * PI.toFloat() * x / lam - phase)) }
+            val gap = 6.dp.toPx() + sw / 2f + handleW.toPx() / 2f
+            val start = px + gap
+            val end = px - gap
+            if (start < size.width) drawLine(trackC, Offset(start, cy), Offset(size.width, cy), sw, StrokeCap.Round)
+            if (end > 0f) {
+                val path = Path().apply {
+                    moveTo(0f, cy + a * sin(-phase))
+                    var x = 0f
+                    while (x < end) { x = minOf(x + 3f, end); lineTo(x, cy + a * sin(2f * PI.toFloat() * x / lam - phase)) }
+                }
+                drawPath(path, cs.primary, style = Stroke(sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
-            drawPath(path, cs.primary, style = Stroke(sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
         Box(
             Modifier.offset { androidx.compose.ui.unit.IntOffset((value().coerceIn(0f, 1f) * w - handleW.toPx() / 2f).roundToInt(), 0) }
@@ -1078,8 +1083,8 @@ private fun QueuePanel(
     val earlier = if (idx > 0) queue.take(idx) else emptyList()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Toggle("shuffle", "Shuffle", shuffle, Modifier.weight(1f), onShuffle)
-            Toggle("skip_next", "Autoplay", autoNext, Modifier.weight(1f), onAuto)
+            Toggle("shuffle", t("Shuffle"), shuffle, Modifier.weight(1f), onShuffle)
+            Toggle("skip_next", t("Autoplay"), autoNext, Modifier.weight(1f), onAuto)
         }
         LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (idx >= 0) item(key = "hero") {
@@ -1095,7 +1100,7 @@ private fun QueuePanel(
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon("play_arrow", null, Modifier.size(16.dp), tint = cs.onPrimary)
-                        Text("Now playing", color = cs.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(t("Now playing"), color = cs.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                     }
                     Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(video.name, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
@@ -1108,7 +1113,7 @@ private fun QueuePanel(
             }
             item(key = "h_up") {
                 Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Up next", color = pFg, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(t("Up next"), color = pFg, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
                     if (upcoming.isNotEmpty()) Text("${upcoming.size}", color = cs.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 2.dp))
                     Spacer(Modifier.weight(1f))
                     if (upcoming.isNotEmpty()) Text("${fmt(upcoming.sumOf { it.dur })} left", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -1121,7 +1126,7 @@ private fun QueuePanel(
             if (earlier.isNotEmpty()) {
                 item(key = "h_prev") {
                     Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Played", color = pFg2, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                        Text(t("Played"), color = pFg2, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
                         Text("${earlier.size}", color = pFg3, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }

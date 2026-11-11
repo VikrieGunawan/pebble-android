@@ -179,8 +179,8 @@ internal suspend fun loadVideoInfo(ctx: Context, v: Video): VideoInfo = withCont
         val desc = sv?.getDescription(ctx)?.takeIf { it.isNotBlank() }
         val kind = when {
             sv == null -> "External storage ($name)"
-            sv.isRemovable -> if (desc?.contains("usb", true) == true) "USB drive" else "SD card"
-            else -> "Internal storage"
+            sv.isRemovable -> if (desc?.contains("usb", true) == true) t("USB drive") else t("SD card")
+            else -> t("Internal storage")
         }
         val head = if (sv != null && sv.isRemovable && desc != null && !desc.equals(kind, true)) "$kind · $desc" else kind
         val space = if (Build.VERSION.SDK_INT >= 30) sv?.directory?.let { d ->

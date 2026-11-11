@@ -136,8 +136,8 @@ fun DevicePage() {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PlayStat("volume_up", "$volPct%", "Volume", Modifier.weight(1f))
-            PlayStat("brightness_high", if (canWrite) "$briPct%" else "—", "Brightness", Modifier.weight(1f))
+            PlayStat("volume_up", "$volPct%", t("Volume"), Modifier.weight(1f))
+            PlayStat("brightness_high", if (canWrite) "$briPct%" else "—", t("Brightness"), Modifier.weight(1f))
             PlayStat("refresh", "$hz Hz", "Refresh rate", Modifier.weight(1f))
         }
 
@@ -180,12 +180,12 @@ fun DevicePage() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Badge(if (auto) "brightness_auto" else "brightness_high", true)
                     Column(Modifier.weight(1f)) {
-                        Text("Brightness", fontWeight = FontWeight.ExtraBold)
+                        Text(t("Brightness"), fontWeight = FontWeight.ExtraBold)
                         Text(if (auto) "Adaptive · $briPct%" else "$briPct%", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
                 PebbleSlider(bri, { setBri(it) }, valueRange = 1f..255f)
-                Segments(listOf("Low", "Medium", "High", "Max"), if (auto) -1 else BRI_PRESETS.indexOfFirst { abs(bri / 255f - it) < 0.12f }) { setBri(255f * BRI_PRESETS[it]) }
+                Segments(listOf("Low", t("Medium"), "High", "Max"), if (auto) -1 else BRI_PRESETS.indexOfFirst { abs(bri / 255f - it) < 0.12f }) { setBri(255f * BRI_PRESETS[it]) }
             }
             ToggleCard("brightness_auto", "Adaptive brightness", "Let the phone match the light around you.", auto) { setAuto(it) }
         } else {
@@ -193,7 +193,7 @@ fun DevicePage() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Badge("brightness_high", false)
                     Column(Modifier.weight(1f)) {
-                        Text("Brightness", fontWeight = FontWeight.ExtraBold)
+                        Text(t("Brightness"), fontWeight = FontWeight.ExtraBold)
                         Text("Allow Pebble to change system settings to control brightness.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }

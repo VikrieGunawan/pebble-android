@@ -55,19 +55,19 @@ fun AppearancePage(prefs: Prefs, store: Store) {
     val dynOk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val useDyn = dynOk && prefs.dynamic
     val dark = when (prefs.theme) { 1 -> false; 2 -> true; else -> isSystemInDarkTheme() }
-    val themes = listOf("System", "Light", "Dark")
+    val themes = listOf("System", t("Light"), t("Dark"))
     val colorName = if (useDyn) "Material You" else ACCENTS.firstOrNull { it.second == prefs.accent }?.first ?: "Custom"
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         LookPreview(prefs)
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PlayStat("contrast", themes[prefs.theme.coerceIn(0, 2)], "Theme", Modifier.weight(1f))
+            PlayStat("contrast", themes[prefs.theme.coerceIn(0, 2)], t("Theme"), Modifier.weight(1f))
             PlayStat("palette", colorName, "Colors", Modifier.weight(1f))
-            PlayStat(if (prefs.layout == 0) "grid_view" else "view_list", if (prefs.layout == 0) "Grid" else "List", "Layout", Modifier.weight(1f))
+            PlayStat(if (prefs.layout == 0) "grid_view" else "view_list", if (prefs.layout == 0) t("Grid") else t("List"), t("Layout"), Modifier.weight(1f))
         }
 
-        SectionLabel("contrast", "Theme")
+        SectionLabel("contrast", t("Theme"))
         TileChoiceCard(
             "contrast", "Mode", "Follow the phone, or always use light or dark.",
             listOf("contrast", "light_mode", "dark_mode"), themes, prefs.theme,
@@ -81,25 +81,25 @@ fun AppearancePage(prefs: Prefs, store: Store) {
 
         SectionLabel("grid_view", "Library look")
         TileChoiceCard(
-            "grid_view", "Layout", "Cards in a grid, or one video per row.",
-            listOf("grid_view", "view_list"), listOf("Grid", "List"), prefs.layout,
+            "grid_view", t("Layout"), "Cards in a grid, or one video per row.",
+            listOf("grid_view", "view_list"), listOf(t("Grid"), t("List")), prefs.layout,
         ) { put(K.layout, it) }
         PAnim(prefs.layout == 0 && isPhoneScreen()) {
             val can3 = maxGridCols() >= 3
             TileChoiceCard(
-                "grid_view", "Columns in landscape", if (can3) "Cards per row when the phone is on its side. Portrait shows one." else "Your screen fits 2 per row when on its side. Portrait shows one.",
+                "grid_view", t("Columns in landscape"), if (can3) "Cards per row when the phone is on its side. Portrait shows one." else "Your screen fits 2 per row when on its side. Portrait shows one.",
                 listOf("cols_2", "cols_3"), listOf("2", "3"), if (prefs.gridSize == 0 && can3) 1 else 0, if (can3) emptySet() else setOf(1),
             ) { put(K.gridSize, if (it == 1) 0 else 1) }
         }
         PAnim(prefs.layout == 0 && !isPhoneScreen()) {
             TileChoiceCard(
                 "zoom_in", "Card size", "How big the video cards are in the grid.",
-                listOf("view_compact", "view_comfy", "zoom_in"), listOf("Compact", "Normal", "Large"), prefs.gridSize,
+                listOf("view_compact", "view_comfy", "zoom_in"), listOf("Compact", "Normal", t("Large")), prefs.gridSize,
             ) { put(K.gridSize, it) }
         }
-        ChoiceCard("sort", "Sort by", "The order of your videos.", listOf("Newest", "Name", "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
+        ChoiceCard("sort", t("Sort by"), "The order of your videos.", listOf("Newest", t("Name"), "Longest", "Largest"), prefs.sort) { put(K.sort, it) }
 
-        SectionLabel("restart_alt", "Reset")
+        SectionLabel("restart_alt", t("Reset"))
         PlayCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Badge("restart_alt", true)
@@ -108,7 +108,7 @@ fun AppearancePage(prefs: Prefs, store: Store) {
                     Text("Theme, colors and library look go back to the defaults.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            ActionBtn("restart_alt", "Reset", true) {
+            ActionBtn("restart_alt", t("Reset"), true) {
                 put(K.theme, 0); put(K.dyn, true); put(K.accent, 0xFFE8502B.toInt()); put(K.amoled, false)
                 put(K.gridSize, 1); put(K.sort, 1)
             }

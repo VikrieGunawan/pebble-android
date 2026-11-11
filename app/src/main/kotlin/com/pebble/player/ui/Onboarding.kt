@@ -211,12 +211,12 @@ fun Onboarding(prefs: Prefs, store: Store) {
                         exit = fadeOut(efSpec) + shrinkHorizontally(spSpec2, shrinkTowards = Alignment.Start),
                     ) {
                         Row {
-                            OutlinedButton(onClick = { go(step - 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(56.dp)) { Text("Back") }
+                            OutlinedButton(onClick = { go(step - 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(56.dp)) { Text(t("Back")) }
                             Spacer(Modifier.width(12.dp))
                         }
                     }
                     Button(onClick = { go(step + 1) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.weight(1f).height(56.dp)) {
-                        Text(if (step == 0) "Get started" else if (step == LAST - 1) "Finish" else "Next", fontWeight = FontWeight.SemiBold)
+                        Text(if (step == 0) "Get started" else if (step == LAST - 1) "Finish" else t("Next"), fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.width(8.dp))
                         Icon("arrow_forward", null, Modifier.size(20.dp))
                     }
@@ -370,9 +370,9 @@ private fun PlaybackStep(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
     StepTitle("Playback and feel", "Switch on what you like.")
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ToggleRow("play_circle", "Autoplay", "Start as soon as a video opens", prefs.autoplay) { v -> scope.launch { store.put(K.autoplay, v) } }
+        ToggleRow("play_circle", t("Autoplay"), "Start as soon as a video opens", prefs.autoplay) { v -> scope.launch { store.put(K.autoplay, v) } }
         ToggleRow("fullscreen", "Rotate with the video", "Wide videos go landscape automatically", prefs.autoFs) { v -> scope.launch { store.put(K.autoFs, v) } }
-        ToggleRow("blur_on", "Resume where you stopped", "Continue from your last position", prefs.resume) { v -> scope.launch { store.put(K.resume, v) } }
+        ToggleRow("blur_on", t("Resume where you stopped"), "Continue from your last position", prefs.resume) { v -> scope.launch { store.put(K.resume, v) } }
     }
 }
 
@@ -409,10 +409,10 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
     val accentName = ACCENTS.firstOrNull { it.second == prefs.accent }?.first ?: "Pebble"
     val labels = listOf(
         "Saving your profile" to (profile.name.ifBlank { "Guest" }),
-        "Applying your theme" to listOf("System", "Light", "Dark")[prefs.theme.coerceIn(0, 2)],
+        "Applying your theme" to listOf("System", t("Light"), t("Dark"))[prefs.theme.coerceIn(0, 2)],
         "Painting your accent color" to (if (prefs.dynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "Material You" else accentName),
         "Arranging your library" to (if (prefs.layout == 1) "List view" else "Grid view"),
-        "Tuning playback" to listOf(if (prefs.autoplay) "Autoplay" else "", if (prefs.autoFs) "Auto rotate" else "", if (prefs.resume) "Resume" else "").filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "Defaults" },
+        "Tuning playback" to listOf(if (prefs.autoplay) t("Autoplay") else "", if (prefs.autoFs) "Auto rotate" else "", if (prefs.resume) "Resume" else "").filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "Defaults" },
         "Getting everything ready" to "Ready to go",
     )
     var done by remember { mutableIntStateOf(0) }

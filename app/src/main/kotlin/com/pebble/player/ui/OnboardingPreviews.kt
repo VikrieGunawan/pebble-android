@@ -101,7 +101,7 @@ fun ThemeStep(prefs: Prefs, store: Store) {
     val primary = Color(0xFF7B61FF) // locked: previews never change with the current theme
     StepTitle("Light or dark?", "Tap a preview. The whole app follows right away.")
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf(Triple("System", "contrast", 0), Triple("Light", "light_mode", 1), Triple("Dark", "dark_mode", 2)).forEach { (l, ic, v) ->
+        listOf(Triple("System", "contrast", 0), Triple(t("Light"), "light_mode", 1), Triple(t("Dark"), "dark_mode", 2)).forEach { (l, ic, v) ->
             PreviewCard(l, ic, prefs.theme == v, Modifier.weight(1f), { scope.launch { store.put(K.theme, v) } }) {
                 Canvas(Modifier.fillMaxWidth().aspectRatio(100f / 166f)) {
                     when (v) {
@@ -132,7 +132,7 @@ fun LayoutStep(prefs: Prefs, store: Store) {
     val bg = cs.surfaceContainerHigh; val thumb = cs.surfaceContainerHighest; val ink = cs.onSurfaceVariant; val pr = cs.primary
     StepTitle("How do you browse?", "Pick how your videos are laid out.")
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        listOf(Triple("Grid", "grid_view", 0), Triple("List", "view_list", 1)).forEach { (l, ic, v) ->
+        listOf(Triple(t("Grid"), "grid_view", 0), Triple(t("List"), "view_list", 1)).forEach { (l, ic, v) ->
             PreviewCard(l, ic, prefs.layout == v, Modifier.weight(1f), { scope.launch { store.put(K.layout, v) } }) {
                 Canvas(Modifier.fillMaxWidth().aspectRatio(0.8f).background(bg)) {
                     val u = size.width / 100f

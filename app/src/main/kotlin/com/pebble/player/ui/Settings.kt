@@ -84,14 +84,14 @@ private val HITS = listOf(
     Hit("appearance", "contrast", "Mode", "Follow the phone, or always use light or dark theme"),
     Hit("appearance", "dark_mode", "Pure black dark mode", "A true black AMOLED background"),
     Hit("appearance", "palette", "Material You", "Use colors from your wallpaper"),
-    Hit("appearance", "grid_view", "Layout", "Cards in a grid, or one video per row (list)"),
+    Hit("appearance", "grid_view", t("Layout"), "Cards in a grid, or one video per row (list)"),
     Hit("appearance", "zoom_in", "Card size", "How big the video cards are in the grid"),
-    Hit("appearance", "sort", "Sort by", "The order of your videos: newest, name, longest, largest"),
-    Hit("playback", "play_circle", "Autoplay", "Start as soon as a video opens"),
-    Hit("playback", "history", "Resume where you stopped", "Continue from your last position"),
-    Hit("playback", "smartphone", "Keep screen on", "The screen stays awake while a video plays"),
+    Hit("appearance", "sort", t("Sort by"), "The order of your videos: newest, name, longest, largest"),
+    Hit("playback", "play_circle", t("Autoplay"), "Start as soon as a video opens"),
+    Hit("playback", "history", t("Resume where you stopped"), "Continue from your last position"),
+    Hit("playback", "smartphone", t("Keep screen on"), "The screen stays awake while a video plays"),
     Hit("playback", "forward_10", "Skip step", "How far the skip buttons and double-tap jump"),
-    Hit("playback", "speed", "Default speed", "The speed every video starts at"),
+    Hit("playback", "speed", t("Default speed"), "The speed every video starts at"),
     Hit("playback", "speed", "Hold to speed up", "Press and hold the video to play faster"),
     Hit("playback", "aspect_ratio", "Video fit", "How the picture fills the screen"),
     Hit("playback", "screen_rotation", "Rotate with the video", "Wide videos go landscape automatically"),
@@ -101,15 +101,15 @@ private val HITS = listOf(
     Hit("device", "brightness_high", "Screen", "Brightness, refresh rate and adaptive brightness"),
     Hit("device", "bluetooth", "Bluetooth", "Connected devices and device name"),
     Hit("device", "info", "This device", "Model, Android version and hardware"),
-    Hit("library", "refresh", "Scan again", "Look for new videos"),
-    Hit("library", "folder", "Folders", "Choose which folders are shown"),
+    Hit("library", "refresh", t("Scan again"), "Look for new videos"),
+    Hit("library", "folder", t("Folders"), "Choose which folders are shown"),
     Hit("library", "visibility_off", "Hidden folders", "Show hidden folders again"),
-    Hit("data", "delete_sweep", "Clear watch history", "Forget where you stopped in every video"),
-    Hit("data", "heart_broken", "Clear favorites", "Remove the heart from every video"),
-    Hit("data", "hide_image", "Remove cover images", "Back to the original thumbnails"),
-    Hit("data", "restart_alt", "Reset settings", "Return every option to its default"),
-    Hit("data", "cleaning_services", "Clear app data", "Delete history, favorites, settings and your profile"),
-    Hit("about", "system_update", "Check for updates", "Download the newest version"),
+    Hit("data", "delete_sweep", t("Clear watch history"), "Forget where you stopped in every video"),
+    Hit("data", "heart_broken", t("Clear favorites"), "Remove the heart from every video"),
+    Hit("data", "hide_image", t("Remove cover images"), "Back to the original thumbnails"),
+    Hit("data", "restart_alt", t("Reset settings"), "Return every option to its default"),
+    Hit("data", "cleaning_services", t("Clear app data"), "Delete history, favorites, settings and your profile"),
+    Hit("about", "system_update", t("Check for updates"), "Download the newest version"),
     Hit("about", "info", "App info", "Version, build and package"),
     Hit("about", "share", "Share Pebble Player", "Send the app to a friend"),
     Hit("about", "content_copy", "Copy app info", "Copy version and device details"),
@@ -122,12 +122,12 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
     val cs = MaterialTheme.colorScheme
     val land = androidx.compose.ui.platform.LocalConfiguration.current.let { it.screenWidthDp > it.screenHeightDp }
     val cats = listOf(
-        Cat("playback", "play_circle", "Playback", "Autoplay, skipping and controls"),
-        Cat("appearance", "palette", "Appearance", "Theme, colors and layout"),
-        Cat("device", "smartphone", "Device", "Brightness, volume and Bluetooth"),
-        Cat("library", "video_library", "Library", "Scanning and hidden folders"),
-        Cat("data", "database", "Data", "History, favorites and reset"),
-        Cat("about", "info", "About", "Pebble Player"),
+        Cat("playback", "play_circle", t("Playback"), t("Autoplay, skipping and controls")),
+        Cat("appearance", "palette", t("Appearance"), t("Theme, colors and layout")),
+        Cat("device", "smartphone", t("Device"), t("Brightness, volume and Bluetooth")),
+        Cat("library", "video_library", t("Library"), t("Scanning and hidden folders")),
+        Cat("data", "database", t("Data"), t("History, favorites and reset")),
+        Cat("about", "info", t("About"), "Pebble Player"),
     )
     val cur = cats.firstOrNull { it.id == page }
     val hubScroll = rememberScrollState() // kept while a sub page is open, so coming back lands where you were
@@ -139,7 +139,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         ) {
             PAnim(cur != null, enter = fadeIn() + expandHorizontally() + scaleIn(), exit = fadeOut() + shrinkHorizontally() + scaleOut()) {
                 Row {
-                    Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { page = null }, contentAlignment = Alignment.Center) { Icon("arrow_back", "Back", Modifier.size(22.dp)) }
+                    Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { page = null }, contentAlignment = Alignment.Center) { Icon("arrow_back", t("Back"), Modifier.size(22.dp)) }
                     Spacer(Modifier.width(14.dp))
                 }
             }
@@ -147,8 +147,8 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     IconTile(c?.icon ?: "tune", 52.dp, filled = true)
                     Column {
-                        Text(c?.title ?: "Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                        Text(c?.sub ?: "Make Pebble work the way you like", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        Text(c?.title ?: t("Settings"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        Text(c?.sub ?: t("Make Pebble work the way you like"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
             }
@@ -164,7 +164,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
         if (p == null) {
             val shown = cats.filter { query.isBlank() || it.title.contains(query, true) || it.sub.contains(query, true) }
             val hits = if (query.isBlank()) emptyList() else HITS.filter { it.title.contains(query, true) || it.sub.contains(query, true) }
-            if (shown.isEmpty() && hits.isEmpty()) EmptyCard("info", "No results", "Try another word.")
+            if (shown.isEmpty() && hits.isEmpty()) EmptyCard("info", t("No results"), t("Try another word."))
             shown.chunked(2).forEach { r ->
                 Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     r.forEach { c ->
@@ -230,11 +230,11 @@ private fun SetHeadStatic(c: Cat?, onBack: (() -> Unit)?) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        if (onBack != null) Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { onBack() }, contentAlignment = Alignment.Center) { Icon("arrow_back", "Back", Modifier.size(22.dp)) }
+        if (onBack != null) Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { onBack() }, contentAlignment = Alignment.Center) { Icon("arrow_back", t("Back"), Modifier.size(22.dp)) }
         IconTile(c?.icon ?: "tune", 52.dp, filled = true)
         Column {
-            Text(c?.title ?: "Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-            Text(c?.sub ?: "Make Pebble work the way you like", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            Text(c?.title ?: t("Settings"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+            Text(c?.sub ?: t("Make Pebble work the way you like"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
     }
 }

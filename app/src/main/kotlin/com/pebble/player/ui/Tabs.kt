@@ -113,7 +113,7 @@ private fun HeroCard(v: Video, prog: Prog?, label: String, onClick: () -> Unit) 
                 LinearProgressIndicator(progress = { (prog.pos.toFloat() / prog.dur).coerceIn(0f, 1f) }, modifier = Modifier.padding(top = 4.dp).fillMaxWidth().height(4.dp), color = Color.White, trackColor = Color(0x55FFFFFF), drawStopIndicator = {})
             }
         }
-        FilledIconButton(onClick, Modifier.align(Alignment.BottomEnd).padding(16.dp).size(56.dp)) { Icon("play_arrow", "Play", Modifier.size(32.dp)) }
+        FilledIconButton(onClick, Modifier.align(Alignment.BottomEnd).padding(16.dp).size(56.dp)) { Icon("play_arrow", t("Play"), Modifier.size(32.dp)) }
     }
 }
 
@@ -163,7 +163,7 @@ fun HomeTab(
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text((greeting() + if (prefs.profile.name.isNotBlank()) ", ${prefs.profile.name}" else "").uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = cs.primary, letterSpacing = 1.5.sp)
-                Text("What are we watching today?", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text(t("What are we watching today?"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -173,17 +173,17 @@ fun HomeTab(
         }
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ActionTile("shuffle", "Shuffle all", "Random mix", true, Modifier.weight(1f).fillMaxHeight()) { if (videos.isNotEmpty()) { val l = videos.shuffled(); play(l.first(), l) } }
-            ActionTile("sync", "Scan again", "Find new videos", false, Modifier.weight(1f).fillMaxHeight(), onRefresh)
+            ActionTile("shuffle", t("Shuffle all"), t("Random mix"), true, Modifier.weight(1f).fillMaxHeight()) { if (videos.isNotEmpty()) { val l = videos.shuffled(); play(l.first(), l) } }
+            ActionTile("sync", t("Scan again"), t("Find new videos"), false, Modifier.weight(1f).fillMaxHeight(), onRefresh)
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ActionTile("favorite", "Favorites", "${favs.size} pinned", false, Modifier.weight(1f)) { openTab(2) }
-            ActionTile("history", "History", "Pick up again", false, Modifier.weight(1f)) { openTab(3) }
+            ActionTile("favorite", t("Favorites"), "${favs.size} pinned", false, Modifier.weight(1f)) { openTab(2) }
+            ActionTile("history", t("History"), t("Pick up again"), false, Modifier.weight(1f)) { openTab(3) }
         }
 
         if (videos.isEmpty() || hero == null) {
-            EmptyCard("movie", "No videos found", "Add videos to your phone, then tap Scan again.")
+            EmptyCard("movie", t("No videos found"), "Add videos to your phone, then tap Scan again.")
             return@Column
         }
         Spacer(Modifier.height(18.dp))
@@ -193,17 +193,17 @@ fun HomeTab(
             StatPill("folder", "${folders.size} folders")
         }
         Spacer(Modifier.height(16.dp))
-        HeroCard(hero, prefs.progress[hero.uri.toString()], if (cont.isNotEmpty()) "Continue watching" else "Latest video") { play(hero, videos) }
-        if (cont.size > 1) { SectionHeader("Continue watching"); VideoRow(cont.drop(1), prefs) { play(it, cont) } }
-        SectionHeader("Recently added", "See all") { openFolder(null); openTab(1) }
+        HeroCard(hero, prefs.progress[hero.uri.toString()], if (cont.isNotEmpty()) t("Continue watching") else t("Latest video")) { play(hero, videos) }
+        if (cont.size > 1) { SectionHeader(t("Continue watching")); VideoRow(cont.drop(1), prefs) { play(it, cont) } }
+        SectionHeader(t("Recently added"), t("See all")) { openFolder(null); openTab(1) }
         VideoRow(recent, prefs) { play(it, recent) }
         if (folders.size > 1) {
-            SectionHeader("Folders")
+            SectionHeader(t("Folders"))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(folders, key = { it.key }) { e -> FolderCard(e.key.trimEnd('/').substringAfterLast('/').ifBlank { "Videos" }, e.value) { openFolder(e.key.ifBlank { null }); openTab(1) } }
+                items(folders, key = { it.key }) { e -> FolderCard(e.key.trimEnd('/').substringAfterLast('/').ifBlank { t("Videos") }, e.value) { openFolder(e.key.ifBlank { null }); openTab(1) } }
             }
         }
-        if (favs.isNotEmpty()) { SectionHeader("Your favorites", "See all") { openTab(2) }; VideoRow(favs.take(12), prefs) { play(it, favs) } }
+        if (favs.isNotEmpty()) { SectionHeader(t("Your favorites"), t("See all")) { openTab(2) }; VideoRow(favs.take(12), prefs) { play(it, favs) } }
         Spacer(Modifier.height(28.dp))
     }
 }
@@ -235,14 +235,14 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var sortMenu by remember { mutableStateOf(false) }
-    val sorts = listOf("Recently added", "Name", "Duration", "File size")
+    val sorts = listOf(t("Recently added"), t("Name"), t("Duration"), t("File size"))
     val base = segsOf(folder)
     val shown = videos.filter { v -> if (query.isNotBlank()) v.name.contains(query, true) else segsOf(v.path).let { s -> s.size >= base.size && s.subList(0, base.size) == base } }
     // Short screens (landscape phones): the header scrolls with the list instead of taking over the screen.
     val compact = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
     val top: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        PageHeader("video_library", "Library", "${shown.size} videos · ${fmtLong(shown.sumOf { it.dur })} · ${fmtSize(shown.sumOf { it.size })}")
+        PageHeader("video_library", t("Library"), "${shown.size} videos · ${fmtLong(shown.sumOf { it.dur })} · ${fmtSize(shown.sumOf { it.size })}")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 Modifier.weight(1f).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).clickable { sortMenu = true }.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -268,7 +268,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
             VideoCollection(
                 list, prefs, { v -> play(v, list) },
                 header = { if (compact) top() },
-                empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else "No results", if (query.isBlank()) "Check Settings → Library for hidden folders." else "Try another word.") },
+                empty = { EmptyCard("video_library", if (query.isBlank()) "No videos here" else t("No results"), if (query.isBlank()) "Check Settings → Library for hidden folders." else t("Try another word.")) },
                 folders = if (query.isBlank()) kids else emptyList(),
                 onFolder = { onFolder(it) },
             )
@@ -286,25 +286,25 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
         favs, prefs, { v -> play(v, favs) },
         header = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                PageHeader("favorite", "Favorites", "${favs.size} pinned videos") {
-                    if (favs.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", "Clear all", Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
+                PageHeader("favorite", t("Favorites"), "${favs.size} pinned videos") {
+                    if (favs.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", t("Clear all"), Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
                 }
                 if (favs.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
                     Spacer(Modifier.weight(1f))
                     run {
-                        FilledTonalButton({ val l = favs.shuffled(); play(l.first(), l) }, shapes = ButtonDefaults.shapes()) { Icon("shuffle", null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Shuffle") }
-                        Button({ play(favs.first(), favs) }, shapes = ButtonDefaults.shapes()) { Icon("play_arrow", null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Play all") }
+                        FilledTonalButton({ val l = favs.shuffled(); play(l.first(), l) }, shapes = ButtonDefaults.shapes()) { Icon("shuffle", null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Shuffle")) }
+                        Button({ play(favs.first(), favs) }, shapes = ButtonDefaults.shapes()) { Icon("play_arrow", null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Play all")) }
                     }
                 }
             }
         },
-        empty = { EmptyCard("favorite", "No favorites yet", "Open a video menu and tap Favorite to pin it here.") },
+        empty = { EmptyCard("favorite", t("No favorites yet"), "Open a video menu and tap Favorite to pin it here.") },
     )
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false }, title = { Text("Clear all favorites?") }, text = { Text("Your videos stay on the phone. Only the pins are removed.") },
-        confirmButton = { TextButton({ confirm = false; scope.launch { store.clearFavs() } }) { Text("Clear") } },
-        dismissButton = { TextButton({ confirm = false }) { Text("Cancel") } },
+        confirmButton = { TextButton({ confirm = false; scope.launch { store.clearFavs() } }) { Text(t("Clear")) } },
+        dismissButton = { TextButton({ confirm = false }) { Text(t("Cancel")) } },
     )
 }
 
@@ -319,17 +319,17 @@ fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List
         list, prefs, { v -> play(v, list) },
         header = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                PageHeader("history", "History", "Videos you started watching") {
-                    if (list.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", "Clear history", Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
+                PageHeader("history", t("History"), "Videos you started watching") {
+                    if (list.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", t("Clear history"), Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
                 }
                 if (list.isNotEmpty()) LayoutToggle(prefs.layout) { scope.launch { store.put(K.layout, it) } }
             }
         },
-        empty = { EmptyCard("history", "Nothing here yet", "Start a video and it will appear in your history.") },
+        empty = { EmptyCard("history", t("Nothing here yet"), "Start a video and it will appear in your history.") },
     )
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false }, title = { Text("Clear history?") }, text = { Text("Resume positions will be removed.") },
-        confirmButton = { TextButton({ confirm = false; scope.launch { store.clearHistory() } }) { Text("Clear") } },
-        dismissButton = { TextButton({ confirm = false }) { Text("Cancel") } },
+        confirmButton = { TextButton({ confirm = false; scope.launch { store.clearHistory() } }) { Text(t("Clear")) } },
+        dismissButton = { TextButton({ confirm = false }) { Text(t("Cancel")) } },
     )
 }

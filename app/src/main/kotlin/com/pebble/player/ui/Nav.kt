@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.sp
 
 /** Same navigation as the website: Home, Library, Favorites, History. */
 private data class NavItem(val id: Int, val label: String, val icon: String)
-private val NAV = listOf(NavItem(0, "Home", "home"), NavItem(1, "Library", "video_library"), NavItem(2, "Favorites", "favorite"), NavItem(3, "History", "history"))
+private val NAV = listOf(NavItem(0, t("Home"), "home"), NavItem(1, t("Library"), "video_library"), NavItem(2, t("Favorites"), "favorite"), NavItem(3, t("History"), "history"))
 
 @Composable
 fun LogoMark(size: Dp) = StaticMark(size)
@@ -167,7 +167,7 @@ fun PebbleTopBar(
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(cs.primary),
                 )
             }
-            if (query.isNotEmpty()) Box(Modifier.size(36.dp).clip(CircleShape).clickable { onQuery("") }, contentAlignment = Alignment.Center) { Icon("close", "Clear", Modifier.size(20.dp), tint = cs.onSurfaceVariant) }
+            if (query.isNotEmpty()) Box(Modifier.size(36.dp).clip(CircleShape).clickable { onQuery("") }, contentAlignment = Alignment.Center) { Icon("close", t("Clear"), Modifier.size(20.dp), tint = cs.onSurfaceVariant) }
         }
     }
     Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = if (short) 6.dp else 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -177,8 +177,8 @@ fun PebbleTopBar(
                 searchField(Modifier.weight(1f))
                 Spacer(Modifier.width(10.dp))
                 Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    roundBtn(listOf("contrast", "light_mode", "dark_mode")[themeMode.coerceIn(0, 2)], false, "Theme", onToggleTheme)
-                    roundBtn("settings", settingsOn, "Settings", onSettings)
+                    roundBtn(listOf("contrast", "light_mode", "dark_mode")[themeMode.coerceIn(0, 2)], false, t("Theme"), onToggleTheme)
+                    roundBtn("settings", settingsOn, t("Settings"), onSettings)
                 }
                 Spacer(Modifier.width(10.dp))
                 Avatar(profile, 42.dp, Modifier.clickable(onClick = onProfile))
@@ -191,8 +191,8 @@ fun PebbleTopBar(
                 }
                 Spacer(Modifier.weight(1f))
                 Row(Modifier.clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    roundBtn(listOf("contrast", "light_mode", "dark_mode")[themeMode.coerceIn(0, 2)], false, "Theme", onToggleTheme)
-                    roundBtn("settings", settingsOn, "Settings", onSettings)
+                    roundBtn(listOf("contrast", "light_mode", "dark_mode")[themeMode.coerceIn(0, 2)], false, t("Theme"), onToggleTheme)
+                    roundBtn("settings", settingsOn, t("Settings"), onSettings)
                 }
                 Spacer(Modifier.width(10.dp))
                 Avatar(profile, 42.dp, Modifier.clickable(onClick = onProfile))

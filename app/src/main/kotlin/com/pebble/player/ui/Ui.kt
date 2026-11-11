@@ -238,9 +238,9 @@ fun VideoCollection(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) { header() }
         if (folders.isNotEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("folder", "Folders", folders.size) }
+            item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("folder", t("Folders"), folders.size) }
             items(folders, key = { "f:" + it.first }) { f -> FolderTile(f.first.trimEnd('/').substringAfterLast('/'), f.second, row, Modifier.animateItem(), { folderMenu(f.first) }) { onFolder(f.first) } }
-            if (videos.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("movie", "Videos", videos.size) }
+            if (videos.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("movie", t("Videos"), videos.size) }
         }
         if (videos.isEmpty() && folders.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { empty() }
         items(videos, key = { it.id }) { v -> VideoCard(v, prefs, row, Modifier.animateItem()) { onClick(v) } }
@@ -337,7 +337,7 @@ fun LocationBar(path: String?, trail: String?, onPath: (String?) -> Unit) {
             contentAlignment = Alignment.Center,
         ) { Icon("arrow_upward", "Up one level", Modifier.size(22.dp)) }
         Row(Modifier.weight(1f).horizontalScroll(scroll), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Crumb("video_library", "Library", cur.isEmpty(), false, if (cur.isEmpty()) Modifier.bringIntoViewRequester(active) else Modifier) { onPath(null) }
+            Crumb("video_library", t("Library"), cur.isEmpty(), false, if (cur.isEmpty()) Modifier.bringIntoViewRequester(active) else Modifier) { onPath(null) }
             segs.forEachIndexed { i, name ->
                 val target = segs.take(i + 1).joinToString("/") + "/"
                 key(target) {
@@ -400,7 +400,7 @@ fun VideoCard(v: Video, prefs: Prefs, row: Boolean, modifier: Modifier, onClick:
             }
             Text(v.name, Modifier.layoutId("title"), fontWeight = FontWeight.Bold, maxLines = if (row) 2 else 1, overflow = TextOverflow.Ellipsis)
             Row(Modifier.layoutId("meta"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (v.ext.isNotEmpty()) Text(v.ext, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
+                if (v.res.isNotEmpty()) Text(v.res, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.primary,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer).padding(horizontal = 8.dp, vertical = 3.dp))
                 if (v.size > 0) Text(fmtSize(v.size), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
             }

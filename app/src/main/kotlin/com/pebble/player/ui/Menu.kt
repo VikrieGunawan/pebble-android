@@ -162,38 +162,38 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
                 }
                 Column(Modifier.weight(1f)) {
                     Text(v.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${v.ext.ifEmpty { "VIDEO" }} · ${fmtSize(v.size)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text("${v.res.ifEmpty { "VIDEO" }} · ${fmtSize(v.size)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SheetAction("play_arrow", "Play", true, false, Modifier.weight(1f)) { onDismiss(); onPlay() }
-                SheetAction("favorite", if (fav) "Unfavorite" else "Favorite", false, fav, Modifier.weight(1f)) { scope.launch { store.toggleFav(v.uri.toString()) } }
-                SheetAction("share", "Share", false, false, Modifier.weight(1f)) {
+                SheetAction("play_arrow", t("Play"), true, false, Modifier.weight(1f)) { onDismiss(); onPlay() }
+                SheetAction("favorite", if (fav) t("Unfavorite") else t("Favorite"), false, fav, Modifier.weight(1f)) { scope.launch { store.toggleFav(v.uri.toString()) } }
+                SheetAction("share", t("Share"), false, false, Modifier.weight(1f)) {
                     val i = Intent(Intent.ACTION_SEND).apply { type = "video/*"; putExtra(Intent.EXTRA_STREAM, v.uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                    ctx.startActivity(Intent.createChooser(i, "Share video"))
+                    ctx.startActivity(Intent.createChooser(i, t("Share video")))
                 }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
-                SheetRow("edit", "Rename") { newName = v.name; renaming = true }
-                SheetRow("image", "Cover image") { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
-                if (hasCover) SheetRow("delete", "Remove cover image") { coverFile.delete(); ThumbCache.invalidate(v.id) }
-                SheetRow("content_copy", "Copy to folder…") { copyMode = true; destPicker.launch(null) }
-                SheetRow("drive_file_move", "Move to folder…") { copyMode = false; destPicker.launch(null) }
+                SheetRow("edit", t("Rename")) { newName = v.name; renaming = true }
+                SheetRow("image", t("Cover image")) { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                if (hasCover) SheetRow("delete", t("Remove cover image")) { coverFile.delete(); ThumbCache.invalidate(v.id) }
+                SheetRow("content_copy", t("Copy to folder…")) { copyMode = true; destPicker.launch(null) }
+                SheetRow("drive_file_move", t("Move to folder…")) { copyMode = false; destPicker.launch(null) }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
-                SheetRow("info", "Details") { details = true }
-                if (v.path.isNotEmpty()) SheetRow("visibility_off", "Hide this folder") { scope.launch { store.toggleBlacklist(v.path) }; onDismiss() }
-                if (inHistory) SheetRow("history", "Remove from history") { scope.launch { store.removeProgress(v.uri.toString()) }; onDismiss() }
+                SheetRow("info", t("Details")) { details = true }
+                if (v.path.isNotEmpty()) SheetRow("visibility_off", t("Hide this folder")) { scope.launch { store.toggleBlacklist(v.path) }; onDismiss() }
+                if (inHistory) SheetRow("history", t("Remove from history")) { scope.launch { store.removeProgress(v.uri.toString()) }; onDismiss() }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.errorContainer.copy(alpha = 0.35f))) {
-                SheetRow("delete", "Delete from device", danger = true) { confirmDel = true }
+                SheetRow("delete", t("Delete from device"), danger = true) { confirmDel = true }
             }
         }
     }
 
     if (renaming) AlertDialog(
-        onDismissRequest = { renaming = false }, title = { Text("Rename video") },
-        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text("Name") }) },
+        onDismissRequest = { renaming = false }, title = { Text(t("Rename video")) },
+        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text(t("Name")) }) },
         confirmButton = {
             TextButton({
                 renaming = false
@@ -202,9 +202,9 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
                     val ext = realName().substringAfterLast('.', v.ext.lowercase())
                     renameNow(android.content.ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, "$clean.$ext") })
                 }
-            }) { Text("Rename") }
+            }) { Text(t("Rename")) }
         },
-        dismissButton = { TextButton({ renaming = false }) { Text("Cancel") } },
+        dismissButton = { TextButton({ renaming = false }) { Text(t("Cancel")) } },
     )
     busy?.let { msg ->
         AlertDialog(
@@ -214,7 +214,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
     }
     if (details) VideoDetailsDialog(v, prefs) { details = false }
     if (confirmDel) AlertDialog(
-        onDismissRequest = { confirmDel = false }, title = { Text("Delete this video?") }, text = { Text("The file is removed from your phone. Android will ask you to confirm.") },
+        onDismissRequest = { confirmDel = false }, title = { Text(t("Delete this video?")) }, text = { Text("The file is removed from your phone. Android will ask you to confirm.") },
         confirmButton = {
             TextButton({
                 confirmDel = false
@@ -222,21 +222,21 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
                     try { delLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(MediaStore.createDeleteRequest(ctx.contentResolver, listOf(v.uri)).intentSender).build()) }
                     catch (_: Exception) { Toast.makeText(ctx, "Couldn't delete", Toast.LENGTH_SHORT).show() }
                 } else Toast.makeText(ctx, "Delete needs Android 11 or newer", Toast.LENGTH_SHORT).show()
-            }) { Text("Delete", color = cs.error) }
+            }) { Text(t("Delete"), color = cs.error) }
         },
-        dismissButton = { TextButton({ confirmDel = false }) { Text("Cancel") } },
+        dismissButton = { TextButton({ confirmDel = false }) { Text(t("Cancel")) } },
     )
 }
 
 
 private val SORT_OPTS = listOf(
-    Triple("schedule", "Recently added", 0),
-    Triple("sort_by_alpha", "Name", 1),
-    Triple("timer", "Duration", 2),
-    Triple("hard_drive", "File size", 3),
+    Triple("schedule", t("Recently added"), 0),
+    Triple("sort_by_alpha", t("Name"), 1),
+    Triple("timer", t("Duration"), 2),
+    Triple("hard_drive", t("File size"), 3),
 )
 
-/** Bottom sheet like the website's "Sort by" menu. */
+/** Bottom sheet like the website's t("Sort by") menu. */
 @Composable
 fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     val cs = MaterialTheme.colorScheme
@@ -245,7 +245,7 @@ fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconTile("sort", 46.dp, filled = true)
                 Column {
-                    Text("Sort by", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text(t("Sort by"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     Text("Library order", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
@@ -301,7 +301,7 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val vids = remember(path, videos) { videos.filter { it.path.startsWith(path) }.sortedWith { a, b -> NaturalOrder.compare(a.name, b.name) } }
-    val name = path.trimEnd('/').substringAfterLast('/').ifBlank { "Videos" }
+    val name = path.trimEnd('/').substringAfterLast('/').ifBlank { t("Videos") }
     var details by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -313,13 +313,13 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SheetAction("play_arrow", "Play all", true, false, Modifier.weight(1f)) { onDismiss(); vids.firstOrNull()?.let { onPlay(it, vids) } }
-                SheetAction("shuffle", "Shuffle", false, false, Modifier.weight(1f)) { val l = vids.shuffled(); onDismiss(); l.firstOrNull()?.let { onPlay(it, l) } }
-                SheetAction("folder_open", "Open", false, false, Modifier.weight(1f)) { onDismiss(); onOpen() }
+                SheetAction("play_arrow", t("Play all"), true, false, Modifier.weight(1f)) { onDismiss(); vids.firstOrNull()?.let { onPlay(it, vids) } }
+                SheetAction("shuffle", t("Shuffle"), false, false, Modifier.weight(1f)) { val l = vids.shuffled(); onDismiss(); l.firstOrNull()?.let { onPlay(it, l) } }
+                SheetAction("folder_open", t("Open"), false, false, Modifier.weight(1f)) { onDismiss(); onOpen() }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh)) {
-                SheetRow("info", "Details") { details = true }
-                SheetRow("visibility_off", "Hide this folder") {
+                SheetRow("info", t("Details")) { details = true }
+                SheetRow("visibility_off", t("Hide this folder")) {
                     scope.launch { vids.map { it.path }.distinct().filter { it !in prefs.blacklist }.forEach { store.toggleBlacklist(it) } }
                     onDismiss()
                 }

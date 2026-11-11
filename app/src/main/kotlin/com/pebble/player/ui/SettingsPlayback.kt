@@ -44,7 +44,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
     fun <T> put(k: Preferences.Key<T>, v: T) { scope.launch { store.put(k, v) } }
     val skipI = SKIPS.indexOf(prefs.skip).let { if (it < 0) 1 else it }
     val speedI = SPEEDS.indexOf(prefs.speed).let { if (it < 0) 1 else it }
-    val fits = listOf("Fit", "Zoom", "Stretch")
+    val fits = listOf(t("Fit"), t("Zoom"), t("Stretch"))
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PlayCard {
@@ -62,18 +62,18 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PlayStat("forward_10", "${SKIPS[skipI]}s", "Skip step", Modifier.weight(1f))
-            PlayStat("speed", SPEED_LABELS[speedI], "Speed", Modifier.weight(1f))
-            PlayStat("aspect_ratio", fits.getOrElse(prefs.fit) { "Fit" }, "Video fit", Modifier.weight(1f))
+            PlayStat("speed", SPEED_LABELS[speedI], t("Speed"), Modifier.weight(1f))
+            PlayStat("aspect_ratio", fits.getOrElse(prefs.fit) { t("Fit") }, "Video fit", Modifier.weight(1f))
         }
 
         SectionLabel("play_arrow", "Starting a video")
-        ToggleCard("play_circle", "Autoplay", "Start as soon as a video opens.", prefs.autoplay) { put(K.autoplay, it) }
-        ToggleCard("history", "Resume where you stopped", "Continue from your last position.", prefs.resume) { put(K.resume, it) }
-        ToggleCard("smartphone", "Keep screen on", "The screen stays awake while a video plays.", prefs.wake) { put(K.wake, it) }
+        ToggleCard("play_circle", t("Autoplay"), "Start as soon as a video opens.", prefs.autoplay) { put(K.autoplay, it) }
+        ToggleCard("history", t("Resume where you stopped"), "Continue from your last position.", prefs.resume) { put(K.resume, it) }
+        ToggleCard("smartphone", t("Keep screen on"), "The screen stays awake while a video plays.", prefs.wake) { put(K.wake, it) }
 
-        SectionLabel("tune", "Controls")
+        SectionLabel("tune", t("Controls"))
         ChoiceCard("forward_10", "Skip step", "How far the skip buttons and double-tap jump.", SKIPS.map { "${it}s" }, skipI) { put(K.skip, SKIPS[it]) }
-        ChoiceCard("speed", "Default speed", "The speed every video starts at.", SPEED_LABELS, speedI) { put(K.speed, SPEEDS[it]) }
+        ChoiceCard("speed", t("Default speed"), "The speed every video starts at.", SPEED_LABELS, speedI) { put(K.speed, SPEEDS[it]) }
         ChoiceCard("speed", "Hold to speed up", "Press and hold the video to play faster. Let go to go back.", HOLD_LABELS, HOLDS.indexOf(prefs.holdSpeed).let { if (it < 0) 1 else it }) { put(K.holdSpeed, HOLDS[it]) }
         ChoiceCard("aspect_ratio", "Video fit", "How the picture fills the screen.", fits, prefs.fit) { put(K.fit, it) }
 
@@ -82,7 +82,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
         ChoiceCard("smartphone", "Screen rotation", "Lock the player to one direction, or let it follow the phone.", listOf("Auto", "Portrait", "Landscape"), prefs.orient) { put(K.orient, it) }
 
         SectionLabel("headphones", "Headphones")
-        ChoiceCard("headphones", "If Bluetooth or headphones disconnect", "What the video does when the sound device goes away.", listOf("Pause", "Keep playing"), prefs.onLost) { put(K.onLost, it) }
+        ChoiceCard("headphones", "If Bluetooth or headphones disconnect", "What the video does when the sound device goes away.", listOf(t("Pause"), "Keep playing"), prefs.onLost) { put(K.onLost, it) }
     }
 }
 

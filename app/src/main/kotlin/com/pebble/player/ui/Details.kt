@@ -78,10 +78,10 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
             else Icon("movie", null, Modifier.align(Alignment.Center).size(40.dp), tint = cs.onSurfaceVariant)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xB3000000)))))
             Row(Modifier.align(Alignment.BottomStart).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassChip(fmt(v.dur)); GlassChip(fmtSize(v.size)); if (v.ext.isNotEmpty()) GlassChip(v.ext.uppercase())
+                GlassChip(fmt(v.dur)); GlassChip(fmtSize(v.size)); if (v.res.isNotEmpty()) GlassChip(v.res)
             }
             Box(Modifier.align(Alignment.TopEnd).padding(10.dp).size(36.dp).clip(CircleShape).background(Color(0x66000000)).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                Icon("close", "Close", Modifier.size(20.dp), tint = Color.White)
+                Icon("close", t("Close"), Modifier.size(20.dp), tint = Color.White)
             }
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -89,24 +89,24 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PlayStat("schedule", fmt(v.dur), "Length", Modifier.weight(1f))
                 PlayStat("hard_drive", fmtSize(v.size), "Size", Modifier.weight(1f))
-                PlayStat("movie", v.ext.ifEmpty { "-" }.uppercase(), "Format", Modifier.weight(1f))
+                PlayStat("movie", v.res.ifEmpty { "-" }, t("Resolution"), Modifier.weight(1f))
             }
             info?.let { i ->
-                i.resolution?.let { InfoRow("hd", "Resolution", it) }
+                i.resolution?.let { InfoRow("hd", t("Resolution"), it) }
                 i.video?.let { InfoRow("smart_display", "Video", it) }
-                InfoRow("music_note", "Audio", if (i.audio.isEmpty()) "No audio track" else i.audio.joinToString("\n"))
+                InfoRow("music_note", t("Audio"), if (i.audio.isEmpty()) "No audio track" else i.audio.joinToString("\n"))
                 InfoRow("closed_caption", "Subtitles in the file", if (i.subs.isEmpty()) "None built in" else i.subs.joinToString("\n"))
-                i.container?.let { InfoRow("movie", "Container", it) }
-                i.source?.let { InfoRow("link", "Source", it) }
-                i.storage?.let { InfoRow("hard_drive", "Storage", it) }
+                i.container?.let { InfoRow("movie", t("Container"), it) }
+                i.source?.let { InfoRow("link", t("Source"), it) }
+                i.storage?.let { InfoRow("hard_drive", t("Storage"), it) }
             }
-            InfoRow("folder", "Location", place)
-            InfoRow("calendar_month", "Added", added)
-            info?.modified?.let { InfoRow("edit", "Modified", it) }
-            InfoRow("favorite", "Favorite", if (fav) "Yes, pinned in Favorites" else "No")
+            InfoRow("folder", t("Location"), place)
+            InfoRow("calendar_month", t("Added"), added)
+            info?.modified?.let { InfoRow("edit", t("Modified"), it) }
+            InfoRow("favorite", t("Favorite"), if (fav) "Yes, pinned in Favorites" else "No")
             InfoRow(
-                "history", "Watched",
-                if (prog == null || prog.dur <= 0) "Not started" else "${fmt(prog.pos)} of ${fmt(prog.dur)} · ${(prog.pos * 100 / prog.dur).coerceIn(0, 100)}%",
+                "history", t("Watched"),
+                if (prog == null || prog.dur <= 0) t("Not started") else "${fmt(prog.pos)} of ${fmt(prog.dur)} · ${(prog.pos * 100 / prog.dur).coerceIn(0, 100)}%",
             )
             CopyBtn(place)
         }
@@ -126,19 +126,19 @@ fun FolderDetailsDialog(name: String, path: String, vids: List<Video>, onClose: 
                 IconTile("folder", 52.dp, filled = true)
                 Column(Modifier.weight(1f)) {
                     Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text("Folder", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t("Folder"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                    Icon("close", "Close", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon("close", t("Close"), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PlayStat("movie", "${vids.size}", "Videos", Modifier.weight(1f))
+                PlayStat("movie", "${vids.size}", t("Videos"), Modifier.weight(1f))
                 PlayStat("hard_drive", fmtSize(vids.sumOf { it.size }), "Size", Modifier.weight(1f))
                 PlayStat("schedule", fmt(vids.sumOf { it.dur }), "Length", Modifier.weight(1f))
             }
-            InfoRow("folder", "Location", path.ifEmpty { "/" })
-            InfoRow("folder_open", "Subfolders", if (subs == 0) "None" else "$subs")
+            InfoRow("folder", t("Location"), path.ifEmpty { "/" })
+            InfoRow("folder_open", t("Subfolders"), if (subs == 0) "None" else "$subs")
             if (longest != null) InfoRow("schedule", "Longest video", "${longest.name} · ${fmt(longest.dur)}")
             CopyBtn(path.ifEmpty { "/" })
         }
@@ -185,7 +185,7 @@ private fun InfoRow(icon: String, label: String, value: String) {
 @Composable
 private fun CopyBtn(text: String) {
     val ctx = LocalContext.current
-    ActionBtn("content_copy", "Copy location", true) {
+    ActionBtn("content_copy", t("Copy location"), true) {
         (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Pebble", text))
         Toast.makeText(ctx, "Copied", Toast.LENGTH_SHORT).show()
     }

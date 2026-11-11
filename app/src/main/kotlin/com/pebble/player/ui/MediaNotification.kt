@@ -57,7 +57,7 @@ internal class PlayerMediaSession(
     }
 
     init {
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, "Playback", NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, t("Playback"), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
         session.setCallback(object : MediaSession.Callback() {
             override fun onPlay() { player.play() }
             override fun onPause() { player.pause() }
@@ -84,9 +84,9 @@ internal class PlayerMediaSession(
     fun pipActions(): List<android.app.RemoteAction> {
         fun ra(icon: Int, label: String, action: String) = android.app.RemoteAction(Icon.createWithResource(ctx, icon), label, label, pi(action))
         val out = ArrayList<android.app.RemoteAction>()
-        if (hasPrev) out += ra(R.drawable.ic_notif_prev, "Previous", A_PREV)
-        out += if (player.playWhenReady) ra(R.drawable.ic_notif_pause, "Pause", A_TOGGLE) else ra(R.drawable.ic_notif_play, "Play", A_TOGGLE)
-        if (hasNext) out += ra(R.drawable.ic_notif_next, "Next", A_NEXT)
+        if (hasPrev) out += ra(R.drawable.ic_notif_prev, t("Previous"), A_PREV)
+        out += if (player.playWhenReady) ra(R.drawable.ic_notif_pause, t("Pause"), A_TOGGLE) else ra(R.drawable.ic_notif_play, t("Play"), A_TOGGLE)
+        if (hasNext) out += ra(R.drawable.ic_notif_next, t("Next"), A_NEXT)
         return out
     }
 
@@ -120,9 +120,9 @@ internal class PlayerMediaSession(
             .setContentIntent(PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE))
         val compact = ArrayList<Int>()
         var n = 0
-        if (hasPrev) { b.addAction(act(R.drawable.ic_notif_prev, "Previous", A_PREV)); compact += n++ }
-        b.addAction(act(if (playing) R.drawable.ic_notif_pause else R.drawable.ic_notif_play, if (playing) "Pause" else "Play", A_TOGGLE)); compact += n++
-        if (hasNext) { b.addAction(act(R.drawable.ic_notif_next, "Next", A_NEXT)); compact += n++ }
+        if (hasPrev) { b.addAction(act(R.drawable.ic_notif_prev, t("Previous"), A_PREV)); compact += n++ }
+        b.addAction(act(if (playing) R.drawable.ic_notif_pause else R.drawable.ic_notif_play, if (playing) t("Pause") else t("Play"), A_TOGGLE)); compact += n++
+        if (hasNext) { b.addAction(act(R.drawable.ic_notif_next, t("Next"), A_NEXT)); compact += n++ }
         b.setStyle(Notification.MediaStyle().setMediaSession(session.sessionToken).setShowActionsInCompactView(*compact.toIntArray()))
         nm.notify(ID, b.build())
     }

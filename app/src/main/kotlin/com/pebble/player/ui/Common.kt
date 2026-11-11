@@ -96,7 +96,7 @@ fun fmt(ms: Long): String {
 
 fun greeting(): String {
     val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when { h < 5 -> "Good night"; h < 12 -> "Good morning"; h < 18 -> "Good afternoon"; else -> "Good evening" }
+    return when { h < 5 -> t("Good night"); h < 12 -> t("Good morning"); h < 18 -> t("Good afternoon"); else -> t("Good evening") }
 }
 
 val EMOJIS = listOf(
@@ -312,7 +312,7 @@ fun CropDialog(uri: Uri, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
                     bmp?.let { b -> val mo = maxOff(b.width, b.height, viewPx, zoom); off = Offset(off.x.coerceIn(-mo.x, mo.x), off.y.coerceIn(-mo.y, mo.y)) }
                 }, valueRange = 1f..5f)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onCancel) { Text("Cancel") }
+                    TextButton(onClick = onCancel) { Text(t("Cancel")) }
                     Button(
                         onClick = {
                             bmp?.let { b ->
@@ -323,7 +323,7 @@ fun CropDialog(uri: Uri, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
                         },
                         enabled = bmp != null,
                         shapes = ButtonDefaults.shapes(),
-                    ) { Text("Apply") }
+                    ) { Text(t("Apply")) }
                 }
             }
         }

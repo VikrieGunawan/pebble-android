@@ -170,7 +170,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var folderMenu by remember { mutableStateOf<String?>(null) }
     var profileDialog by remember { mutableStateOf(false) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    var dismissedVer by remember { mutableStateOf<String?>(null) } // "Later" hides a version until the app restarts
+    var dismissedVer by remember { mutableStateOf<String?>(null) } // t("Later") hides a version until the app restarts
     var resumeN by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumeN++ }
     // Look for a new release on launch, on every return to the app, and every 5 minutes while it is open (never during playback)
@@ -242,13 +242,13 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
-                    placeholder = if (tab == 4) "Search settings" else "Search your videos",
+                    placeholder = if (tab == 4) t("Search settings") else t("Search your videos"),
                     settingsOn = tab == 4, onSettings = { tab = if (tab == 4) lastTab else 4 },
                     themeMode = prefs.theme,
                     onToggleTheme = {
                         val nx = (prefs.theme + 1) % 3
                         scope.launch { app.store.put(K.theme, nx) }
-                        Toast.makeText(ctx, "Theme: " + listOf("Same as device", "Light", "Dark")[nx], Toast.LENGTH_SHORT).show()
+                        Toast.makeText(ctx, "Theme: " + listOf(t("Same as device"), t("Light"), t("Dark"))[nx], Toast.LENGTH_SHORT).show()
                     },
                     profile = prefs.profile, onProfile = { profileDialog = true },
                 )
@@ -317,9 +317,9 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
 
     update?.let { u -> UpdateDialog(u, { dismissedVer = u.version; update = null }, { skipVersion(ctx, u.version); update = null }) }
     if (askExit) AlertDialog(
-        onDismissRequest = { askExit = false }, title = { Text("Exit Pebble?") }, text = { Text("Do you want to close the app?") },
-        confirmButton = { TextButton({ askExit = false; (ctx as? android.app.Activity)?.finish() }) { Text("Exit") } },
-        dismissButton = { TextButton({ askExit = false }) { Text("Stay") } },
+        onDismissRequest = { askExit = false }, title = { Text(t("Exit Pebble?")) }, text = { Text(t("Do you want to close the app?")) },
+        confirmButton = { TextButton({ askExit = false; (ctx as? android.app.Activity)?.finish() }) { Text(t("Exit")) } },
+        dismissButton = { TextButton({ askExit = false }) { Text(t("Stay")) } },
     )
     if (profileDialog) ProfileDialog(prefs.profile, { profileDialog = false }) { p -> scope.launch { app.store.saveProfile(p) }; profileDialog = false }
 }
@@ -347,7 +347,7 @@ private fun PermissionPrompt(onAsk: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         Text("Pebble only reads video files on this device. Nothing is uploaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onAsk, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(52.dp)) { Text("Allow access") }
+        Button(onClick = onAsk, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(52.dp)) { Text(t("Allow access")) }
     }
 }
 
@@ -367,7 +367,7 @@ private fun ProfileDialog(p: Profile, onDismiss: () -> Unit, onSave: (Profile) -
                 ) {
                     PhotoAvatar(cur, avatar) { cur = cur.copy(photo = it, emoji = "") }
                     Text("Tap the photo to change it", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                    OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = { Text("Name") }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = { Text(t("Name")) }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
                     if (cur.photo.isNotEmpty()) Row(
                         Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHighest).clickable { cur = cur.copy(photo = "") }.padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -381,14 +381,14 @@ private fun ProfileDialog(p: Profile, onDismiss: () -> Unit, onSave: (Profile) -
             fun actions() {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.height(44.dp).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHighest).clickable(onClick = onDismiss).padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
-                        Text("Cancel", fontWeight = FontWeight.ExtraBold)
+                        Text(t("Cancel"), fontWeight = FontWeight.ExtraBold)
                     }
                     Row(
                         Modifier.height(44.dp).clip(RoundedCornerShape(16.dp)).background(cs.primary).clickable { onSave(cur) }.padding(horizontal = 20.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Icon("check", null, Modifier.size(20.dp), tint = cs.onPrimary)
-                        Text("Save", color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
+                        Text(t("Save"), color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
                     }
                 }
             }

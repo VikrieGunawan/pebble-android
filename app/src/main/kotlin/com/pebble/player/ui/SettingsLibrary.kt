@@ -56,16 +56,16 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
                     Text("In ${folders.size} folders · ${fmtSize(total)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
-            ActionBtn("refresh", "Scan again", true) { onRescan() }
+            ActionBtn("refresh", t("Scan again"), true) { onRescan() }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PlayStat("movie", "$shownVideos", "Shown", Modifier.weight(1f))
-            PlayStat("folder", "${folders.size - hidden}", "Folders", Modifier.weight(1f))
+            PlayStat("folder", "${folders.size - hidden}", t("Folders"), Modifier.weight(1f))
             PlayStat("visibility_off", "$hidden", "Hidden", Modifier.weight(1f))
         }
 
-        SectionLabel("folder", "Folders", folders.size)
+        SectionLabel("folder", t("Folders"), folders.size)
         if (folders.size > 6) OutlinedTextField(
             q, { q = it }, label = { Text("Search folders") }, singleLine = true,
             shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
@@ -80,7 +80,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
             ) {
                 Badge(if (off) "folder" else "folder_open", !off)
                 Column(Modifier.weight(1f)) {
-                    Text(f.name.ifBlank { "Videos" }, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(f.name.ifBlank { t("Videos") }, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         if (off) "Hidden from your library" else "${f.count} videos · ${fmtSize(f.bytes)}",
                         style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1,
