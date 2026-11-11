@@ -25,7 +25,12 @@ data class Video(
     val size: Long,
     val added: Long,
     val ext: String = "",
-)
+    val w: Int = 0,
+    val h: Int = 0,
+) {
+    /** Exact resolution such as "1070×680"; falls back to the file extension when unknown. */
+    val res: String get() = if (w > 0 && h > 0) "$w×$h" else ext
+}
 
 class MediaRepo(private val c: Context) {
 
@@ -40,6 +45,8 @@ class MediaRepo(private val c: Context) {
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DATE_ADDED,
+            MediaStore.Video.Media.WIDTH,
+            MediaStore.Video.Media.HEIGHT,
         )
         try {
             c.contentResolver.query(col, proj, null, null, "${MediaStore.Video.Media.DATE_ADDED} DESC")?.use { q ->
@@ -50,6 +57,8 @@ class MediaRepo(private val c: Context) {
                 val iDur = q.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
                 val iSize = q.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
                 val iAdd = q.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                val iW = q.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
+                val iH = q.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
                 while (q.moveToNext()) {
                     val id = q.getLong(iId)
                     out += Video(
@@ -62,6 +71,8 @@ class MediaRepo(private val c: Context) {
                         size = q.getLong(iSize),
                         added = q.getLong(iAdd),
                         ext = (q.getString(iName) ?: "").substringAfterLast('.', "").uppercase().take(5),
+                        w = q.getInt(iW),
+                        h = q.getInt(iH),
                     )
                 }
             }
