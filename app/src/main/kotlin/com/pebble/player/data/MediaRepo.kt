@@ -28,8 +28,8 @@ data class Video(
     val w: Int = 0,
     val h: Int = 0,
 ) {
-    /** Exact resolution such as "1070×680"; falls back to the file extension when unknown. */
-    val res: String get() = if (w > 0 && h > 0) "$w×$h" else ext
+    /** Resolution label such as "720p" or "1080p" (shorter side, any value); falls back to the file extension when unknown. */
+    val res: String get() = if (w > 0 && h > 0) "${minOf(w, h)}p" else ext
 }
 
 class MediaRepo(private val c: Context) {
