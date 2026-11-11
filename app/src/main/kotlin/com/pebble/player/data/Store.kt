@@ -45,6 +45,7 @@ data class Prefs(
     val favs: Set<String> = emptySet(),
     val progress: Map<String, Prog> = emptyMap(),
     val vset: String = "",         // per-video settings (subtitle file, subtitle style)
+    val lang: String = "",         // "" = follow the phone, otherwise a language code
 )
 
 object K {
@@ -74,6 +75,7 @@ object K {
     val favs = stringSetPreferencesKey("favs")
     val prog = stringPreferencesKey("prog")
     val vset = stringPreferencesKey("vset")
+    val lang = stringPreferencesKey("lang")
 }
 
 class Store(context: Context) {
@@ -102,6 +104,7 @@ class Store(context: Context) {
             amoled = p[K.amoled] ?: false,
             holdSpeed = p[K.holdSpeed] ?: 2f,
             gridSize = p[K.gridSize] ?: 1,
+            lang = p[K.lang] ?: "",
             profile = Profile(p[K.pName] ?: "", p[K.pEmoji] ?: "", p[K.pColor] ?: 0, p[K.pPhoto] ?: ""),
             blacklist = p[K.bl] ?: emptySet(),
             favs = p[K.favs] ?: emptySet(),
