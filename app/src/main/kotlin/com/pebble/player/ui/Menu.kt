@@ -229,7 +229,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
 }
 
 
-private val SORT_OPTS = listOf(
+private val SORT_OPTS get() = listOf(
     Triple("schedule", t("Recently added"), 0),
     Triple("sort_by_alpha", t("Name"), 1),
     Triple("timer", t("Duration"), 2),

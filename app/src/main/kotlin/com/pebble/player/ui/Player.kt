@@ -160,7 +160,7 @@ internal val pTrack: Color get() = if (PLIGHT) Color(0x331B1730) else Color(0x40
 internal val pScrim: Color get() = if (PLIGHT) Color(0xCCFFFFFF) else Color(0xCC000000)
 private val RATIOS = listOf(0f to "Auto", (16f / 9f) to "16:9", (4f / 3f) to "4:3", (21f / 9f) to "21:9", 1f to "1:1", (9f / 16f) to "9:16")
 internal val PRESETS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
-private val FITS = listOf(t("Fit"), t("Crop"), t("Stretch"), "Width")
+private val FITS get() = listOf(t("Fit"), t("Crop"), t("Stretch"), "Width")
 internal val ORIENTS = listOf("Auto", "Portrait", "Landscape")
 
 internal fun fmtSpeed(v: Float): String = String.format(java.util.Locale.US, "%.2f", v).trimEnd('0').trimEnd('.') + "×"

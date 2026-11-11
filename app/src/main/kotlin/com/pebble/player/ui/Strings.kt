@@ -1,16 +1,23 @@
 package com.pebble.player.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import java.util.Locale
 
 /** UI language follows the phone. Columns: en, id, es, fr, de, pt, it, ru, ja, ko, zh, ar, hi, tr, vi, th, nl, pl, uk, ms. Unknown text stays English. */
 object Lang {
     val order = listOf("en", "id", "es", "fr", "de", "pt", "it", "ru", "ja", "ko", "zh", "ar", "hi", "tr", "vi", "th", "nl", "pl", "uk", "ms")
     val table: Map<String, List<String>> by lazy { RAW.lineSequence().filter { it.isNotBlank() }.associate { l -> val p = l.split("|"); p[0] to p } }
-    private val idx: Int by lazy {
-        val l = Locale.getDefault().language.let { if (it == "in") "id" else it }
-        order.indexOf(l).coerceAtLeast(0)
+    val names = listOf("English", "Bahasa Indonesia", "Español", "Français", "Deutsch", "Português", "Italiano", "Русский", "日本語", "한국어", "中文", "العربية", "हिन्दी", "Türkçe", "Tiếng Việt", "ไทย", "Nederlands", "Polski", "Українська", "Bahasa Melayu")
+
+    /** Chosen language code; "" follows the phone. Set from the saved preference. */
+    var sel by mutableStateOf("")
+
+    fun index(): Int {
+        val l = sel.ifEmpty { Locale.getDefault().language.let { if (it == "in") "id" else it } }
+        return order.indexOf(l).coerceAtLeast(0)
     }
-    fun index() = idx
 }
 
 fun t(s: String): String {
@@ -175,4 +182,7 @@ Clear favorites|Hapus favorit|Borrar favoritos|Effacer les favoris|Favoriten lö
 Remove cover images|Hapus gambar sampul|Quitar imágenes de portada|Supprimer les images de couverture|Titelbilder entfernen|Remover imagens de capa|Rimuovi immagini di copertina|Удалить обложки|カバー画像を削除|커버 이미지 제거|移除封面图片|إزالة صور الغلاف|कवर इमेज हटाएं|Kapak resimlerini kaldır|Xóa ảnh bìa|ลบภาพหน้าปก|Omslagafbeeldingen verwijderen|Usuń okładki|Видалити обкладинки|Alih keluar imej muka depan
 Reset settings|Atur ulang pengaturan|Restablecer ajustes|Réinitialiser les paramètres|Einstellungen zurücksetzen|Redefinir configurações|Ripristina impostazioni|Сбросить настройки|設定をリセット|설정 초기화|重置设置|إعادة تعيين الإعدادات|सेटिंग्स रीसेट करें|Ayarları sıfırla|Đặt lại cài đặt|รีเซ็ตการตั้งค่า|Instellingen resetten|Zresetuj ustawienia|Скинути налаштування|Tetap semula tetapan
 Clear app data|Hapus data aplikasi|Borrar datos de la app|Effacer les données de l'app|App-Daten löschen|Limpar dados do app|Cancella dati app|Очистить данные приложения|アプリデータを消去|앱 데이터 지우기|清除应用数据|مسح بيانات التطبيق|ऐप डेटा साफ़ करें|Uygulama verilerini temizle|Xóa dữ liệu ứng dụng|ล้างข้อมูลแอป|App-gegevens wissen|Wyczyść dane aplikacji|Очистити дані застосунку|Kosongkan data aplikasi
+Language|Bahasa|Idioma|Langue|Sprache|Idioma|Lingua|Язык|言語|언어|语言|اللغة|भाषा|Dil|Ngôn ngữ|ภาษา|Taal|Język|Мова|Bahasa
+System default|Bawaan sistem|Predeterminado del sistema|Par défaut du système|Systemstandard|Padrão do sistema|Predefinito di sistema|Системный|システムのデフォルト|시스템 기본값|系统默认|افتراضي النظام|सिस्टम डिफ़ॉल्ट|Sistem varsayılanı|Mặc định hệ thống|ค่าเริ่มต้นของระบบ|Systeemstandaard|Domyślny systemu|Системна|Lalai sistem
+Choose the app language.|Pilih bahasa aplikasi.|Elige el idioma de la app.|Choisissez la langue de l'app.|Wähle die App-Sprache.|Escolha o idioma do app.|Scegli la lingua dell'app.|Выберите язык приложения.|アプリの言語を選択します。|앱 언어를 선택하세요.|选择应用语言。|اختر لغة التطبيق.|ऐप की भाषा चुनें।|Uygulama dilini seçin.|Chọn ngôn ngữ ứng dụng.|เลือกภาษาของแอป|Kies de app-taal.|Wybierz język aplikacji.|Виберіть мову застосунку.|Pilih bahasa aplikasi.
 """.trimIndent()

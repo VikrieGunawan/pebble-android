@@ -119,6 +119,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun PebbleRoot(app: PebbleApp, openUri: Uri?, onOpenConsumed: () -> Unit) {
     val prefs by app.store.prefs.collectAsStateWithLifecycle(Prefs())
+    Lang.sel = prefs.lang
     var clearing by remember { mutableStateOf(false) }
     CompositionLocalProvider(LocalApp provides app) {
         PebbleTheme(prefs.theme, prefs.dynamic, Color(prefs.accent), prefs.amoled) {

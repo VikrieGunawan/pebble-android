@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.sp
 
 /** Same navigation as the website: Home, Library, Favorites, History. */
 private data class NavItem(val id: Int, val label: String, val icon: String)
-private val NAV = listOf(NavItem(0, t("Home"), "home"), NavItem(1, t("Library"), "video_library"), NavItem(2, t("Favorites"), "favorite"), NavItem(3, t("History"), "history"))
+private val NAV get() = listOf(NavItem(0, t("Home"), "home"), NavItem(1, t("Library"), "video_library"), NavItem(2, t("Favorites"), "favorite"), NavItem(3, t("History"), "history"))
 
 @Composable
 fun LogoMark(size: Dp) = StaticMark(size)

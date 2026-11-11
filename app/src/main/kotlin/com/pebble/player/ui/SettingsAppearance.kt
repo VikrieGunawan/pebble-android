@@ -1,6 +1,14 @@
 package com.pebble.player.ui
 
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -74,6 +82,9 @@ fun AppearancePage(prefs: Prefs, store: Store) {
         ) { put(K.theme, it) }
         ToggleCard("dark_mode", "Pure black dark mode", "A true black background. Saves battery on OLED screens.", prefs.amoled) { put(K.amoled, it) }
         if (!dark && prefs.amoled) Text("Pure black shows up when dark mode is on.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
+
+        SectionLabel("text_fields", t("Language"))
+        LanguageCard(prefs.lang) { put(K.lang, it) }
 
         SectionLabel("palette", "Colors")
         if (dynOk) ToggleCard("palette", "Material You", "Use colors from your wallpaper.", prefs.dynamic) { put(K.dyn, it) }
@@ -244,4 +255,41 @@ internal fun ActionBtn(icon: String, text: String, enabled: Boolean, onClick: ()
         Icon(icon, null, Modifier.size(20.dp), tint = cs.onPrimaryContainer)
         Text(text, Modifier.padding(start = 8.dp), color = cs.onPrimaryContainer, fontWeight = FontWeight.ExtraBold)
     }
+}
+
+@Composable
+private fun LanguageCard(cur: String, onPick: (String) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    var open by remember { mutableStateOf(false) }
+    val i = Lang.order.indexOf(cur)
+    val name = if (i >= 0) Lang.names[i] else t("System default")
+    PlayCard(Modifier.clickable { open = true }) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Badge("text_fields", true)
+            Column(Modifier.weight(1f)) {
+                Text(t("Language"), fontWeight = FontWeight.ExtraBold)
+                Text(t("Choose the app language."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            }
+            Text(name, color = cs.primary, fontWeight = FontWeight.Bold)
+        }
+    }
+    if (open) AlertDialog(
+        onDismissRequest = { open = false },
+        title = { Text(t("Language")) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                val rows = listOf("" to t("System default")) + Lang.order.zip(Lang.names)
+                rows.forEach { (code, label) ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onPick(code); open = false }.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = cur == code, onClick = { onPick(code); open = false })
+                        Text(label)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { open = false }) { Text(t("Close")) } },
+    )
 }

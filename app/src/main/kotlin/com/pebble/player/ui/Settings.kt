@@ -80,10 +80,11 @@ data class Cat(val id: String, val icon: String, val title: String, val sub: Str
 
 /** Every individual setting, so the search box finds them all (not just the page names). */
 private data class Hit(val page: String, val icon: String, val title: String, val sub: String)
-private val HITS = listOf(
+private val HITS get() = listOf(
     Hit("appearance", "contrast", "Mode", "Follow the phone, or always use light or dark theme"),
     Hit("appearance", "dark_mode", "Pure black dark mode", "A true black AMOLED background"),
     Hit("appearance", "palette", "Material You", "Use colors from your wallpaper"),
+    Hit("appearance", "text_fields", t("Language"), "Choose the app language"),
     Hit("appearance", "grid_view", t("Layout"), "Cards in a grid, or one video per row (list)"),
     Hit("appearance", "zoom_in", "Card size", "How big the video cards are in the grid"),
     Hit("appearance", "sort", t("Sort by"), "The order of your videos: newest, name, longest, largest"),
