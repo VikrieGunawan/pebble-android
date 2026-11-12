@@ -722,8 +722,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 "subs" -> Triple("closed_caption", t("Subtitles"), if (subUri != null) subName else t("No file loaded"))
                 "audio" -> Triple("graphic_eq", t("Audio"), t("Volume and sound"))
                 "ratio" -> Triple("aspect_ratio", t("Video ratio"), FITS[fit])
-                "queue" -> Triple("queue_music", t("Up next"), "${queue.size} videos")
-                else -> Triple("timer", t("Sleep timer"), if (sleepEnd > 0) "Pausing in ${((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)} min" else t("Off"))
+                "queue" -> Triple("queue_music", t("Up next"), t("{0} videos", queue.size))
+                else -> Triple("timer", t("Sleep timer"), if (sleepEnd > 0) t("Pausing in {0} min", ((sleepEnd - nowMs) / 60000 + 1).coerceAtLeast(1)) else t("Off"))
             }
             Column(
                 (if (land) Modifier.fillMaxHeight().width(300.dp)
@@ -769,7 +769,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                                 Icon("upload_file", null, Modifier.size(24.dp), tint = cs.primary)
                                 Column(Modifier.weight(1f)) {
                                     Text(t("Load subtitle file"), color = pFg, fontWeight = FontWeight.Bold)
-                                    Text("SRT or VTT from your device", color = pFg2, fontSize = 12.sp)
+                                    Text(t("SRT or VTT from your device"), color = pFg2, fontSize = 12.sp)
                                 }
                                 Icon("chevron_right", null, Modifier.size(22.dp), tint = pFg3)
                             }
@@ -811,7 +811,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             Chips(FITS, fit) { applyFit(it) }
                             Sl("crop", t("Aspect ratio"))
                             Chips(RATIOS.map { it.second }, RATIOS.indexOfFirst { kotlin.math.abs(it.first - ratio) < 0.01f }, 3) { ratio = RATIOS[it].first }
-                            Text("A chosen aspect ratio crops the picture to that frame. Pick Auto to use the video's own shape.", color = pFg2, fontSize = 12.sp)
+                            Text(t("A chosen aspect ratio crops the picture to that frame. Pick Auto to use the video's own shape."), color = pFg2, fontSize = 12.sp)
                         }
                         else -> {
                             Sl("timer", t("Pause playback after"))
@@ -1125,7 +1125,7 @@ private fun QueuePanel(
                 }
             }
             if (upcoming.isEmpty()) item(key = "end") {
-                Text("This is the last video in the queue", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).padding(18.dp))
+                Text(t("This is the last video in the queue"), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pSoft).padding(18.dp))
             }
             itemsIndexed(upcoming, key = { _, q -> "u${q.id}" }) { i, q -> QRow(q, idx + 2 + i, i == 0, prefs, false, onPick) }
             if (earlier.isNotEmpty()) {

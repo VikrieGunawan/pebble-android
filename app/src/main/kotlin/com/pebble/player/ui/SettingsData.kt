@@ -79,8 +79,8 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("database", 46.dp, filled = true)
                 Column {
-                    Text("Device storage", fontWeight = FontWeight.ExtraBold)
-                    Text("${fmtSize(free)} free of ${fmtSize(total)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(t("Device storage"), fontWeight = FontWeight.ExtraBold)
+                    Text(t("{0} free of {1}", fmtSize(free), fmtSize(total)), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
             Box(Modifier.fillMaxWidth().height(10.dp).clip(CircleShape).background(cs.surfaceContainerHighest)) {
@@ -88,7 +88,7 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon("info", null, Modifier.size(18.dp), tint = cs.onSurfaceVariant)
-                Text("Pebble keeps ${fmtSize(appBytes)} on this phone", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                Text(t("Pebble keeps {0} on this phone", fmtSize(appBytes)), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
             }
         }
 
@@ -101,7 +101,7 @@ fun DataPage(prefs: Prefs, store: Store, all: List<Video>, onClearAll: () -> Uni
         SectionLabel("cleaning_services", t("Clean up"))
         DataRow("delete_sweep", t("Clear watch history"), t("Forget where you stopped in every video."), t("Clear"), false, prefs.progress.isNotEmpty()) { scope.launch { store.clearHistory() } }
         DataRow("heart_broken", t("Clear favorites"), t("Remove the heart from every video."), t("Clear"), false, prefs.favs.isNotEmpty()) { scope.launch { store.clearFavs() } }
-        DataRow("hide_image", t("Remove cover images"), "Back to the original thumbnails ($covers set).", "Remove", false, covers > 0) {
+        DataRow("hide_image", t("Remove cover images"), t("Back to the original thumbnails ({0} set).", covers), t("Remove"), false, covers > 0) {
             app.media.coverFile(0L).parentFile?.listFiles()?.forEach { it.delete() }
             ThumbCache.clear()
             ThumbCache.ver.intValue++

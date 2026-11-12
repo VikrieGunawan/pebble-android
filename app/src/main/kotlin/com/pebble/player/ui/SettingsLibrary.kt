@@ -53,7 +53,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
                 IconTile("video_library", 46.dp, filled = true)
                 Column {
                     Text("${all.size} videos found", fontWeight = FontWeight.ExtraBold)
-                    Text("In ${folders.size} folders · ${fmtSize(total)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(t("In {0} folders · {1}", folders.size, fmtSize(total)), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
             ActionBtn("refresh", t("Scan again"), true) { onRescan() }
@@ -67,10 +67,10 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
 
         SectionLabel("folder", t("Folders"), folders.size)
         if (folders.size > 6) OutlinedTextField(
-            q, { q = it }, label = { Text("Search folders") }, singleLine = true,
+            q, { q = it }, label = { Text(t("Search folders")) }, singleLine = true,
             shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
         )
-        if (folders.isEmpty()) PlayCard { Text("No folders yet. Tap Scan again to find your videos.", color = cs.onSurfaceVariant) }
+        if (folders.isEmpty()) PlayCard { Text(t("No folders yet. Tap Scan again to find your videos."), color = cs.onSurfaceVariant) }
         list.forEach { f ->
             val off = f.path in prefs.blacklist
             Row(

@@ -51,7 +51,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("play_circle", 46.dp, filled = true)
                 Column {
-                    Text("How videos play", fontWeight = FontWeight.ExtraBold)
+                    Text(t("How videos play"), fontWeight = FontWeight.ExtraBold)
                     Text(
                         (if (prefs.autoplay) t("Starts by itself") else t("Waits for you to press play")) + (if (prefs.resume) " · resumes" else ""),
                         style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,

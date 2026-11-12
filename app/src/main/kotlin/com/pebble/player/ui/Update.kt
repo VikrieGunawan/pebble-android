@@ -339,7 +339,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                             Btn(t("Cancel"), null, false) { job?.cancel(); phase = Phase.Idle }
                         }
                         Phase.Ready -> {
-                            Text("Android will ask you to confirm the install. Your videos and settings stay as they are.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, textAlign = TextAlign.Start)
+                            Text(t("Android will ask you to confirm the install. Your videos and settings stay as they are."), style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, textAlign = TextAlign.Start)
                             Btn(t("Install"), "system_update", true) { file?.let { install(ctx, it) } }
                             Btn(t("Close"), null, false, Modifier, onLater)
                         }
@@ -403,7 +403,7 @@ fun UpdateRow() {
         IconTile("system_update", 42.dp, filled = true)
         Column(Modifier.weight(1f)) {
             Text(t("Check for updates"), fontWeight = FontWeight.ExtraBold)
-            Text(if (busy) t("Checking…") else "Version ${currentVersion(ctx)}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            Text(if (busy) t("Checking…") else t("Version {0}", currentVersion(ctx)), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
         Icon("refresh", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
     }

@@ -117,22 +117,22 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
     }
     fun renameNow(cv: android.content.ContentValues) {
         try {
-            if (ctx.contentResolver.update(v.uri, cv, null, null) > 0) { toast("Renamed"); onRescan(); onDismiss() } else toast("Couldn't rename")
+            if (ctx.contentResolver.update(v.uri, cv, null, null) > 0) { toast(t("Renamed")); onRescan(); onDismiss() } else toast(t("Couldn't rename"))
         } catch (e: SecurityException) {
             try {
                 val sender = if (Build.VERSION.SDK_INT >= 30) MediaStore.createWriteRequest(ctx.contentResolver, listOf(v.uri)).intentSender
                 else (e as? android.app.RecoverableSecurityException)?.userAction?.actionIntent?.intentSender
-                if (sender == null) toast("Couldn't rename") else {
+                if (sender == null) toast(t("Couldn't rename")) else {
                     afterWrite = { renameNow(cv) }
                     writeLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(sender).build())
                 }
-            } catch (_: Exception) { toast("Couldn't rename") }
-        } catch (_: Exception) { toast("Couldn't rename") }
+            } catch (_: Exception) { toast(t("Couldn't rename")) }
+        } catch (_: Exception) { toast(t("Couldn't rename")) }
     }
     val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
         if (u != null) scope.launch {
             val ok = withContext(Dispatchers.IO) { saveCover(ctx, u, coverFile) }
-            if (ok) { ThumbCache.invalidate(v.id); toast("Cover image updated") } else toast("Couldn't use that image")
+            if (ok) { ThumbCache.invalidate(v.id); toast(t("Cover image updated")) } else toast(t("Couldn't use that image"))
         }
     }
     val destPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
@@ -141,14 +141,14 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
             busy = if (copyMode) t("Copying…") else t("Moving…")
             val ok = withContext(Dispatchers.IO) { copyToTree(ctx, v.uri, tree, name) }
             busy = null
-            if (!ok) toast("Couldn't copy the video")
+            if (!ok) toast(t("Couldn't copy the video"))
             else if (copyMode) { toast(t("Copied")); onRescan(); onDismiss() }
             else if (Build.VERSION.SDK_INT >= 30) {
-                toast("Copied — confirm to remove the original")
+                toast(t("Copied — confirm to remove the original"))
                 try { delLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(MediaStore.createDeleteRequest(ctx.contentResolver, listOf(v.uri)).intentSender).build()) }
-                catch (_: Exception) { toast("Copied, but couldn't remove the original") }
+                catch (_: Exception) { toast(t("Copied, but couldn't remove the original")) }
             } else {
-                try { ctx.contentResolver.delete(v.uri, null, null); toast("Moved") } catch (_: Exception) { toast("Copied, but couldn't remove the original") }
+                try { ctx.contentResolver.delete(v.uri, null, null); toast(t("Moved")) } catch (_: Exception) { toast(t("Copied, but couldn't remove the original")) }
                 onRescan(); onDismiss()
             }
         }
@@ -214,7 +214,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
     }
     if (details) VideoDetailsDialog(v, prefs) { details = false }
     if (confirmDel) AlertDialog(
-        onDismissRequest = { confirmDel = false }, title = { Text(t("Delete this video?")) }, text = { Text("The file is removed from your phone. Android will ask you to confirm.") },
+        onDismissRequest = { confirmDel = false }, title = { Text(t("Delete this video?")) }, text = { Text(t("The file is removed from your phone. Android will ask you to confirm.")) },
         confirmButton = {
             TextButton({
                 confirmDel = false
@@ -246,7 +246,7 @@ fun SortSheet(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
                 IconTile("sort", 46.dp, filled = true)
                 Column {
                     Text(t("Sort by"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Library order", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(t("Library order"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainerHigh).padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

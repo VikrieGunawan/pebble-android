@@ -81,7 +81,7 @@ fun AppearancePage(prefs: Prefs, store: Store) {
             listOf("contrast", "light_mode", "dark_mode"), themes, prefs.theme,
         ) { put(K.theme, it) }
         ToggleCard("dark_mode", t("Pure black dark mode"), t("A true black background. Saves battery on OLED screens."), prefs.amoled) { put(K.amoled, it) }
-        if (!dark && prefs.amoled) Text("Pure black shows up when dark mode is on.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
+        if (!dark && prefs.amoled) Text(t("Pure black shows up when dark mode is on."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
 
         SectionLabel("text_fields", t("Language"))
         LanguageCard(prefs.lang) { put(K.lang, it) }
@@ -115,8 +115,8 @@ fun AppearancePage(prefs: Prefs, store: Store) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Badge("restart_alt", true)
                 Column(Modifier.weight(1f)) {
-                    Text("Reset appearance", fontWeight = FontWeight.ExtraBold)
-                    Text("Theme, colors and library look go back to the defaults.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t("Reset appearance"), fontWeight = FontWeight.ExtraBold)
+                    Text(t("Theme, colors and library look go back to the defaults."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             ActionBtn("restart_alt", t("Reset"), true) {

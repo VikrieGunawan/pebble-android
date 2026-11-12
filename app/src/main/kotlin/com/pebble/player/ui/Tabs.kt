@@ -124,7 +124,7 @@ private fun FolderCard(name: String, count: Int, onClick: () -> Unit) {
         Box(Modifier.size(40.dp).clip(CircleShape).background(cs.primaryContainer), contentAlignment = Alignment.Center) { Icon("folder", null, Modifier.size(22.dp), tint = cs.onPrimaryContainer) }
         Column {
             Text(name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("$count videos", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            Text(t("{0} videos", count), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
     }
 }
@@ -166,11 +166,6 @@ fun HomeTab(
                 Text(t("What are we watching today?"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHigh).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon("lock", null, Modifier.size(16.dp), tint = cs.onSurfaceVariant)
-            Text("Plays on your device only", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = cs.onSurfaceVariant)
-        }
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ActionTile("shuffle", t("Shuffle all"), t("Random mix"), true, Modifier.weight(1f).fillMaxHeight()) { if (videos.isNotEmpty()) { val l = videos.shuffled(); play(l.first(), l) } }
@@ -178,7 +173,7 @@ fun HomeTab(
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ActionTile("favorite", t("Favorites"), "${favs.size} pinned", false, Modifier.weight(1f)) { openTab(2) }
+            ActionTile("favorite", t("Favorites"), t("{0} pinned", favs.size), false, Modifier.weight(1f)) { openTab(2) }
             ActionTile("history", t("History"), t("Pick up again"), false, Modifier.weight(1f)) { openTab(3) }
         }
 
@@ -188,7 +183,7 @@ fun HomeTab(
         }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatPill("video_library", "${videos.size} videos")
+            StatPill("video_library", t("{0} videos", videos.size))
             StatPill("schedule", fmtLong(videos.sumOf { it.dur }))
             StatPill("folder", "${folders.size} folders")
         }
@@ -286,7 +281,7 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
         favs, prefs, { v -> play(v, favs) },
         header = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                PageHeader("favorite", t("Favorites"), "${favs.size} pinned videos") {
+                PageHeader("favorite", t("Favorites"), t("{0} pinned videos", favs.size)) {
                     if (favs.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).clickable { confirm = true }, contentAlignment = Alignment.Center) { Icon("delete_sweep", t("Clear all"), Modifier.size(24.dp), tint = cs.onSurfaceVariant) }
                 }
                 if (favs.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -302,7 +297,7 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
         empty = { EmptyCard("favorite", t("No favorites yet"), t("Open a video menu and tap Favorite to pin it here.")) },
     )
     if (confirm) AlertDialog(
-        onDismissRequest = { confirm = false }, title = { Text("Clear all favorites?") }, text = { Text("Your videos stay on the phone. Only the pins are removed.") },
+        onDismissRequest = { confirm = false }, title = { Text(t("Clear all favorites?")) }, text = { Text(t("Your videos stay on the phone. Only the pins are removed.")) },
         confirmButton = { TextButton({ confirm = false; scope.launch { store.clearFavs() } }) { Text(t("Clear")) } },
         dismissButton = { TextButton({ confirm = false }) { Text(t("Cancel")) } },
     )
@@ -328,7 +323,7 @@ fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List
         empty = { EmptyCard("history", t("Nothing here yet"), t("Start a video and it will appear in your history.")) },
     )
     if (confirm) AlertDialog(
-        onDismissRequest = { confirm = false }, title = { Text("Clear history?") }, text = { Text("Resume positions will be removed.") },
+        onDismissRequest = { confirm = false }, title = { Text(t("Clear history?")) }, text = { Text(t("Resume positions will be removed.")) },
         confirmButton = { TextButton({ confirm = false; scope.launch { store.clearHistory() } }) { Text(t("Clear")) } },
         dismissButton = { TextButton({ confirm = false }) { Text(t("Cancel")) } },
     )

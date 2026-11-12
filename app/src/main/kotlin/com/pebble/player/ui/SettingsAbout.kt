@@ -72,10 +72,10 @@ internal fun AboutPage() {
 
         PlayCard {
             SectionLabel("info", t("App info"))
-            InfoRow("info", t("Version"), "$version (build $build)")
+            InfoRow("info", t("Version"), t("{0} (build {1})", version, build))
             InfoRow("label", "Package", ctx.packageName)
             InfoRow("calendar_month", t("Last updated"), updated)
-            InfoRow("settings", t("Requires"), "Android 10 or newer")
+            InfoRow("settings", t("Requires"), t("Android 10 or newer"))
         }
 
         PlayCard {

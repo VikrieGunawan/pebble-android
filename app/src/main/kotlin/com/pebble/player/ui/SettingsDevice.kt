@@ -129,7 +129,7 @@ fun DevicePage() {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(if (charging) "bolt" else "battery_full", null, Modifier.size(18.dp), tint = cs.onSurfaceVariant)
                 Text(
-                    if (batLevel < 0) t("Battery level unavailable") else "Battery $batLevel%" + if (charging) " · Charging" else "",
+                    if (batLevel < 0) t("Battery level unavailable") else t("Battery {0}%", batLevel) + if (charging) " · Charging" else "",
                     style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
                 )
             }
@@ -146,8 +146,8 @@ fun DevicePage() {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Badge(if (vol <= 0f) "volume_off" else "volume_up", true)
                 Column(Modifier.weight(1f)) {
-                    Text("Media volume", fontWeight = FontWeight.ExtraBold)
-                    Text("Level ${vol.roundToInt()} of $maxVol", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(t("Media volume"), fontWeight = FontWeight.ExtraBold)
+                    Text(t("Level {0} of {1}", vol.roundToInt(), maxVol), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
             PebbleSlider(vol, { setVol(it) }, valueRange = 0f..maxVol.toFloat(), steps = (maxVol - 1).coerceAtLeast(0))
@@ -158,11 +158,11 @@ fun DevicePage() {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Badge("speaker", true)
                 Column(Modifier.weight(1f)) {
-                    Text("Sound outputs", fontWeight = FontWeight.ExtraBold)
-                    Text("Where sound can play right now.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(t("Sound outputs"), fontWeight = FontWeight.ExtraBold)
+                    Text(t("Where sound can play right now."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
-            if (outs.isEmpty()) Text("No outputs found.", color = cs.onSurfaceVariant)
+            if (outs.isEmpty()) Text(t("No outputs found."), color = cs.onSurfaceVariant)
             outs.distinctBy { it.id }.forEach { d ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHighest).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(if (isBt(d)) "bluetooth" else if (d.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) "speaker" else "headphones", null, Modifier.size(22.dp), tint = cs.primary)
@@ -181,7 +181,7 @@ fun DevicePage() {
                     Badge(if (auto) "brightness_auto" else "brightness_high", true)
                     Column(Modifier.weight(1f)) {
                         Text(t("Brightness"), fontWeight = FontWeight.ExtraBold)
-                        Text(if (auto) "Adaptive · $briPct%" else "$briPct%", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        Text(if (auto) t("Adaptive · {0}%", briPct) else "$briPct%", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
                 PebbleSlider(bri, { setBri(it) }, valueRange = 1f..255f)
@@ -194,7 +194,7 @@ fun DevicePage() {
                     Badge("brightness_high", false)
                     Column(Modifier.weight(1f)) {
                         Text(t("Brightness"), fontWeight = FontWeight.ExtraBold)
-                        Text("Allow Pebble to change system settings to control brightness.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        Text(t("Allow Pebble to change system settings to control brightness."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
                 ActionBtn("lock", t("Allow"), true) { wl.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${ctx.packageName}"))) }
@@ -209,8 +209,8 @@ fun DevicePage() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Badge("bluetooth", false)
                     Column(Modifier.weight(1f)) {
-                        Text("Nearby devices", fontWeight = FontWeight.ExtraBold)
-                        Text("Allow access to show real Bluetooth names.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        Text(t("Nearby devices"), fontWeight = FontWeight.ExtraBold)
+                        Text(t("Allow access to show real Bluetooth names."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
                 ActionBtn("lock", t("Allow"), true) { askBt.launch(Manifest.permission.BLUETOOTH_CONNECT) }
@@ -223,11 +223,11 @@ fun DevicePage() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Badge("bluetooth", true)
                     Column(Modifier.weight(1f)) {
-                        Text("Phone name", fontWeight = FontWeight.ExtraBold)
-                        Text("How other devices see this phone.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        Text(t("Phone name"), fontWeight = FontWeight.ExtraBold)
+                        Text(t("How other devices see this phone."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
-                OutlinedTextField(name, { name = it }, label = { Text("Bluetooth name") }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), enabled = adapter != null)
+                OutlinedTextField(name, { name = it }, label = { Text(t("Bluetooth name")) }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), enabled = adapter != null)
                 ActionBtn("check", t("Apply name"), adapter != null && name.isNotBlank()) {
                     msg = try { if (adapter?.setName(name.trim()) == true) t("Name updated") else t("Couldn't change the name") } catch (_: SecurityException) { t("Permission denied") }
                 }
@@ -238,7 +238,7 @@ fun DevicePage() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Badge("devices", bt.isNotEmpty())
                     Column(Modifier.weight(1f)) {
-                        Text("Connected audio", fontWeight = FontWeight.ExtraBold)
+                        Text(t("Connected audio"), fontWeight = FontWeight.ExtraBold)
                         Text(if (bt.isEmpty()) t("No Bluetooth audio connected.") else bt.joinToString { it.productName.toString() }, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }

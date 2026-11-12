@@ -14,6 +14,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -135,7 +136,7 @@ fun SettingsScreen(prefs: Prefs, store: Store, all: List<Video>, onRescan: () ->
     PredictiveBack(page != null, { page = null }) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         if (!land) Row(
-            Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
+            Modifier.fillMaxWidth().padding(top = 8.dp).animateContentSize().clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PAnim(cur != null, enter = fadeIn() + expandHorizontally() + scaleIn(), exit = fadeOut() + shrinkHorizontally() + scaleOut()) {
@@ -228,7 +229,7 @@ internal fun readBrightness(ctx: Context): Float = try {
 private fun SetHeadStatic(c: Cat?, onBack: (() -> Unit)?) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
+        Modifier.fillMaxWidth().animateContentSize().clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (onBack != null) Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.surfaceContainerHigh).clickable { onBack() }, contentAlignment = Alignment.Center) { Icon("arrow_back", t("Back"), Modifier.size(22.dp)) }

@@ -145,7 +145,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
             Box(Modifier.height(8.dp).width(w).clip(CircleShape).background(dotCol))
                         }
                     }
-                    TextButton(onClick = { scope.launch { store.saveProfile(profile); store.put(K.onb, true) } }) { Text("Skip") }
+                    TextButton(onClick = { scope.launch { store.saveProfile(profile); store.put(K.onb, true) } }) { Text(t("Skip")) }
                 }
             }
             val spSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
@@ -167,7 +167,7 @@ fun Onboarding(prefs: Prefs, store: Store) {
                                 }
                             }
                             Spacer(Modifier.height(20.dp))
-                            Text("Step $step of ${LAST - 1}", style = MaterialTheme.typography.labelLarge, color = cs.primary, fontWeight = FontWeight.Bold)
+                            Text(t("Step {0} of {1}", step, LAST - 1), style = MaterialTheme.typography.labelLarge, color = cs.primary, fontWeight = FontWeight.Bold)
                         }
                     }
                     AnimatedContent(
@@ -290,7 +290,7 @@ private fun WelcomeStep() {
         }
     }
     Spacer(Modifier.height(12.dp))
-    Text("Your videos, your style.\nEverything stays on your device.", style = MaterialTheme.typography.bodyLarge,
+    Text(t(t("Your videos, your style.")) + "\n" + t(t("Everything stays on your device.")), style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
 }
 
@@ -302,7 +302,7 @@ private fun NameStep(p: Profile, onChange: (Profile) -> Unit) {
     Spacer(Modifier.height(24.dp))
     OutlinedTextField(
         value = p.name, onValueChange = { onChange(p.copy(name = it.take(24))) },
-        label = { Text("Your name") }, singleLine = true, shape = RoundedCornerShape(20.dp),
+        label = { Text(t("Your name")) }, singleLine = true, shape = RoundedCornerShape(20.dp),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusMgr.clearFocus() }), modifier = Modifier.fillMaxWidth(),
     )
@@ -343,7 +343,7 @@ private fun AccentStep(prefs: Prefs, store: Store) {
     Column(Modifier.fillMaxWidth().graphicsLayer { alpha = a }) {
         SwatchGrid(selected = prefs.accent, autoOption = false, enabled = !you) { c -> scope.launch { store.put(K.accent, c) } }
     }
-    if (you) Text("Turn off Material You to pick a color.", Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+    if (you) Text(t("Turn off Material You to pick a color."), Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
     Spacer(Modifier.height(16.dp))
 }
 
@@ -433,7 +433,7 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                     Avatar(profile, 96.dp)
                 }
                 Spacer(Modifier.height(14.dp))
-                Text("Setting things up", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text(t("Setting things up"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, color = cs.primary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(18.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -468,8 +468,8 @@ private fun ProcessingStep(prefs: Prefs, profile: Profile, store: Store, onFinis
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                Text(if (profile.name.isBlank()) t("You're all set") else "You're all set, ${profile.name}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                Text("Enjoy Pebble.", color = cs.onSurfaceVariant)
+                Text(if (profile.name.isBlank()) t("You're all set") else t("You're all set, {0}", profile.name), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                Text(t("Enjoy Pebble."), color = cs.onSurfaceVariant)
             }
         }
     }

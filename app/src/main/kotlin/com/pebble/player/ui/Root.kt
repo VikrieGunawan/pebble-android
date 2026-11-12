@@ -344,9 +344,9 @@ private fun PermissionPrompt(onAsk: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         AppMark(96)
         Spacer(Modifier.height(24.dp))
-        Text("Let Pebble find your videos", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+        Text(t("Let Pebble find your videos"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        Text("Pebble only reads video files on this device. Nothing is uploaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(t("Pebble only reads video files on this device. Nothing is uploaded."), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         Button(onClick = onAsk, shapes = ButtonDefaults.shapes(), modifier = Modifier.height(52.dp)) { Text(t("Allow access")) }
     }
@@ -367,14 +367,14 @@ private fun ProfileDialog(p: Profile, onDismiss: () -> Unit, onSave: (Profile) -
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     PhotoAvatar(cur, avatar) { cur = cur.copy(photo = it, emoji = "") }
-                    Text("Tap the photo to change it", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(t("Tap the photo to change it"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = { Text(t("Name")) }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
                     if (cur.photo.isNotEmpty()) Row(
                         Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHighest).clickable { cur = cur.copy(photo = "") }.padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Icon("close", null, Modifier.size(18.dp), tint = cs.onSurfaceVariant)
-                        Text("Remove photo", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(t("Remove photo"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
@@ -398,7 +398,7 @@ private fun ProfileDialog(p: Profile, onDismiss: () -> Unit, onSave: (Profile) -
                     .clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainerHigh),
             ) {
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Your profile", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(t("Your profile"), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     if (land) actions()
                 }
                 if (land) Row(Modifier.weight(1f, fill = false).padding(horizontal = 16.dp).padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {

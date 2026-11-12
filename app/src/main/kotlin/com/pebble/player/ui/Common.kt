@@ -208,7 +208,7 @@ fun SwatchGrid(selected: Int, autoOption: Boolean, enabled: Boolean = true, onPi
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Selected color", style = MaterialTheme.typography.labelMedium, color = onCol(hero).copy(alpha = 0.75f))
+                Text(t("Selected color"), style = MaterialTheme.typography.labelMedium, color = onCol(hero).copy(alpha = 0.75f))
                 androidx.compose.animation.AnimatedContent(cur.first, label = "cname") { n ->
                     Text(n, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = onCol(hero))
                 }
@@ -285,8 +285,8 @@ fun CropDialog(uri: Uri, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
     Dialog(onDismissRequest = onCancel) {
         Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
             Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("Adjust photo", style = MaterialTheme.typography.titleLarge)
-                Text("Drag to move, pinch or slide to zoom", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(t("Adjust photo"), style = MaterialTheme.typography.titleLarge)
+                Text(t("Drag to move, pinch or slide to zoom"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val bmp = src
                 Box(
                     Modifier.size(view).clip(RoundedCornerShape(28.dp)).background(Color.Black)

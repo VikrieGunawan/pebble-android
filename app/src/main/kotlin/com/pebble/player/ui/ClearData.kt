@@ -65,7 +65,7 @@ fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
     Column(Modifier.fillMaxSize().background(cs.background).statusBarsPadding().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         CircularWavyProgressIndicator(progress = { progress }, modifier = Modifier.size(140.dp))
         Spacer(Modifier.height(18.dp))
-        Text("Clearing app data", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+        Text(t("Clearing app data"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text("${(progress * 100).toInt()}%", color = cs.primary, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -82,6 +82,6 @@ fun ClearDataScreen(app: PebbleApp, onDone: () -> Unit) {
                 }
             }
         }
-        PAnim(done == steps.size) { Text("All clean. Closing Pebble…", Modifier.padding(top = 24.dp), color = cs.onSurfaceVariant) }
+        PAnim(done == steps.size) { Text(t("All clean. Closing Pebble…"), Modifier.padding(top = 24.dp), color = cs.onSurfaceVariant) }
     }
 }
