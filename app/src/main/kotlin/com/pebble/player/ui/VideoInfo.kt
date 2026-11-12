@@ -184,7 +184,7 @@ internal suspend fun loadVideoInfo(ctx: Context, v: Video): VideoInfo = withCont
         }
         val head = if (sv != null && sv.isRemovable && desc != null && !desc.equals(kind, true)) "$kind · $desc" else kind
         val space = if (Build.VERSION.SDK_INT >= 30) sv?.directory?.let { d ->
-            runCatching { val st = StatFs(d.path); "${fmtSize(st.availableBytes)} free of ${fmtSize(st.totalBytes)}" }.getOrNull()
+            runCatching { val st = StatFs(d.path); t("{0} free of {1}", fmtSize(st.availableBytes), fmtSize(st.totalBytes)) }.getOrNull()
         } else null
         listOfNotNull(head, space).joinToString("\n")
     } catch (_: Exception) { null }

@@ -816,7 +816,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         else -> {
                             Sl("timer", t("Pause playback after"))
                             val mins = listOf(0, 15, 30, 45, 60, 90)
-                            Chips(mins.map { if (it == 0) t("Off") else "$it min" }, if (sleepEnd == 0L) 0 else -1, 3) {
+                            Chips(mins.map { if (it == 0) t("Off") else t("{0} min", it) }, if (sleepEnd == 0L) 0 else -1, 3) {
                                 sleepEnd = if (mins[it] == 0) 0L else SystemClock.elapsedRealtime() + mins[it] * 60000L
                             }
                         }
@@ -993,7 +993,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pSoft).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon("info", null, Modifier.size(20.dp), tint = pFg2)
                 Text(
-                    "If a device disconnects, the video will ${if (lostPolicy == 1) "keep playing" else "pause"}. Change this in Settings → Playback.",
+                    if (lostPolicy == 1) t("If a device disconnects, the video will keep playing. Change this in Settings → Playback.") else t("If a device disconnects, the video will pause. Change this in Settings → Playback."),
                     color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -1109,7 +1109,7 @@ private fun QueuePanel(
                     }
                     Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(video.name, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
-                        Text("${idx + 1} of ${queue.size} · ${fmt(video.dur)}", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text(t("{0} of {1} · {2}", idx + 1, queue.size, fmt(video.dur)), color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                     if (f > 0.01f) Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.25f))) {
                         Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(cs.primary))
@@ -1121,7 +1121,7 @@ private fun QueuePanel(
                     Text(t("Up next"), color = pFg, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
                     if (upcoming.isNotEmpty()) Text("${upcoming.size}", color = cs.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(50)).background(cs.primary).padding(horizontal = 8.dp, vertical = 2.dp))
                     Spacer(Modifier.weight(1f))
-                    if (upcoming.isNotEmpty()) Text("${fmt(upcoming.sumOf { it.dur })} left", color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    if (upcoming.isNotEmpty()) Text(t("{0} left", fmt(upcoming.sumOf { it.dur })), color = pFg2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             if (upcoming.isEmpty()) item(key = "end") {

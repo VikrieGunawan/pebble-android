@@ -106,7 +106,7 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
             InfoRow("favorite", t("Favorite"), if (fav) t("Yes, pinned in Favorites") else t(t("No")))
             InfoRow(
                 "history", t("Watched"),
-                if (prog == null || prog.dur <= 0) t("Not started") else "${fmt(prog.pos)} of ${fmt(prog.dur)} · ${(prog.pos * 100 / prog.dur).coerceIn(0, 100)}%",
+                if (prog == null || prog.dur <= 0) t("Not started") else t("{0} of {1} · {2}%", fmt(prog.pos), fmt(prog.dur), (prog.pos * 100 / prog.dur).coerceIn(0, 100)),
             )
             CopyBtn(place)
         }

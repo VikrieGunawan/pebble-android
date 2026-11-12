@@ -185,7 +185,7 @@ fun HomeTab(
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatPill("video_library", t("{0} videos", videos.size))
             StatPill("schedule", fmtLong(videos.sumOf { it.dur }))
-            StatPill("folder", "${folders.size} folders")
+            StatPill("folder", t("{0} folders", folders.size))
         }
         Spacer(Modifier.height(16.dp))
         HeroCard(hero, prefs.progress[hero.uri.toString()], if (cont.isNotEmpty()) t("Continue watching") else t("Latest video")) { play(hero, videos) }

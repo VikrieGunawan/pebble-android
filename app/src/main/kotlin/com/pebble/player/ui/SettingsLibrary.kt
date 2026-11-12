@@ -52,7 +52,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconTile("video_library", 46.dp, filled = true)
                 Column {
-                    Text("${all.size} videos found", fontWeight = FontWeight.ExtraBold)
+                    Text(t("{0} videos found", all.size), fontWeight = FontWeight.ExtraBold)
                     Text(t("In {0} folders · {1}", folders.size, fmtSize(total)), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
@@ -93,7 +93,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
         if (hidden > 0) {
             SectionLabel("visibility_off", t("Hidden"))
             PlayCard {
-                Text("$hidden folder(s) are hidden from Home, Library and search.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                Text(t("{0} folder(s) are hidden from Home, Library and search.", hidden), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 ActionBtn("folder_open", t("Show all folders"), true) { scope.launch { prefs.blacklist.toList().forEach { store.toggleBlacklist(it) } } }
             }
         }

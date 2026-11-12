@@ -167,7 +167,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SheetAction("play_arrow", t("Play"), true, false, Modifier.weight(1f)) { onDismiss(); onPlay() }
-                SheetAction("favorite", if (fav) t("Unfavorite") else t("Favorite"), false, fav, Modifier.weight(1f)) { scope.launch { store.toggleFav(v.uri.toString()) } }
+                SheetAction(if (fav) "heart_broken" else "favorite", if (fav) t("Unfavorite") else t("Favorite"), false, fav, Modifier.weight(1f)) { scope.launch { store.toggleFav(v.uri.toString()) } }
                 SheetAction("share", t("Share"), false, false, Modifier.weight(1f)) {
                     val i = Intent(Intent.ACTION_SEND).apply { type = "video/*"; putExtra(Intent.EXTRA_STREAM, v.uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
                     ctx.startActivity(Intent.createChooser(i, t("Share video")))

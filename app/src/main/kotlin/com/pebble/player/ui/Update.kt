@@ -356,7 +356,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
     }
 }
 
-private fun eta(s: Long) = if (s >= 60) "${s / 60} min ${s % 60} s left" else "$s s left"
+private fun eta(s: Long) = if (s >= 60) t("{0} min {1} s left", s / 60, s % 60) else t("{0} s left", s)
 
 @Composable
 internal fun Btn(label: String, icon: String?, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {

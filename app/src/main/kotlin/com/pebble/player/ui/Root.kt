@@ -192,7 +192,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             if (first && app.media.reindex() > 0) all = app.media.scan()
             if (refreshing) {
                 val n = all.count { it.id !in before }
-                Toast.makeText(ctx, when (n) { 0 -> t("No new videos found"); 1 -> "1 new video added"; else -> "$n new videos added" }, Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, when (n) { 0 -> t("No new videos found"); 1 -> t("1 new video added"); else -> t("{0} new videos added", n) }, Toast.LENGTH_SHORT).show()
             }
         }
         if (refreshing) { delay(700); refreshing = false }

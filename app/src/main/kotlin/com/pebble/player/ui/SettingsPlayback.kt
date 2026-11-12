@@ -53,7 +53,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
                 Column {
                     Text(t("How videos play"), fontWeight = FontWeight.ExtraBold)
                     Text(
-                        (if (prefs.autoplay) t("Starts by itself") else t("Waits for you to press play")) + (if (prefs.resume) " · resumes" else ""),
+                        (if (prefs.autoplay) t("Starts by itself") else t("Waits for you to press play")) + (if (prefs.resume) " · " + t("resumes") else ""),
                         style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
                     )
                 }
