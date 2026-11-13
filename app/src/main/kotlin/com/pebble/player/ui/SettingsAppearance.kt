@@ -1,29 +1,19 @@
 package com.pebble.player.ui
 
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.ui.platform.LocalConfiguration
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +44,7 @@ import com.pebble.player.data.Prefs
 import com.pebble.player.data.Store
 import kotlinx.coroutines.launch
 
-/** Settings → Appearance: live preview, theme, colors and how the library looks. */
+/** Settings → Appearance: theme, colors and how the library looks. */
 @Composable
 fun AppearancePage(prefs: Prefs, store: Store) {
     val scope = rememberCoroutineScope()
@@ -67,8 +56,6 @@ fun AppearancePage(prefs: Prefs, store: Store) {
     val colorName = if (useDyn) "Material You" else ACCENTS.firstOrNull { it.second == prefs.accent }?.first ?: t("Custom")
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        LookPreview(prefs)
-
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PlayStat("contrast", themes[prefs.theme.coerceIn(0, 2)], t("Theme"), Modifier.weight(1f))
             PlayStat("palette", colorName, t("Colors"), Modifier.weight(1f))
@@ -91,6 +78,7 @@ fun AppearancePage(prefs: Prefs, store: Store) {
         PAnim(!useDyn) { SwatchGrid(prefs.accent, false) { put(K.accent, it) } }
 
         SectionLabel("grid_view", t("Library look"))
+        LayoutPreview(prefs)
         TileChoiceCard(
             "grid_view", t("Layout"), t("Cards in a grid, or one video per row."),
             listOf("grid_view", "view_list"), listOf(t("Grid"), t("List")), prefs.layout,
@@ -127,87 +115,32 @@ fun AppearancePage(prefs: Prefs, store: Store) {
     }
 }
 
-/** A small drawn copy of the Home screen (header, video cards, navigation) in the shape and orientation of this screen. */
+/** Fixed-size sketch of the chosen layout: list = 2 rows, grid = 2 columns (4 tiles) or 3 columns (6 tiles). Same size in portrait and landscape. */
 @Composable
-private fun LookPreview(prefs: Prefs) {
+private fun LayoutPreview(prefs: Prefs) {
     val cs = MaterialTheme.colorScheme
-    val cfg = LocalConfiguration.current
-    val sw = cfg.screenWidthDp
-    val sh = cfg.screenHeightDp.coerceAtLeast(1)
-    val wide = (sw >= 744 && sh >= 560) || sw > sh
-    val short = sh < 500
-    val cols = if (isPhoneScreen()) phoneCols(prefs) else ((sw - 32) / (listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)] + 12)).coerceIn(1, 6)
-    val frame = RoundedCornerShape(if (wide) 20.dp else 28.dp)
-    val thumb = Brush.linearGradient(listOf(cs.primaryContainer, cs.tertiaryContainer))
-    val ink = cs.onSurfaceVariant
-    val line = cs.outlineVariant
-    @Composable
-    fun dot(c: Color, d: Dp) = Box(Modifier.size(d).clip(CircleShape).background(c))
-    @Composable
-    fun bar(wd: Dp, h: Dp, c: Color) = Box(Modifier.width(wd).height(h).clip(CircleShape).background(c))
-    @Composable
-    fun navItem(sel: Boolean) = Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Box(Modifier.size(22.dp, 11.dp).clip(CircleShape).background(if (sel) cs.primaryContainer else Color.Transparent), contentAlignment = Alignment.Center) { dot(if (sel) cs.primary else ink.copy(alpha = 0.5f), 5.dp) }
-        bar(12.dp, 2.5.dp, if (sel) cs.onSurface.copy(alpha = 0.6f) else ink.copy(alpha = 0.35f))
-    }
-    @Composable
-    fun pill() = Row(Modifier.clip(CircleShape).background(cs.surfaceContainer).padding(1.5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) { dot(ink.copy(alpha = 0.5f), 7.dp); dot(ink.copy(alpha = 0.5f), 7.dp) }
-    @Composable
-    fun search(m: Modifier) = Row(m.height(12.dp).clip(CircleShape).background(cs.surfaceContainer).border(0.8.dp, line, CircleShape).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        dot(cs.primaryContainer, 8.dp); Spacer(Modifier.width(3.dp)); bar(30.dp, 3.dp, ink.copy(alpha = 0.35f))
-    }
-    @Composable
-    fun top() {
-        if (short) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { search(Modifier.weight(1f)); pill(); dot(cs.primaryContainer, 10.dp) }
-        else Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (!wide) { dot(cs.primary, 10.dp); Spacer(Modifier.width(3.dp)); bar(22.dp, 4.dp, cs.onSurface.copy(alpha = 0.6f)) }
-                Spacer(Modifier.weight(1f)); pill(); Spacer(Modifier.width(4.dp)); dot(cs.primaryContainer, 10.dp)
-            }
-            search(Modifier.fillMaxWidth())
-        }
-    }
-    @Composable
-    fun content(m: Modifier) = Column(m.clipToBounds(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        if (prefs.layout == 0) repeat(3) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                repeat(cols) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(RoundedCornerShape(7.dp)).background(thumb))
-                        bar(32.dp, 3.dp, ink.copy(alpha = 0.4f))
-                        bar(20.dp, 2.5.dp, ink.copy(alpha = 0.2f))
+    val cols = if (prefs.layout == 1) 1 else if (prefs.gridSize == 0 && (!isPhoneScreen() || maxGridCols() >= 3)) 3 else 2
+    val gap = 6.dp
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Column(
+            Modifier.width(240.dp).height(132.dp).clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainer).padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) {
+            repeat(2) {
+                if (cols == 1) Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.fillMaxHeight().aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(cs.primaryContainer))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(Modifier.fillMaxWidth(0.8f).height(7.dp).clip(CircleShape).background(cs.onSurfaceVariant.copy(alpha = 0.55f)))
+                        Box(Modifier.fillMaxWidth(0.5f).height(6.dp).clip(CircleShape).background(cs.onSurfaceVariant.copy(alpha = 0.3f)))
+                    }
+                } else Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    repeat(cols) {
+                        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Box(Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(8.dp)).background(cs.primaryContainer))
+                            Box(Modifier.fillMaxWidth(0.7f).height(5.dp).clip(CircleShape).background(cs.onSurfaceVariant.copy(alpha = 0.45f)))
+                        }
                     }
                 }
-            }
-        } else repeat(4) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.width(if (wide) 44.dp else 36.dp).aspectRatio(16f / 10f).clip(RoundedCornerShape(5.dp)).background(thumb))
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    bar(if (wide) 80.dp else 46.dp, 3.5.dp, ink.copy(alpha = 0.4f))
-                    bar(if (wide) 46.dp else 26.dp, 2.5.dp, ink.copy(alpha = 0.2f))
-                }
-            }
-        }
-    }
-    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(frame).background(cs.background).border(1.5.dp, line, frame)) {
-            if (wide) Row(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier.width(if (short) 28.dp else 36.dp).fillMaxHeight().background(cs.surfaceContainer)
-                        .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }.padding(vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    if (!short) { dot(cs.primary, 11.dp); bar(16.dp, 3.dp, cs.onSurface.copy(alpha = 0.6f)); Spacer(Modifier.height(2.dp)) }
-                    navItem(true); navItem(false); navItem(false); navItem(false)
-                }
-                Column(Modifier.weight(1f).padding(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) { top(); content(Modifier.weight(1f)) }
-            } else Column(Modifier.fillMaxSize()) {
-                Box(Modifier.padding(start = 7.dp, end = 7.dp, top = 8.dp, bottom = 5.dp)) { top() }
-                content(Modifier.weight(1f).padding(horizontal = 7.dp))
-                Row(
-                    Modifier.fillMaxWidth().background(cs.surfaceContainer).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }.padding(horizontal = 4.dp, vertical = 5.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                ) { navItem(true); navItem(false); navItem(false); navItem(false) }
             }
         }
     }

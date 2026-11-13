@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -151,6 +154,7 @@ private fun ActionTile(icon: String, title: String, sub: String, filled: Boolean
 fun HomeTab(
     prefs: Prefs, videos: List<Video>, onRefresh: () -> Unit,
     play: (Video, List<Video>) -> Unit, openTab: (Int) -> Unit, openFolder: (String?) -> Unit,
+    scroll: ScrollState = rememberScrollState(),
 ) {
     val cs = MaterialTheme.colorScheme
     val cont = videos.filter { v -> prefs.progress[v.uri.toString()]?.let { it.dur > 0 && it.pos in 3000 until it.dur - 5000 } == true }
@@ -159,7 +163,7 @@ fun HomeTab(
     val favs = videos.filter { it.uri.toString() in prefs.favs }
     val folders = videos.groupingBy { it.path }.eachCount().entries.sortedByDescending { it.value }.take(10)
     val hero = cont.firstOrNull() ?: recent.firstOrNull()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text((greeting() + if (prefs.profile.name.isNotBlank()) ", ${prefs.profile.name}" else "").uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = cs.primary, letterSpacing = 1.5.sp)
@@ -226,7 +230,7 @@ private fun treeAt(videos: List<Video>, at: String?): Pair<List<Pair<String, Int
 }
 
 @Composable
-fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?, trail: String?, onFolder: (String?) -> Unit, query: String, play: (Video, List<Video>) -> Unit) {
+fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?, trail: String?, onFolder: (String?) -> Unit, query: String, play: (Video, List<Video>) -> Unit, gridFor: @Composable (String) -> LazyGridState = { rememberLazyGridState() }) {
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var sortMenu by remember { mutableStateOf(false) }
@@ -245,7 +249,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
             ) {
                 Icon("sort", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 Column(Modifier.weight(1f)) {
-                    Text(t("Sort by").uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
+                    Text(t("Sort by").uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
                     Text(sorts[prefs.sort.coerceIn(0, 3)], fontWeight = FontWeight.Bold, maxLines = 1)
                 }
                 Icon("expand_more", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
@@ -266,6 +270,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
                 empty = { EmptyCard("video_library", if (query.isBlank()) t("No videos here") else t("No results"), if (query.isBlank()) t("Check Settings → Library for hidden folders.") else t("Try another word.")) },
                 folders = if (query.isBlank()) kids else emptyList(),
                 onFolder = { onFolder(it) },
+                state = gridFor(if (query.isNotBlank()) "?" + query else f ?: ""),
             )
         }
     }
@@ -273,7 +278,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
 }
 
 @Composable
-fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, List<Video>) -> Unit) {
+fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, List<Video>) -> Unit, grid: LazyGridState = rememberLazyGridState()) {
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf(false) }
@@ -295,6 +300,7 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
             }
         },
         empty = { EmptyCard("favorite", t("No favorites yet"), t("Open a video menu and tap Favorite to pin it here.")) },
+        state = grid,
     )
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false }, title = { Text(t("Clear all favorites?")) }, text = { Text(t("Your videos stay on the phone. Only the pins are removed.")) },
@@ -306,7 +312,7 @@ fun FavoritesTab(prefs: Prefs, store: Store, favs: List<Video>, play: (Video, Li
 // ---------------------------------------------------------------- History
 
 @Composable
-fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List<Video>) -> Unit) {
+fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List<Video>) -> Unit, grid: LazyGridState = rememberLazyGridState()) {
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf(false) }
@@ -321,6 +327,7 @@ fun HistoryTab(prefs: Prefs, store: Store, list: List<Video>, play: (Video, List
             }
         },
         empty = { EmptyCard("history", t("Nothing here yet"), t("Start a video and it will appear in your history.")) },
+        state = grid,
     )
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false }, title = { Text(t("Clear history?")) }, text = { Text(t("Resume positions will be removed.")) },

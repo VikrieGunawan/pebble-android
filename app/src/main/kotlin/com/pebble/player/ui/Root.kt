@@ -61,7 +61,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -157,6 +159,11 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
     var tab by remember { mutableIntStateOf(0) }
     var libFolder by remember { mutableStateOf<String?>(null) }
     var libTrail by remember { mutableStateOf<String?>(null) }
+    // scroll positions live here so they survive tab switches (Settings is not kept)
+    val homeScroll = rememberScrollState()
+    val favGrid = rememberLazyGridState()
+    val histGrid = rememberLazyGridState()
+    val libGrids = remember { HashMap<String, LazyGridState>() }
     // the folders you opened stay in the location bar (dimmed when you go up), like the website
     val openFolder: (String?) -> Unit = { p -> libFolder = p; if (p != null && libTrail?.startsWith(p) != true) libTrail = p }
     var query by remember { mutableStateOf("") }
@@ -287,12 +294,12 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                         } else if (!scanned) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator(Modifier.size(56.dp)) }
                         } else PullPage(refreshing, { refresh() }) { when (t) {
-                            0 -> HomeTab(prefs, visible, { refresh() }, ::play, { tab = it }, openFolder)
-                            1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play)
-                            2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play)
+                            0 -> HomeTab(prefs, visible, { refresh() }, ::play, { tab = it }, openFolder, homeScroll)
+                            1 -> LibraryTab(prefs, app.store, visible, libFolder, libTrail, openFolder, query, ::play) { k -> libGrids.getOrPut(k) { LazyGridState() } }
+                            2 -> FavoritesTab(prefs, app.store, visible.filter { it.uri.toString() in prefs.favs }, ::play, favGrid)
                             else -> {
                                 val l = visible.filter { it.uri.toString() in prefs.progress }.sortedByDescending { prefs.progress[it.uri.toString()]?.ts ?: 0L }
-                                HistoryTab(prefs, app.store, l, ::play)
+                                HistoryTab(prefs, app.store, l, ::play, histGrid)
                             }
                         } }
                     }

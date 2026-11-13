@@ -60,7 +60,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -224,12 +226,14 @@ fun VideoCollection(
     videos: List<Video>, prefs: Prefs, onClick: (Video) -> Unit,
     header: @Composable () -> Unit = {}, empty: @Composable () -> Unit = {},
     folders: List<Pair<String, Int>> = emptyList(), onFolder: (String) -> Unit = {},
+    state: LazyGridState = rememberLazyGridState(),
 ) {
     val folderMenu = LocalFolderMenu.current
     val row = prefs.layout == 1
     val phone = isPhoneScreen()
     val cols = phoneCols(prefs)
     LazyVerticalGrid(
+        state = state,
         columns = if (row) GridCells.Fixed(1) else if (phone) GridCells.Fixed(cols) else GridCells.Adaptive(listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)].dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
