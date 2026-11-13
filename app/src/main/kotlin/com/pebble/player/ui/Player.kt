@@ -314,6 +314,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var dur by remember { mutableLongStateOf(0L) }
     var pos by remember { mutableLongStateOf(0L) }
     var buffering by remember { mutableStateOf(true) }
+    // true once the video has really loaded (READY); controls stay hidden before that, even if loading ends in an error
+    var ready by remember(player) { mutableStateOf(player.playbackState == Player.STATE_READY) }
     var error by remember(video.id) { mutableStateOf<PlaybackException?>(null) }
     var failing by remember(video.id) { mutableStateOf<PlaybackException?>(null) } // error seen, screen still waiting
     var speed by remember { mutableFloatStateOf(prefs.speed) }
@@ -343,8 +345,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     DisposableEffect(player) {
         val l = object : Player.Listener {
             override fun onIsPlayingChanged(p: Boolean) { isPlaying = p }
+            override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) { ready = player.playbackState == Player.STATE_READY }
             override fun onPlaybackStateChanged(s: Int) {
                 buffering = s == Player.STATE_BUFFERING
+                if (s == Player.STATE_READY) ready = true
                 if (s == Player.STATE_READY) dur = player.duration.coerceAtLeast(0)
                 if (s == Player.STATE_ENDED && curAuto) {
                     (if (curShuffle) curQueue.filter { it.id != curId }.randomOrNull() else curNext)?.let { curSelect(it) }
@@ -419,7 +423,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     // the controls appear only after the video has loaded: buffering comes first
     var show by remember { mutableStateOf(false) }
     var firstShown by remember { mutableStateOf(false) }
-    LaunchedEffect(buffering) { if (!buffering && !firstShown) { firstShown = true; show = true } }
+    LaunchedEffect(ready) { if (ready && !firstShown) { firstShown = true; show = true } }
     var scrub by remember { mutableStateOf<Float?>(null) }
     // Frame-accurate progress (read only in layout/draw, so no recomposition per frame)
     val frac = remember { mutableFloatStateOf(0f) }
@@ -584,7 +588,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 },
         )
 
-        if ((buffering || failing != null) && error == null) Box(
+        if ((buffering || failing != null || !ready) && error == null) Box(
             Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,
         ) { androidx.compose.material3.LoadingIndicator(Modifier.size(56.dp)) }
@@ -642,7 +646,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             }
         }
 
-        PAnim(show, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
+        PAnim(show && ready, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
             val padEnd = endPad.coerceAtLeast(0.dp)
             val corner by animateDpAsState(if (isPlaying) 20.dp else 30.dp, label = "playCorner")
             val glass = pGlass

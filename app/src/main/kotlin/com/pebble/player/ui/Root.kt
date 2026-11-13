@@ -1,7 +1,6 @@
 package com.pebble.player.ui
 
 import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.foundation.layout.systemBars
 import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -227,6 +226,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         val barView = androidx.compose.ui.platform.LocalView.current
         LaunchedEffect(dark, playing == null) {
             val win = (barView.context as? android.app.Activity)?.window
+            // no grey scrim behind the phone's navigation buttons: they show the app's own bar colour
+            if (win != null) win.isNavigationBarContrastEnforced = false
             if (win != null && playing == null) androidx.core.view.WindowCompat.getInsetsController(win, barView).also {
                 it.isAppearanceLightStatusBars = !dark
                 it.isAppearanceLightNavigationBars = !dark
@@ -241,9 +242,12 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             exit = slideOutHorizontally(tween(380)) { -it } + shrinkHorizontally(tween(380)),
         ) { PebbleRail(tab) { tab = it } }
         Scaffold(
-            modifier = Modifier.weight(1f).windowInsetsPadding(WindowInsets.displayCutout.only(if (wide) WindowInsetsSides.End else WindowInsetsSides.Horizontal)),
-            // wide: the rail already clears the start-side navigation bar
-            contentWindowInsets = if (wide) WindowInsets.systemBars.only(WindowInsetsSides.Vertical + WindowInsetsSides.End) else ScaffoldDefaults.contentWindowInsets,
+            // camera notch and side navigation buttons: the whole page (header included) stays clear of them; the start side is left to the rail while it is shown
+            modifier = Modifier.weight(1f).let { m ->
+                val sides = if (wide && tab != 4) WindowInsetsSides.End else WindowInsetsSides.Horizontal
+                m.windowInsetsPadding(WindowInsets.navigationBars.only(sides)).windowInsetsPadding(WindowInsets.displayCutout.only(sides))
+            },
+            contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Vertical),
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
