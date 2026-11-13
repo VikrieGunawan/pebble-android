@@ -416,7 +416,10 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         }
     }
 
-    var show by remember { mutableStateOf(true) }
+    // the controls appear only after the video has loaded: buffering comes first
+    var show by remember { mutableStateOf(false) }
+    var firstShown by remember { mutableStateOf(false) }
+    LaunchedEffect(buffering) { if (!buffering && !firstShown) { firstShown = true; show = true } }
     var scrub by remember { mutableStateOf<Float?>(null) }
     // Frame-accurate progress (read only in layout/draw, so no recomposition per frame)
     val frac = remember { mutableFloatStateOf(0f) }
@@ -529,7 +532,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         }
 
         Box(
-            Modifier.fillMaxSize()
+            // gestures cover the video area only: with a side panel open, the thirds (rewind / pause / forward) are measured on the video
+            Modifier.fillMaxSize().padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp))
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { show = !show; tick++ },

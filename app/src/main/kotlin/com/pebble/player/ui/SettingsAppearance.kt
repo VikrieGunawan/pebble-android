@@ -134,7 +134,6 @@ private fun LookPreview(prefs: Prefs) {
     val cfg = LocalConfiguration.current
     val sw = cfg.screenWidthDp
     val sh = cfg.screenHeightDp.coerceAtLeast(1)
-    val ratio = (sw.toFloat() / sh).coerceIn(0.4f, 2.6f)
     val wide = (sw >= 744 && sh >= 560) || sw > sh
     val short = sh < 500
     val cols = if (isPhoneScreen()) phoneCols(prefs) else ((sw - 32) / (listOf(136, 168, 220)[prefs.gridSize.coerceIn(0, 2)] + 12)).coerceIn(1, 6)
@@ -191,8 +190,7 @@ private fun LookPreview(prefs: Prefs) {
         }
     }
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        val w = minOf(maxWidth, 280.dp * ratio)
-        Box(Modifier.width(w).aspectRatio(ratio).clip(frame).background(cs.background).border(1.5.dp, line, frame)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(frame).background(cs.background).border(1.5.dp, line, frame)) {
             if (wide) Row(Modifier.fillMaxSize()) {
                 Column(
                     Modifier.width(if (short) 28.dp else 36.dp).fillMaxHeight().background(cs.surfaceContainer)
