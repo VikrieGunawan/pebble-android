@@ -50,10 +50,10 @@ fun PlayerErrorScreen(e: PlaybackException, v: Video, onRetry: () -> Unit, onClo
     val appVer = remember { currentVersion(ctx) }
     val cause = e.cause?.let { "${it.javaClass.simpleName}: ${it.message ?: "-"}" } ?: "-"
     val details = listOf(
-        "Video" to v.name, "Format" to v.ext.ifEmpty { "-" }, "Size" to fmtSize(v.size), "Folder" to v.path.ifEmpty { v.folder },
-        "Error" to e.errorCodeName, "Code" to e.errorCode.toString(), "Cause" to cause,
-        "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", "Device" to "${Build.MANUFACTURER} ${Build.MODEL}",
-        "Player" to "Media3 ${MediaLibraryInfo.VERSION}", "App" to appVer,
+        t("Video") to v.name, t("Format") to v.ext.ifEmpty { "-" }, t("Size") to fmtSize(v.size), t("Folder") to v.path.ifEmpty { v.folder },
+        t("Error") to e.errorCodeName, t("Code") to e.errorCode.toString(), t("Cause") to cause,
+        "Android" to t("{0} (API {1})", Build.VERSION.RELEASE, Build.VERSION.SDK_INT), t("Device") to "${Build.MANUFACTURER} ${Build.MODEL}",
+        t("Player") to "Media3 ${MediaLibraryInfo.VERSION}", t("App") to appVer,
     )
     ErrorPage(e.errorCodeName, e.errorCode.toString(), e.message, details, onRetry, onClose)
 }
@@ -70,29 +70,29 @@ fun ErrorPage(name: String, code: String, message: String?, details: List<Pair<S
                 Icon("error", null, Modifier.size(38.dp), tint = Color(0xFFFF6B6B))
             }
             Spacer(Modifier.height(4.dp))
-            Text("An Error has Occurred", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Text(t("An Error has Occurred"), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
             Text(name, color = cs.primary, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
-            Text("Error code: $code", color = dim, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            if (!message.isNullOrBlank()) Text(message, color = dim, fontSize = 13.sp, textAlign = TextAlign.Center)
+            Text(t("Error code:") + " $code", color = dim, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            if (!message.isNullOrBlank()) Text(t(message), color = dim, fontSize = 13.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     Modifier.height(46.dp).clip(RoundedCornerShape(16.dp)).background(cs.primary).clickable(onClick = onRetry).padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) { Icon("refresh", null, Modifier.size(20.dp), tint = cs.onPrimary); Text("Try again", color = cs.onPrimary, fontWeight = FontWeight.ExtraBold) }
+                ) { Icon("refresh", null, Modifier.size(20.dp), tint = cs.onPrimary); Text(t("Try again"), color = cs.onPrimary, fontWeight = FontWeight.ExtraBold) }
                 Row(
                     Modifier.height(46.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x26FFFFFF)).clickable(onClick = onClose).padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) { Icon("arrow_back", null, Modifier.size(20.dp), tint = Color.White); Text("Go back", color = Color.White, fontWeight = FontWeight.ExtraBold) }
+                ) { Icon("arrow_back", null, Modifier.size(20.dp), tint = Color.White); Text(t("Go back"), color = Color.White, fontWeight = FontWeight.ExtraBold) }
             }
         }
     }
     val info: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("DETAILS", color = dim, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp)
+            Text(t("Details").uppercase(), color = dim, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp)
             details.forEach { (k, value) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(k, Modifier.width(72.dp), color = dim, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    Text(k, Modifier.width(96.dp), color = dim, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                     Text(value, Modifier.weight(1f), color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
             }
