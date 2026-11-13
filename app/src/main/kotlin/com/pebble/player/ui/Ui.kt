@@ -278,7 +278,7 @@ fun FolderTile(name: String, count: Int, row: Boolean, modifier: Modifier, onMor
             val bg: @Composable BoxScope.() -> Unit = { Box(Modifier.matchParentSize().then(sh("fbg-$name", 0f, true)).background(cs.surfaceContainer, RoundedCornerShape(24.dp))) }
             val title: @Composable () -> Unit = { Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = sh("ft-$name", 1f, true).fillMaxWidth()) }
             val sub: @Composable () -> Unit = {
-                Text("$count video${if (count == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, modifier = sh("fs-$name", 1f, true).fillMaxWidth())
+                Text(videoCount(count), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1, modifier = sh("fs-$name", 1f, true).fillMaxWidth())
             }
             val more: @Composable () -> Unit = {
                 if (onMore != null) Box(sh("fm-$name", 1f, false).size(40.dp).clip(CircleShape).clickable(onClick = onMore), contentAlignment = Alignment.Center) {

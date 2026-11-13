@@ -64,7 +64,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private fun fmtLong(ms: Long): String { val m = ms / 60000; val h = m / 60; return if (h > 0) "${h}h ${m % 60}m" else "${m}m" }
+private fun fmtLong(ms: Long): String { val m = ms / 60000; val h = m / 60; return if (h > 0) t("{0}h {1}m", h, m % 60) else t("{0}m", m) }
 
 @Composable
 fun rememberThumb(v: Video): ImageBitmap? {
@@ -124,7 +124,7 @@ private fun FolderCard(name: String, count: Int, onClick: () -> Unit) {
         Box(Modifier.size(40.dp).clip(CircleShape).background(cs.primaryContainer), contentAlignment = Alignment.Center) { Icon("folder", null, Modifier.size(22.dp), tint = cs.onPrimaryContainer) }
         Column {
             Text(name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(t("{0} videos", count), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            Text(videoCount(count), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         }
     }
 }
@@ -183,7 +183,7 @@ fun HomeTab(
         }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatPill("video_library", t("{0} videos", videos.size))
+            StatPill("video_library", videoCount(videos.size))
             StatPill("schedule", fmtLong(videos.sumOf { it.dur }))
             StatPill("folder", t("{0} folders", folders.size))
         }
@@ -237,7 +237,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
     val compact = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
     val top: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        PageHeader("video_library", t("Library"), "${shown.size} videos · ${fmtLong(shown.sumOf { it.dur })} · ${fmtSize(shown.sumOf { it.size })}")
+        PageHeader("video_library", t("Library"), videoCount(shown.size) + " · ${fmtLong(shown.sumOf { it.dur })} · ${fmtSize(shown.sumOf { it.size })}")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 Modifier.weight(1f).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).clickable { sortMenu = true }.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -245,7 +245,7 @@ fun LibraryTab(prefs: Prefs, store: Store, videos: List<Video>, folder: String?,
             ) {
                 Icon("sort", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)
                 Column(Modifier.weight(1f)) {
-                    Text("SORT BY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
+                    Text(t("Sort by").uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 1.sp)
                     Text(sorts[prefs.sort.coerceIn(0, 3)], fontWeight = FontWeight.Bold, maxLines = 1)
                 }
                 Icon("expand_more", null, Modifier.size(22.dp), tint = cs.onSurfaceVariant)

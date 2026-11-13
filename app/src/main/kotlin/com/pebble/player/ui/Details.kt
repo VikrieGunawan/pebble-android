@@ -51,7 +51,6 @@ import com.pebble.player.data.Prefs
 import com.pebble.player.data.Video
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 /** Details of one video: picture, key numbers, where it lives and how far you watched. */
 @Composable
@@ -62,7 +61,7 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
     val prog = prefs.progress[key]
     val fav = key in prefs.favs
     val added = remember(v.added) {
-        if (v.added <= 0L) "-" else SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date(if (v.added < 100_000_000_000L) v.added * 1000 else v.added))
+        if (v.added <= 0L) "-" else SimpleDateFormat("d MMM yyyy, HH:mm", appLocale()).format(Date(if (v.added < 100_000_000_000L) v.added * 1000 else v.added))
     }
     val place = v.path.ifEmpty { v.folder }
     val ctx = LocalContext.current

@@ -82,7 +82,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
                 Column(Modifier.weight(1f)) {
                     Text(f.name.ifBlank { t("Videos") }, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        if (off) t("Hidden from your library") else "${f.count} videos · ${fmtSize(f.bytes)}",
+                        if (off) t("Hidden from your library") else videoCount(f.count) + " · ${fmtSize(f.bytes)}",
                         style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1,
                     )
                     Text(f.path, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)

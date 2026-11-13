@@ -67,9 +67,9 @@ private fun codecName(mime: String?): String = when (mime) {
 }
 
 private fun language(code: String?): String? =
-    code?.takeIf { it.isNotBlank() && it != "und" }?.let { Locale.forLanguageTag(it).getDisplayLanguage(Locale.ENGLISH).ifBlank { it } }
+    code?.takeIf { it.isNotBlank() && it != "und" }?.let { Locale.forLanguageTag(it).getDisplayLanguage(appLocale()).replaceFirstChar { c -> c.uppercase() }.ifBlank { it } }
 
-private fun channels(n: Int) = when (n) { 1 -> "Mono"; 2 -> "Stereo"; 6 -> "5.1"; 8 -> "7.1"; else -> "$n ch" }
+private fun channels(n: Int) = when (n) { 1 -> t("Mono"); 2 -> t("Stereo"); 6 -> "5.1"; 8 -> "7.1"; else -> t("{0} ch", n) }
 
 private fun mbps(bps: Int) = if (bps >= 1_000_000) "%.1f Mbps".format(bps / 1_000_000.0) else "${bps / 1000} kbps"
 
@@ -146,7 +146,7 @@ internal suspend fun loadVideoInfo(ctx: Context, v: Video): VideoInfo = withCont
     val rh = if (vf != null && vf.height > 0) (if (swap) vf.width else vf.height) else h
     val resolution = if (rw > 0 && rh > 0) {
         val long = maxOf(rw, rh); val short = minOf(rw, rh)
-        val tag = when { short >= 2160 || long >= 3800 -> "4K"; short >= 1440 || long >= 2500 -> "2K"; short >= 1080 || long >= 1900 -> "Full HD"; short >= 720 || long >= 1280 -> "HD"; else -> "SD" }
+        val tag = when { short >= 2160 || long >= 3800 -> "4K"; short >= 1440 || long >= 2500 -> "2K"; short >= 1080 || long >= 1900 -> t("Full HD"); short >= 720 || long >= 1280 -> "HD"; else -> "SD" }
         "$rw × $rh · $tag"
     } else null
 
@@ -188,7 +188,7 @@ internal suspend fun loadVideoInfo(ctx: Context, v: Video): VideoInfo = withCont
         } else null
         listOfNotNull(head, space).joinToString("\n")
     } catch (_: Exception) { null }
-    val mod = modified.takeIf { it > 0 }?.let { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date(it * 1000)) }
+    val mod = modified.takeIf { it > 0 }?.let { SimpleDateFormat("d MMM yyyy, HH:mm", appLocale()).format(Date(it * 1000)) }
 
     VideoInfo(resolution, videoLine, audio, subs, containerName(mime, v.ext), source, storage, mod)
 }

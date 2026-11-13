@@ -309,7 +309,7 @@ fun FolderMenuSheet(path: String, videos: List<Video>, prefs: Prefs, store: Stor
                 IconTile("folder", 48.dp, filled = true)
                 Column(Modifier.weight(1f)) {
                     Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${vids.size} video${if (vids.size == 1) "" else "s"} · ${fmtSize(vids.sumOf { it.size })}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    Text(videoCount(vids.size) + " · ${fmtSize(vids.sumOf { it.size })}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

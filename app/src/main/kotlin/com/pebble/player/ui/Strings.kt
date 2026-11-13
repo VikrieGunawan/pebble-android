@@ -27,6 +27,11 @@ fun t(s: String, vararg a: Any): String {
     return r
 }
 
+/** Locale of the chosen app language (dates, language names). */
+fun appLocale(): Locale = Locale.forLanguageTag(Lang.order[Lang.index()])
+
+fun videoCount(n: Int): String = if (n == 1) t("1 video") else t("{0} videos", n)
+
 fun t(s: String): String {
     val i = Lang.index()
     if (i == 0) return s
@@ -550,4 +555,10 @@ If a device disconnects, the video will pause. Change this in Settings → Playb
 {0} folder(s) are hidden from Home, Library and search.|{0} folder disembunyikan dari Beranda, Pustaka, dan pencarian.|{0} carpeta(s) ocultas en Inicio, Biblioteca y búsqueda.|{0} dossier(s) masqué(s) dans Accueil, Bibliothèque et la recherche.|{0} Ordner sind in Start, Mediathek und Suche ausgeblendet.|{0} pasta(s) ocultas em Início, Biblioteca e pesquisa.|{0} cartella/e nascosta/e da Home, Libreria e ricerca.|Скрыто папок: {0} (в главной, библиотеке и поиске).|{0} 個のフォルダがホーム、ライブラリ、検索で非表示です。|폴더 {0}개가 홈, 보관함, 검색에서 숨겨져 있어요.|{0} 个文件夹已在主页、媒体库和搜索中隐藏。|{0} مجلد(ات) مخفية من الرئيسية والمكتبة والبحث.|{0} फ़ोल्डर होम, लाइब्रेरी और खोज से छिपे हैं।|{0} klasör Ana sayfa, Kitaplık ve aramadan gizlendi.|{0} thư mục bị ẩn khỏi Trang chủ, Thư viện và tìm kiếm.|ซ่อน {0} โฟลเดอร์จากหน้าแรก คลัง และการค้นหา|{0} map(pen) zijn verborgen in Start, Bibliotheek en zoeken.|Ukryte foldery ({0}) nie są widoczne w Strona główna, Biblioteka i wyszukiwaniu.|{0} папок приховано з Головної, Бібліотеки та пошуку.|{0} folder disembunyikan daripada Utama, Pustaka dan carian.
 Package|Paket|Paquete|Paquet|Paket|Pacote|Pacchetto|Пакет|パッケージ|패키지|包名|الحزمة|पैकेज|Paket|Gói|แพ็กเกจ|Pakket|Pakiet|Пакет|Pakej
 resumes|melanjutkan|reanuda|reprend|setzt fort|retoma|riprende|продолжает|再開|이어보기|续播|يستأنف|फिर शुरू|devam eder|tiếp tục|เล่นต่อ|hervat|wznawia|відновлює|menyambung
+Full HD|HD Penuh|HD completa|Full HD|Full HD|Full HD|Full HD|Full HD|フルHD|풀HD|全高清|فل إتش دي|फ़ुल HD|Tam HD|Full HD|Full HD|Full HD|Full HD|Full HD|HD Penuh
+{0} ch|{0} saluran|{0} canales|{0} canaux|{0} Kanäle|{0} canais|{0} canali|{0} кан.|{0}ch|{0}채널|{0} 声道|{0} قنوات|{0} चैनल|{0} kanal|{0} kênh|{0} ช่อง|{0} kanalen|{0} kan.|{0} кан.|{0} saluran
+{0}h {1}m|{0}j {1}m|{0} h {1} min|{0} h {1} min|{0} Std. {1} Min.|{0} h {1} min|{0} h {1} min|{0} ч {1} мин|{0}時間{1}分|{0}시간 {1}분|{0}小时{1}分钟|{0} س {1} د|{0} घं {1} मि|{0} sa {1} dk|{0} giờ {1} phút|{0} ชม. {1} นาที|{0} u {1} min|{0} godz. {1} min|{0} год {1} хв|{0}j {1}m
+{0}m|{0}m|{0} min|{0} min|{0} Min.|{0} min|{0} min|{0} мин|{0}分|{0}분|{0}分钟|{0} د|{0} मि|{0} dk|{0} phút|{0} นาที|{0} min|{0} min|{0} хв|{0}m
+{0} (API {1})|{0} (level API {1})|{0} (nivel de API {1})|{0} (niveau d'API {1})|{0} (API-Level {1})|{0} (nível da API {1})|{0} (livello API {1})|{0} (уровень API {1})|{0}(APIレベル {1})|{0} (API 레벨 {1})|{0}（API 级别 {1}）|{0} (مستوى API {1})|{0} (API स्तर {1})|{0} (API düzeyi {1})|{0} (API cấp {1})|{0} (API ระดับ {1})|{0} (API-niveau {1})|{0} (poziom API {1})|{0} (рівень API {1})|{0} (tahap API {1})
+1 video|1 video|1 vídeo|1 vidéo|1 Video|1 vídeo|1 video|1 видео|動画 1 本|동영상 1개|1 个视频|فيديو واحد|1 वीडियो|1 video|1 video|1 วิดีโอ|1 video|1 film|1 відео|1 video
 """.trimIndent()

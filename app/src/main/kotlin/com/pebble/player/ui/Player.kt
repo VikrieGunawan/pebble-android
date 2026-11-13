@@ -166,7 +166,7 @@ internal val ORIENTS get() = listOf(t("Auto"), t("Portrait"), t("Landscape"))
 internal fun fmtSpeed(v: Float): String = String.format(java.util.Locale.US, "%.2f", v).trimEnd('0').trimEnd('.') + "×"
 
 private fun trackLabel(f: Format, i: Int, kind: String): String =
-    f.label ?: f.language?.takeIf { it != "und" }?.let { java.util.Locale.forLanguageTag(it).displayLanguage.ifBlank { it } } ?: "$kind ${i + 1}"
+    f.label ?: f.language?.takeIf { it != "und" }?.let { java.util.Locale.forLanguageTag(it).getDisplayLanguage(appLocale()).replaceFirstChar { c -> c.uppercase() }.ifBlank { it } } ?: "$kind ${i + 1}"
 
 internal tailrec fun Context.activity(): Activity? = when (this) {
     is Activity -> this

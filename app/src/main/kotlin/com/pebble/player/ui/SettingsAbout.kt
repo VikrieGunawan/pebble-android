@@ -42,10 +42,10 @@ internal fun AboutPage() {
     val version = currentVersion(ctx)
     val pi = remember { try { ctx.packageManager.getPackageInfo(ctx.packageName, 0) } catch (_: Exception) { null } }
     val build = if (pi == null) "?" else if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode.toString() else @Suppress("DEPRECATION") pi.versionCode.toString()
-    val updated = pi?.let { java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(it.lastUpdateTime)) } ?: "—"
+    val updated = pi?.let { java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, appLocale()).format(java.util.Date(it.lastUpdateTime)) } ?: "—"
     val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
     val device = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"
-    val android = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
+    val android = "Android " + t("{0} (API {1})", Build.VERSION.RELEASE, Build.VERSION.SDK_INT)
     val info = "Pebble Player v$version\n${ctx.packageName}\n$device\n$android\nABI: $abi"
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {

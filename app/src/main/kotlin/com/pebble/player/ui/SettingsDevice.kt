@@ -248,7 +248,7 @@ fun DevicePage() {
         SectionLabel("info", t("This device"))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             InfoTile("phone_android", t("Model"), Build.MODEL, Modifier.weight(1f))
-            InfoTile("memory", "Android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", Modifier.weight(1f))
+            InfoTile("memory", "Android", t("{0} (API {1})", Build.VERSION.RELEASE, Build.VERSION.SDK_INT), Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             InfoTile("screenshot_monitor", t("Screen"), "${dm.widthPixels} × ${dm.heightPixels}", Modifier.weight(1f))
