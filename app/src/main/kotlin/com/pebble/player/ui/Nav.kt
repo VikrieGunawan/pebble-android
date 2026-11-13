@@ -1,6 +1,8 @@
 package com.pebble.player.ui
 
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -105,13 +107,22 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
     // the rail background runs under the camera notch; only its content stays clear of it
     val dir = androidx.compose.ui.platform.LocalLayoutDirection.current
-    val insetPad = WindowInsets.displayCutout.only(WindowInsetsSides.Start).asPaddingValues()
-    val startInset = maxOf(insetPad.calculateLeftPadding(dir), insetPad.calculateRightPadding(dir))
+    // camera notch and (3-button navigation) the navigation bar can both sit on the start side
+    val cutPad = WindowInsets.displayCutout.only(WindowInsetsSides.Start).asPaddingValues()
+    val navPad = WindowInsets.navigationBars.only(WindowInsetsSides.Start).asPaddingValues()
+    val startInset = maxOf(
+        cutPad.calculateLeftPadding(dir), cutPad.calculateRightPadding(dir),
+        navPad.calculateLeftPadding(dir), navPad.calculateRightPadding(dir),
+    )
     val line = cs.outlineVariant
     Column(
-        Modifier.width(92.dp + startInset).fillMaxHeight().background(cs.surfaceContainer).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
+        Modifier.width(92.dp + startInset).fillMaxHeight().background(cs.surfaceContainer)
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Start))
+            .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
             .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }
-            .statusBarsPadding().navigationBarsPadding().padding(horizontal = 8.dp, vertical = if (short) 6.dp else 20.dp),
+            .windowInsetsPadding(WindowInsets.statusBars.only(WindowInsetsSides.Top))
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+            .padding(horizontal = 8.dp, vertical = if (short) 6.dp else 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (short) 2.dp else 10.dp),
     ) {
         Column(

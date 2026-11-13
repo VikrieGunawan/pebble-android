@@ -255,10 +255,12 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
     val frac = if (total > 0) (done.toFloat() / total).coerceIn(0f, 1f) else 0f
     val animFrac by animateFloatAsState(frac, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "dl")
     val busy = phase == Phase.Loading
+    val cfg = androidx.compose.ui.platform.LocalConfiguration.current
+    val land = cfg.screenWidthDp > cfg.screenHeightDp
 
     Dialog(onDismissRequest = { if (!busy) onLater() }, properties = DialogProperties(dismissOnBackPress = !busy, dismissOnClickOutside = !busy)) {
         PAnim(shown, enter = scaleIn(tween(320), initialScale = 0.88f) + fadeIn(tween(220))) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainerHigh)) {
+            Column(Modifier.fillMaxWidth().heightIn(max = (cfg.screenHeightDp - 24).dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainerHigh).verticalScroll(rememberScrollState())) {
                 Box(
                     Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(cs.primary, cs.tertiary))).padding(vertical = 26.dp),
                     contentAlignment = Alignment.Center,
@@ -304,7 +306,7 @@ fun UpdateDialog(info: UpdateInfo, onLater: () -> Unit, onSkip: () -> Unit) {
                                     Icon("info", null, Modifier.size(18.dp), tint = cs.primary)
                                     Text("WHAT'S NEW", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = cs.onSurfaceVariant, letterSpacing = 0.8.sp)
                                 }
-                                Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Column((if (land) Modifier else Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                     info.notes.forEach { (title, lines) ->
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             if (title.isNotBlank()) Text(

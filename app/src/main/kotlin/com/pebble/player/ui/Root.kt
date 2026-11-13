@@ -1,6 +1,8 @@
 package com.pebble.player.ui
 
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.foundation.layout.systemBars
 import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.layout.statusBarsPadding
 import android.widget.Toast
@@ -240,6 +242,8 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
         ) { PebbleRail(tab) { tab = it } }
         Scaffold(
             modifier = Modifier.weight(1f).windowInsetsPadding(WindowInsets.displayCutout.only(if (wide) WindowInsetsSides.End else WindowInsetsSides.Horizontal)),
+            // wide: the rail already clears the start-side navigation bar
+            contentWindowInsets = if (wide) WindowInsets.systemBars.only(WindowInsetsSides.Vertical + WindowInsetsSides.End) else ScaffoldDefaults.contentWindowInsets,
             topBar = {
                 PebbleTopBar(
                     showLogo = !wide, query = query, onQuery = { query = it; if (it.isNotEmpty() && tab != 1 && tab != 4) tab = 1 },
