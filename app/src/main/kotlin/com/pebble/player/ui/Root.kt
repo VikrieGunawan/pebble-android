@@ -4,7 +4,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.foundation.layout.systemBars
 import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.layout.statusBarsPadding
-import android.widget.Toast
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.rememberScrollState
@@ -201,7 +200,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
             if (first && app.media.reindex() > 0) all = app.media.scan()
             if (refreshing) {
                 val n = all.count { it.id !in before }
-                Toast.makeText(ctx, when (n) { 0 -> t("No new videos found"); 1 -> t("1 new video added"); else -> t("{0} new videos added", n) }, Toast.LENGTH_SHORT).show()
+                pebbleToast(ctx, when (n) { 0 -> t("No new videos found"); 1 -> t("1 new video added"); else -> t("{0} new videos added", n) })
             }
         }
         if (refreshing) { delay(700); refreshing = false }
@@ -265,7 +264,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                     onToggleTheme = {
                         val nx = (prefs.theme + 1) % 3
                         scope.launch { app.store.put(K.theme, nx) }
-                        Toast.makeText(ctx, t("Theme") + ": " + listOf(t("Same as device"), t("Light"), t("Dark"))[nx], Toast.LENGTH_SHORT).show()
+                        pebbleToast(ctx, t("Theme") + ": " + listOf(t("Same as device"), t("Light"), t("Dark"))[nx])
                     },
                     profile = prefs.profile, onProfile = { profileDialog = true },
                 )

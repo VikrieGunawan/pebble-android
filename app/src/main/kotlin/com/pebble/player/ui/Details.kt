@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -186,6 +185,6 @@ private fun CopyBtn(text: String) {
     val ctx = LocalContext.current
     ActionBtn("content_copy", t("Copy location"), true) {
         (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Pebble", text))
-        Toast.makeText(ctx, t("Copied"), Toast.LENGTH_SHORT).show()
+        pebbleToast(ctx, t("Copied"))
     }
 }

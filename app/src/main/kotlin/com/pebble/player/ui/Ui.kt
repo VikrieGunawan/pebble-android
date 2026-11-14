@@ -166,6 +166,13 @@ fun SectionLabel(icon: String, text: String, count: Int? = null) {
     }
 }
 
+/** One toast at a time: a new one replaces the old at once instead of queuing behind it (the same on every Android version). */
+private var lastToast: android.widget.Toast? = null
+fun pebbleToast(ctx: android.content.Context, msg: String, long: Boolean = false) {
+    lastToast?.cancel()
+    lastToast = android.widget.Toast.makeText(ctx.applicationContext, msg, if (long) android.widget.Toast.LENGTH_LONG else android.widget.Toast.LENGTH_SHORT).also { it.show() }
+}
+
 /** Grid / list switch (the website's two-button toggle). */
 /** Phones (short side under 600dp) get fixed columns; tablets keep the adaptive grid. */
 @Composable

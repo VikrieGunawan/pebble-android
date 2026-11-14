@@ -15,7 +15,6 @@ import kotlinx.coroutines.withContext
 import android.content.Intent
 import android.os.Build
 import android.provider.MediaStore
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -104,7 +103,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
     var busy by remember { mutableStateOf<String?>(null) }
     var copyMode by remember { mutableStateOf(true) }
     var afterWrite by remember { mutableStateOf<(() -> Unit)?>(null) }
-    fun toast(s: String) = Toast.makeText(ctx, s, Toast.LENGTH_SHORT).show()
+    fun toast(s: String) = pebbleToast(ctx, s)
     fun realName(): String {
         val n = try {
             ctx.contentResolver.query(v.uri, arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
@@ -220,8 +219,8 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
                 confirmDel = false
                 if (Build.VERSION.SDK_INT >= 30) {
                     try { delLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(MediaStore.createDeleteRequest(ctx.contentResolver, listOf(v.uri)).intentSender).build()) }
-                    catch (_: Exception) { Toast.makeText(ctx, t("Couldn't delete"), Toast.LENGTH_SHORT).show() }
-                } else Toast.makeText(ctx, t("Delete needs Android 11 or newer"), Toast.LENGTH_SHORT).show()
+                    catch (_: Exception) { pebbleToast(ctx, t("Couldn't delete")) }
+                } else pebbleToast(ctx, t("Delete needs Android 11 or newer"))
             }) { Text(t("Delete"), color = cs.error) }
         },
         dismissButton = { TextButton({ confirmDel = false }) { Text(t("Cancel")) } },

@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -207,7 +206,7 @@ private suspend fun download(ctx: Context, info: UpdateInfo, onProgress: (Long, 
 /** Opens Android's own installer. If installs from this app aren't allowed yet, opens that setting first. */
 private fun install(ctx: Context, f: File) {
     if (Build.VERSION.SDK_INT >= 26 && !ctx.packageManager.canRequestPackageInstalls()) {
-        Toast.makeText(ctx, t("Allow installs from Pebble Player, then tap Install again"), Toast.LENGTH_LONG).show()
+        pebbleToast(ctx, t("Allow installs from Pebble Player, then tap Install again"), true)
         ctx.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         return
     }
@@ -396,8 +395,8 @@ fun UpdateRow() {
             scope.launch {
                 val r = fetchUpdate(ctx)
                 busy = false
-                r.onSuccess { u -> if (u == null) Toast.makeText(ctx, t("You're up to date"), Toast.LENGTH_SHORT).show() else found = u }
-                    .onFailure { Toast.makeText(ctx, t("Couldn't check for updates"), Toast.LENGTH_SHORT).show() }
+                r.onSuccess { u -> if (u == null) pebbleToast(ctx, t("You're up to date")) else found = u }
+                    .onFailure { pebbleToast(ctx, t("Couldn't check for updates")) }
             }
         }.padding(14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),

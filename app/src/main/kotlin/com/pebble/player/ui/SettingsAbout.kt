@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,7 +80,7 @@ internal fun AboutPage() {
         PlayCard {
             AboutAction("content_copy", t("Copy app info")) {
                 (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Pebble Player", info))
-                Toast.makeText(ctx, t("Copied"), Toast.LENGTH_SHORT).show()
+                pebbleToast(ctx, t("Copied"))
             }
             AboutAction("share", t("Share Pebble Player")) {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, "Pebble Player – a calm, fast video player\n$REPO")
@@ -89,7 +88,7 @@ internal fun AboutPage() {
             }
             AboutAction("open_in_new", t("Source code on GitHub")) {
                 try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (_: Exception) { Toast.makeText(ctx, t("No browser found"), Toast.LENGTH_SHORT).show() }
+                catch (_: Exception) { pebbleToast(ctx, t("No browser found")) }
             }
         }
 

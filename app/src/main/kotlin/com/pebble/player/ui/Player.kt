@@ -36,7 +36,6 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.SystemClock
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
@@ -203,6 +202,14 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     PLIGHT = MaterialTheme.colorScheme.background.luminance() > 0.5f
     val ctx = LocalContext.current
     val act = remember { ctx.activity() }
+    // floating window (picture-in-picture): subtitles must shrink or they cover the picture
+    var inPip by remember { mutableStateOf(act?.isInPictureInPictureMode == true) }
+    DisposableEffect(act) {
+        val ca = act as? androidx.activity.ComponentActivity
+        val l = androidx.core.util.Consumer<androidx.core.app.PictureInPictureModeChangedInfo> { inPip = it.isInPictureInPictureMode }
+        ca?.addOnPictureInPictureModeChangedListener(l)
+        onDispose { ca?.removeOnPictureInPictureModeChangedListener(l) }
+    }
     val scope = rememberCoroutineScope()
     val am = remember { ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val uriStr = video.uri.toString()
@@ -306,7 +313,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             val w = sleepEnd - SystemClock.elapsedRealtime()
             if (w > 0) delay(w)
             player.pause(); sleepEnd = 0L
-            Toast.makeText(ctx, t("Sleep timer ended"), Toast.LENGTH_SHORT).show()
+            pebbleToast(ctx, t("Sleep timer ended"))
         }
     }
 
@@ -333,7 +340,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         val u = subUri
         if (u != null && isAssName(subName)) {
             assScript = withContext(Dispatchers.IO) { runCatching { ctx.contentResolver.openInputStream(u)!!.bufferedReader().use { parseAss(it.readText()) } }.getOrNull() }
-            if (assScript == null) Toast.makeText(ctx, t("Couldn't read this subtitle file"), Toast.LENGTH_SHORT).show()
+            if (assScript == null) pebbleToast(ctx, t("Couldn't read this subtitle file"))
         }
     }
     val cueLines = remember(cueList) { cueItems(cueList) }
@@ -496,7 +503,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         try {
             show = false; panel = null
             act?.enterPictureInPictureMode(pipParams())
-        } catch (_: Exception) { Toast.makeText(ctx, t("Picture-in-picture isn't available"), Toast.LENGTH_SHORT).show() }
+        } catch (_: Exception) { pebbleToast(ctx, t("Picture-in-picture isn't available")) }
     }
     LaunchedEffect(isPlaying, prev, next, vSize) { if (act?.isInPictureInPictureMode == true) act.setPictureInPictureParams(pipParams()) }
     fun go(v: Video?) { if (v != null) onSelect(v) }
@@ -632,16 +639,17 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         else if (subs && assMode && cueLines.isNotEmpty()) SubLayer(cueLines, vSize, noTime, subArea)
         if (subs && !assMode && cueText.isNotBlank()) {
             val subBottom by animateDpAsState(if (show) 112.dp else 30.dp, label = "subBottom")
-            val sp = listOf(14, 16, 19, 24)[subSize].sp
+            val sp = if (inPip) listOf(8, 9, 10, 12)[subSize].sp else listOf(14, 16, 19, 24)[subSize].sp
             Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cutV).navigationBarsPadding()
+                if (inPip) Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp).heightIn(max = maxHeight * 0.4f)
+                else Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cutV).navigationBarsPadding()
                     .padding(start = 28.dp + sideInset, end = 28.dp + sideInset + endPad.coerceAtLeast(0.dp), bottom = subBottom.coerceAtLeast(0.dp)).heightIn(max = maxHeight * 0.5f),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Text(
                     cueText, color = Color.White, textAlign = TextAlign.Center,
                     style = TextStyle(fontSize = sp, lineHeight = sp * 1.35f, fontWeight = FontWeight.SemiBold, shadow = if (subBg == 0) Shadow(Color.Black, Offset(0f, 2f), 6f) else null),
-                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(when (subBg) { 0 -> Color.Transparent; 1 -> Color(0xBD0A0814); else -> Color(0xF0000000) }).padding(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(if (inPip) 6.dp else 14.dp)).background(when (subBg) { 0 -> Color.Transparent; 1 -> Color(0xBD0A0814); else -> Color(0xF0000000) }).padding(horizontal = if (inPip) 5.dp else 14.dp, vertical = if (inPip) 2.dp else 6.dp),
                 )
             }
         }
@@ -666,7 +674,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                     }
                     Row(Modifier.clip(RoundedCornerShape(22.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(22.dp)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                         PBtn("screen_rotation", t("Rotate"), 36.dp, bg = if (orient != 0) cs.primary else Color.Transparent, tint = if (orient != 0) cs.onPrimary else pFg,
-                            onClick = { orient = (orient + 1) % 3; Toast.makeText(ctx, ORIENTS[orient], Toast.LENGTH_SHORT).show() })
+                            onClick = { orient = (orient + 1) % 3; pebbleToast(ctx, ORIENTS[orient]) })
                         PBtn("queue_music", t("Queue"), 36.dp, bg = if (panel == "queue") cs.primary else Color.Transparent, tint = if (panel == "queue") cs.onPrimary else pFg, onClick = { togglePanel("queue") })
                     }
                 }
@@ -942,7 +950,7 @@ private fun AudioOutputDialog(am: AudioManager, player: ExoPlayer, onLost: Int, 
                 devices = listOutputs(am)
                 removed.firstOrNull { isBt(it) || it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET }?.let {
                     if (it.id == chosen) { chosen = -1; route(null) }
-                    Toast.makeText(ctx, "${deviceLabel(it)} disconnected" + if (lostPolicy == 1) " · still playing" else " · paused", Toast.LENGTH_SHORT).show()
+                    pebbleToast(ctx, "${deviceLabel(it)} disconnected" + if (lostPolicy == 1) " · still playing" else " · paused")
                 }
             }
         }
