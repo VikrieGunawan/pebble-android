@@ -13,8 +13,8 @@ android {
         applicationId = "com.pebble.player"
         minSdk = 29          // Android 10
         targetSdk = 36       // Android 16
-        versionCode = 9
-        versionName = "1.1.4"
+        versionCode = 10
+        versionName = "1.1.5"
     }
 
     // One fixed key for every build, so updates install over the old version.
@@ -86,4 +86,5 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
     implementation(libs.media3.common)
+    implementation(libs.miuix.ui)
 }
