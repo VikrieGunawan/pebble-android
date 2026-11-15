@@ -573,4 +573,8 @@ Code|Kode|Código|Code|Code|Código|Codice|Код|コード|코드|代码|الر
 Cause|Penyebab|Causa|Cause|Ursache|Causa|Causa|Причина|原因|원인|原因|السبب|कारण|Neden|Nguyên nhân|สาเหตุ|Oorzaak|Przyczyna|Причина|Punca
 Player|Pemutar|Reproductor|Lecteur|Player|Reprodutor|Lettore|Плеер|プレーヤー|플레이어|播放器|المشغّل|प्लेयर|Oynatıcı|Trình phát|เครื่องเล่น|Speler|Odtwarzacz|Плеєр|Pemain
 App|Aplikasi|App|Appli|App|App|App|Приложение|アプリ|앱|应用|التطبيق|ऐप|Uygulama|Ứng dụng|แอป|App|Aplikacja|Застосунок|Aplikasi
+Interface style|Gaya antarmuka|Estilo de interfaz|Style d'interface|Oberflächenstil|Estilo da interface|Stile dell'interfaccia|Стиль интерфейса|UIスタイル|인터페이스 스타일|界面风格|نمط الواجهة|इंटरफ़ेस शैली|Arayüz stili|Kiểu giao diện|สไตล์อินเทอร์เฟซ|Interfacestijl|Styl interfejsu|Стиль інтерфейсу|Gaya antara muka
+The look of the whole app.|Tampilan seluruh aplikasi.|El aspecto de toda la app.|L'apparence de toute l'application.|Das Aussehen der ganzen App.|A aparência de todo o app.|L'aspetto di tutta l'app.|Внешний вид всего приложения.|アプリ全体の見た目。|앱 전체의 모양입니다.|整个应用的外观。|مظهر التطبيق بالكامل.|पूरे ऐप का रूप।|Uygulamanın tüm görünümü.|Giao diện của toàn bộ ứng dụng.|รูปลักษณ์ของทั้งแอป|Het uiterlijk van de hele app.|Wygląd całej aplikacji.|Вигляд усього застосунку.|Rupa seluruh aplikasi.
+Experimental|Eksperimental|Experimental|Expérimental|Experimentell|Experimental|Sperimentale|Экспериментально|試験的|실험적|实验性|تجريبي|प्रयोगात्मक|Deneysel|Thử nghiệm|ทดลอง|Experimenteel|Eksperymentalne|Експериментально|Eksperimen
+Default|Bawaan|Predeterminado|Par défaut|Standard|Padrão|Predefinito|По умолчанию|デフォルト|기본값|默认|افتراضي|डिफ़ॉल्ट|Varsayılan|Mặc định|ค่าเริ่มต้น|Standaard|Domyślne|Типово|Lalai
 """.trimIndent()

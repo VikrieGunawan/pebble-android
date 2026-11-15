@@ -184,10 +184,18 @@ fun Icon(name: String, contentDescription: String?, modifier: Modifier = Modifie
 /** Material 3 switch with a check (on) / cross (off) inside the thumb. */
 @Composable
 fun PebbleSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Switch(
+    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.Switch(checked = checked, onCheckedChange = onChange, modifier = modifier)
+    else androidx.compose.material3.Switch(
         checked = checked, onCheckedChange = onChange, modifier = modifier,
         thumbContent = { Icon(if (checked) "check" else "close", null, Modifier.size(16.dp)) },
     )
+}
+
+/** Radio button: the Miuix one inside the Miuix style. */
+@Composable
+fun PebbleRadio(selected: Boolean, onClick: () -> Unit) {
+    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.RadioButton(selected = selected, onClick = onClick)
+    else androidx.compose.material3.RadioButton(selected = selected, onClick = onClick)
 }
 
 /** Scope-free AnimatedVisibility: avoids the ColumnScope/RowScope extension being picked inside nested Box/Column. */
@@ -216,7 +224,10 @@ fun PebbleSlider(
     steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    Slider(
+    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.Slider(
+        value = value, onValueChange = onValueChange, modifier = modifier,
+        valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
+    ) else Slider(
         value = value, onValueChange = onValueChange, modifier = modifier,
         valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
     )

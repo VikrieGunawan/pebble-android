@@ -88,7 +88,9 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
 
 @Composable
 internal fun PlayCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(
+    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.Card(modifier.fillMaxWidth(), insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+    } else Column(
         modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp), content = content,
     )

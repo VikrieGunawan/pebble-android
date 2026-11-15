@@ -54,19 +54,19 @@ private fun RowScope.Tinted(color: Color, content: @Composable RowScope.() -> Un
 @Composable
 fun Button(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, shapes: ButtonShapes? = null, content: @Composable RowScope.() -> Unit) {
     if (LocalMiuix.current) MxButton(onClick, modifier, enabled = enabled, colors = MxButtonDefaults.buttonColorsPrimary()) { Tinted(MiuixTheme.colorScheme.onPrimary, content) }
-    else M3Button(onClick, modifier, enabled = enabled, shapes = shapes ?: ButtonDefaults.shapes(), content = content)
+    else M3Button(onClick = onClick, modifier = modifier, enabled = enabled, shapes = shapes ?: ButtonDefaults.shapes(), content = content)
 }
 
 @Composable
 fun FilledTonalButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, shapes: ButtonShapes? = null, content: @Composable RowScope.() -> Unit) {
     if (LocalMiuix.current) MxButton(onClick, modifier, enabled = enabled) { Tinted(MiuixTheme.colorScheme.onSecondaryVariant, content) }
-    else M3FilledTonalButton(onClick, modifier, enabled = enabled, shapes = shapes ?: ButtonDefaults.shapes(), content = content)
+    else M3FilledTonalButton(onClick = onClick, modifier = modifier, enabled = enabled, shapes = shapes ?: ButtonDefaults.shapes(), content = content)
 }
 
 @Composable
 fun OutlinedButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, shapes: ButtonShapes? = null, content: @Composable RowScope.() -> Unit) {
     if (LocalMiuix.current) MxButton(onClick, modifier, enabled = enabled) { Tinted(MiuixTheme.colorScheme.onSecondaryVariant, content) }
-    else M3OutlinedButton(onClick, modifier, enabled = enabled, shapes = shapes ?: ButtonDefaults.shapes(), content = content)
+    else M3OutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled, shapes = shapes ?: ButtonDefaults.shapes(), content = content)
 }
 
 @Composable
@@ -77,7 +77,7 @@ fun TextButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Bool
             onClick, modifier, enabled = enabled, minWidth = 0.dp,
             colors = MxButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent, contentColor = mx.primary, disabledContentColor = mx.disabledOnSecondaryVariant),
         ) { Tinted(if (enabled) mx.primary else mx.disabledOnSecondaryVariant, content) }
-    } else M3TextButton(onClick, modifier, enabled = enabled, content = content)
+    } else M3TextButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
 }
 
 @Composable
