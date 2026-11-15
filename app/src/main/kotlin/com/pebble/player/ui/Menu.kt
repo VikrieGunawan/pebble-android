@@ -1,6 +1,5 @@
 package com.pebble.player.ui
 
-import androidx.compose.material3.ModalBottomSheet
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
@@ -8,8 +7,6 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.result.PickVisualMediaRequest
-import androidx.compose.material3.LoadingIndicator
-import androidx.compose.material3.OutlinedTextField
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.content.Intent
@@ -33,10 +30,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -192,7 +187,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
 
     if (renaming) AlertDialog(
         onDismissRequest = { renaming = false }, title = { Text(t("Rename video")) },
-        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text(t("Name")) }) },
+        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = t("Name")) },
         confirmButton = {
             TextButton({
                 renaming = false

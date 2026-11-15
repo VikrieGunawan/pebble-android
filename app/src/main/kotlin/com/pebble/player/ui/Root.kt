@@ -65,17 +65,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -85,7 +81,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -125,7 +120,7 @@ fun PebbleRoot(app: PebbleApp, openUri: Uri?, onOpenConsumed: () -> Unit) {
     Lang.sel = prefs.lang
     var clearing by remember { mutableStateOf(false) }
     CompositionLocalProvider(LocalApp provides app) {
-        PebbleTheme(prefs.theme, prefs.dynamic, Color(prefs.accent), prefs.amoled) {
+        PebbleTheme(prefs.theme, prefs.dynamic, Color(prefs.accent), prefs.amoled, prefs.style) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Crossfade(
                     targetState = when {
@@ -383,7 +378,7 @@ private fun ProfileDialog(p: Profile, onDismiss: () -> Unit, onSave: (Profile) -
                 ) {
                     PhotoAvatar(cur, avatar) { cur = cur.copy(photo = it, emoji = "") }
                     Text(t("Tap the photo to change it"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                    OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = { Text(t("Name")) }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(cur.name, { cur = cur.copy(name = it.take(24)) }, label = t("Name"), singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth())
                     if (cur.photo.isNotEmpty()) Row(
                         Modifier.clip(RoundedCornerShape(50)).background(cs.surfaceContainerHighest).clickable { cur = cur.copy(photo = "") }.padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),

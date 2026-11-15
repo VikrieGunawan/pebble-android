@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.height
 import kotlinx.coroutines.delay
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import android.content.ClipData

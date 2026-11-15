@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -67,7 +66,7 @@ fun LibraryPage(prefs: Prefs, store: Store, all: List<Video>, onRescan: () -> Un
 
         SectionLabel("folder", t("Folders"), folders.size)
         if (folders.size > 6) OutlinedTextField(
-            q, { q = it }, label = { Text(t("Search folders")) }, singleLine = true,
+            q, { q = it }, label = t("Search folders"), singleLine = true,
             shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
         )
         if (folders.isEmpty()) PlayCard { Text(t("No folders yet. Tap Scan again to find your videos."), color = cs.onSurfaceVariant) }

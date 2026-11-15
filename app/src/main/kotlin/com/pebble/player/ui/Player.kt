@@ -83,7 +83,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -598,7 +597,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         if ((buffering || failing != null || !ready) && error == null) Box(
             Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,
-        ) { androidx.compose.material3.LoadingIndicator(Modifier.size(56.dp)) }
+        ) { LoadingIndicator(Modifier.size(56.dp)) }
         if (pfA.value > 0f || seekFlash.isNotEmpty()) Box(
             Modifier.fillMaxSize().padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,

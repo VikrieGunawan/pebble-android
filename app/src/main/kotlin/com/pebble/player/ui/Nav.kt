@@ -78,7 +78,8 @@ private fun NavButton(icon: String, label: String, selected: Boolean, pillW: Dp,
     val sc by animateFloatAsState(if (pressed) 0.92f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "navsc")
     val tint by animateColorAsState(if (selected) cs.primary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navtint")
     val txt by animateColorAsState(if (selected) cs.onSurface else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navtxt")
-    val bg by animateColorAsState(if (selected) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navbg")
+    val mx = LocalMiuix.current
+    val bg by animateColorAsState(if (selected && !mx) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navbg")
     Column(
         modifier.clip(RoundedCornerShape(18.dp)).clickable(interactionSource = src, indication = null, onClick = onClick).padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -86,7 +87,7 @@ private fun NavButton(icon: String, label: String, selected: Boolean, pillW: Dp,
         Box(Modifier.graphicsLayer { scaleX = sc; scaleY = sc }.size(pillW, pillH).clip(RoundedCornerShape(pillH / 2)).background(bg), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(24.dp), tint = tint)
         }
-        Text(label, fontSize = labelSp.sp, fontWeight = FontWeight.ExtraBold, color = txt, maxLines = 1)
+        Text(label, fontSize = labelSp.sp, fontWeight = if (mx) FontWeight.Medium else FontWeight.ExtraBold, color = if (mx) tint else txt, maxLines = 1)
     }
 }
 
@@ -95,7 +96,7 @@ fun PebbleTabBar(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val line = cs.outlineVariant
     Row(
-        Modifier.fillMaxWidth().background(cs.surfaceContainer).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
+        Modifier.fillMaxWidth().background(if (LocalMiuix.current) cs.surface else cs.surfaceContainer).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
     ) { NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.weight(1f)) { onTab(n.id) } } }
@@ -116,7 +117,7 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     )
     val line = cs.outlineVariant
     Column(
-        Modifier.width(92.dp + startInset).fillMaxHeight().background(cs.surfaceContainer)
+        Modifier.width(92.dp + startInset).fillMaxHeight().background(if (LocalMiuix.current) cs.surface else cs.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Start))
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
             .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }

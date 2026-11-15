@@ -5,9 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -20,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -63,6 +61,7 @@ fun AppearancePage(prefs: Prefs, store: Store) {
         }
 
         SectionLabel("contrast", t("Theme"))
+        StyleCard(prefs.style) { put(K.style, it) }
         TileChoiceCard(
             "contrast", t("Mode"), t("Follow the phone, or always use light or dark."),
             listOf("contrast", "light_mode", "dark_mode"), themes, prefs.theme,
@@ -108,7 +107,7 @@ fun AppearancePage(prefs: Prefs, store: Store) {
                 }
             }
             ActionBtn("restart_alt", t("Reset"), true) {
-                put(K.theme, 0); put(K.dyn, true); put(K.accent, 0xFFE8502B.toInt()); put(K.amoled, false)
+                put(K.theme, 0); put(K.style, 0); put(K.dyn, true); put(K.accent, 0xFFE8502B.toInt()); put(K.amoled, false)
                 put(K.gridSize, 1); put(K.sort, 1)
             }
         }
@@ -179,12 +178,48 @@ internal fun TileChoiceCard(icon: String, title: String, desc: String, icons: Li
 @Composable
 internal fun ActionBtn(icon: String, text: String, enabled: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
+    if (LocalMiuix.current) {
+        top.yukonga.miuix.kmp.basic.Button(
+            onClick, Modifier.fillMaxWidth(), enabled = enabled,
+            colors = top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColorsPrimary(),
+        ) {
+            Icon(icon, null, Modifier.size(20.dp), tint = cs.onPrimary)
+            Text(text, Modifier.padding(start = 8.dp), color = cs.onPrimary, fontWeight = FontWeight.ExtraBold)
+        }
+        return
+    }
     Row(
         Modifier.fillMaxWidth().height(46.dp).alpha(if (enabled) 1f else 0.4f).clip(RoundedCornerShape(16.dp)).background(cs.primaryContainer).clickable(enabled = enabled, onClick = onClick),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, Modifier.size(20.dp), tint = cs.onPrimaryContainer)
         Text(text, Modifier.padding(start = 8.dp), color = cs.onPrimaryContainer, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+/** Interface style: Material 3 Expressive (default) or Miuix (experimental). */
+@Composable
+private fun StyleCard(cur: Int, onPick: (Int) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    PlayCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Badge("palette", true)
+            Column(Modifier.weight(1f)) {
+                Text(t("Interface style"), fontWeight = FontWeight.ExtraBold)
+                Text(t("The look of the whole app."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            }
+        }
+        listOf("Material 3 Expressive" to t("Default"), "Miuix" to t("Experimental")).forEachIndexed { i, (name, tag) ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { onPick(i) },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PebbleRadio(cur == i) { onPick(i) }
+                Text(name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(tag, color = if (i == 1) cs.tertiary else cs.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+            }
+        }
     }
 }
 
@@ -215,7 +250,7 @@ private fun LanguageCard(cur: String, onPick: (String) -> Unit) {
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onPick(code); open = false }.padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = cur == code, onClick = { onPick(code); open = false })
+                        PebbleRadio(cur == code) { onPick(code); open = false }
                         Text(label)
                     }
                 }
