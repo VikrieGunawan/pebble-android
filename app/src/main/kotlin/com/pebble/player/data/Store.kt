@@ -37,10 +37,11 @@ data class Prefs(
     val orient: Int = 0,           // 0 auto, 1 portrait, 2 landscape
     val onLost: Int = 0,           // 0 pause, 1 keep playing
     val wake: Boolean = true,
+    val autoPip: Boolean = true,   // shrink a playing video to a floating window when leaving the app
+    val bgPlay: Boolean = false,   // keep playing after the screen turns off
     val holdSpeed: Float = 2f,     // speed while the video is pressed and held
     val amoled: Boolean = false,   // pure black in dark mode
     val gridSize: Int = 1,         // 0 compact, 1 normal, 2 large
-    val style: Int = 0,            // 0 Material 3 Expressive, 1 Miuix (experimental)
     val profile: Profile = Profile(),
     val blacklist: Set<String> = emptySet(),
     val favs: Set<String> = emptySet(),
@@ -65,10 +66,11 @@ object K {
     val orient = intPreferencesKey("orient")
     val onLost = intPreferencesKey("onlost")
     val wake = booleanPreferencesKey("wake")
+    val autoPip = booleanPreferencesKey("autopip")
+    val bgPlay = booleanPreferencesKey("bgplay")
     val amoled = booleanPreferencesKey("amoled")
     val holdSpeed = floatPreferencesKey("holdspeed")
     val gridSize = intPreferencesKey("gridsize")
-    val style = intPreferencesKey("style")
     val pName = stringPreferencesKey("p_name")
     val pEmoji = stringPreferencesKey("p_emoji")
     val pColor = intPreferencesKey("p_color")
@@ -103,10 +105,11 @@ class Store(context: Context) {
             orient = p[K.orient] ?: 0,
             onLost = p[K.onLost] ?: 0,
             wake = p[K.wake] ?: true,
+            autoPip = p[K.autoPip] ?: true,
+            bgPlay = p[K.bgPlay] ?: false,
             amoled = p[K.amoled] ?: false,
             holdSpeed = p[K.holdSpeed] ?: 2f,
             gridSize = p[K.gridSize] ?: 1,
-            style = p[K.style] ?: 0,
             lang = p[K.lang] ?: "",
             profile = Profile(p[K.pName] ?: "", p[K.pEmoji] ?: "", p[K.pColor] ?: 0, p[K.pPhoto] ?: ""),
             blacklist = p[K.bl] ?: emptySet(),
@@ -162,7 +165,7 @@ class Store(context: Context) {
     suspend fun resetSettings() = ds.edit {
         val keys = listOf<Preferences.Key<*>>(
             K.theme, K.dyn, K.accent, K.layout, K.sort, K.autoplay, K.resume, K.autoFs,
-            K.skip, K.speed, K.fit, K.orient, K.onLost, K.wake, K.amoled, K.gridSize, K.holdSpeed, K.style,
+            K.skip, K.speed, K.fit, K.orient, K.onLost, K.wake, K.autoPip, K.bgPlay, K.amoled, K.gridSize, K.holdSpeed,
         )
         keys.forEach { k -> it.remove(k) }
     }
