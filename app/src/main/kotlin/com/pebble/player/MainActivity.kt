@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import com.pebble.player.ui.PipHook
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -35,6 +36,12 @@ class MainActivity : ComponentActivity() {
         openUri = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data
         val app = application as PebbleApp
         setContent { PebbleRoot(app, openUri) { openUri = null } }
+    }
+
+    // leaving the app while a video plays: float it (Android 12+ does this itself via auto-enter)
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        PipHook.enter?.invoke()
     }
 
     override fun onNewIntent(intent: Intent) {
