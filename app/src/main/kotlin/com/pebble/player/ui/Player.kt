@@ -196,6 +196,9 @@ private fun listOutputs(am: AudioManager): List<AudioDeviceInfo> {
     return all.filter { !isBt(it) || pick[key(it)] === it }
 }
 
+/** MainActivity.onUserLeaveHint calls this while a player is open. */
+object PipHook { var enter: (() -> Unit)? = null }
+
 @Composable
 fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, onClose: () -> Unit, onSelect: (Video) -> Unit) {
     PLIGHT = MaterialTheme.colorScheme.background.luminance() > 0.5f
@@ -257,6 +260,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             .setSeekBackIncrementMs(prefs.skip * 1000L)
             .setSeekForwardIncrementMs(prefs.skip * 1000L)
             .setHandleAudioBecomingNoisy(prefs.onLost == 0)
+            .setWakeMode(if (prefs.bgPlay) C.WAKE_MODE_LOCAL else C.WAKE_MODE_NONE)
             .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
             .build()
     }
@@ -375,7 +379,12 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             player.release()
         }
     }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { player.pause() }
+    val bgNow by rememberUpdatedState(prefs.bgPlay)
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        // screen turned off with "keep playing" on: carry on; leaving the app any other way pauses
+        val off = !(ctx.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager).isInteractive
+        if (!(bgNow && off)) player.pause()
+    }
     var userBright by remember { mutableFloatStateOf(-1f) } // brightness set with the swipe gesture, -1 = system
     val winFocused = LocalWindowInfo.current.isWindowFocused
     fun applyBright() {
@@ -492,6 +501,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     fun applyFit(v: Int) { fit = v; scope.launch { store.put(K.fit, v) } }
     fun pipParams(): android.app.PictureInPictureParams {
         val b = android.app.PictureInPictureParams.Builder().setActions(mediaSess.pipActions())
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) b.setAutoEnterEnabled(prefs.autoPip && isPlaying)
             if (vSize.width > 0 && vSize.height > 0) {
                 val r = vSize.width.toFloat() / vSize.height
                 if (r in 0.45f..2.3f) b.setAspectRatio(android.util.Rational(vSize.width, vSize.height))
@@ -504,7 +514,18 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             act?.enterPictureInPictureMode(pipParams())
         } catch (_: Exception) { pebbleToast(ctx, t("Picture-in-picture isn't available")) }
     }
-    LaunchedEffect(isPlaying, prev, next, vSize) { if (act?.isInPictureInPictureMode == true) act.setPictureInPictureParams(pipParams()) }
+    LaunchedEffect(isPlaying, prev, next, vSize, prefs.autoPip) { runCatching { act?.setPictureInPictureParams(pipParams()) } }
+    val autoPipNow by rememberUpdatedState(prefs.autoPip)
+    DisposableEffect(player) {
+        // Android 10-11: enter from onUserLeaveHint; 12+ uses auto-enter set in pipParams()
+        PipHook.enter = {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S && autoPipNow && player.isPlaying && act?.isInPictureInPictureMode == false) enterPip()
+        }
+        onDispose {
+            PipHook.enter = null
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) runCatching { act?.setPictureInPictureParams(android.app.PictureInPictureParams.Builder().setAutoEnterEnabled(false).build()) }
+        }
+    }
     fun go(v: Video?) { if (v != null) onSelect(v) }
     fun pickNext(): Video? = if (shuffle) queue.filter { it.id != video.id }.randomOrNull() else next
     fun togglePanel(id: String) { panel = if (panel == id) null else id; tick++ }
@@ -597,7 +618,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         if ((buffering || failing != null || !ready) && error == null) Box(
             Modifier.fillMaxSize().windowInsetsPadding(cutV).padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,
-        ) { LoadingIndicator(Modifier.size(56.dp)) }
+        ) { androidx.compose.material3.LoadingIndicator(Modifier.size(56.dp)) }
         if (pfA.value > 0f || seekFlash.isNotEmpty()) Box(
             Modifier.fillMaxSize().padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,

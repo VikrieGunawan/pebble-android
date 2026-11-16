@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -94,7 +95,6 @@ fun VideoDetailsDialog(v: Video, prefs: Prefs, onClose: () -> Unit) {
                 InfoRow("music_note", t("Audio"), if (i.audio.isEmpty()) t("No audio track") else i.audio.joinToString("\n"))
                 InfoRow("closed_caption", t("Subtitles in the file"), if (i.subs.isEmpty()) t("None built in") else i.subs.joinToString("\n"))
                 i.container?.let { InfoRow("movie", t("Container"), it) }
-                i.source?.let { InfoRow("link", t("Source"), it) }
                 i.storage?.let { InfoRow("hard_drive", t("Storage"), it) }
             }
             InfoRow("folder", t("Location"), place)

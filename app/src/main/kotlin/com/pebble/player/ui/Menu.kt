@@ -30,6 +30,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -187,7 +192,7 @@ fun VideoMenuSheet(v: Video, prefs: Prefs, store: Store, onPlay: () -> Unit, onR
 
     if (renaming) AlertDialog(
         onDismissRequest = { renaming = false }, title = { Text(t("Rename video")) },
-        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = t("Name")) },
+        text = { OutlinedTextField(newName, { newName = it }, singleLine = true, label = { Text(t("Name")) }) },
         confirmButton = {
             TextButton({
                 renaming = false

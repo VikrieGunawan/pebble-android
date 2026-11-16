@@ -25,7 +25,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import com.pebble.player.data.Profile
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -47,14 +46,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -78,8 +76,7 @@ private fun NavButton(icon: String, label: String, selected: Boolean, pillW: Dp,
     val sc by animateFloatAsState(if (pressed) 0.92f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "navsc")
     val tint by animateColorAsState(if (selected) cs.primary else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navtint")
     val txt by animateColorAsState(if (selected) cs.onSurface else cs.onSurfaceVariant, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navtxt")
-    val mx = LocalMiuix.current
-    val bg by animateColorAsState(if (selected && !mx) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navbg")
+    val bg by animateColorAsState(if (selected) cs.primaryContainer else Color.Transparent, MaterialTheme.motionScheme.defaultEffectsSpec(), label = "navbg")
     Column(
         modifier.clip(RoundedCornerShape(18.dp)).clickable(interactionSource = src, indication = null, onClick = onClick).padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -87,7 +84,7 @@ private fun NavButton(icon: String, label: String, selected: Boolean, pillW: Dp,
         Box(Modifier.graphicsLayer { scaleX = sc; scaleY = sc }.size(pillW, pillH).clip(RoundedCornerShape(pillH / 2)).background(bg), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(24.dp), tint = tint)
         }
-        Text(label, fontSize = labelSp.sp, fontWeight = if (mx) FontWeight.Medium else FontWeight.ExtraBold, color = if (mx) tint else txt, maxLines = 1)
+        Text(label, fontSize = labelSp.sp, fontWeight = FontWeight.ExtraBold, color = txt, maxLines = 1)
     }
 }
 
@@ -96,7 +93,7 @@ fun PebbleTabBar(tab: Int, onTab: (Int) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val line = cs.outlineVariant
     Row(
-        Modifier.fillMaxWidth().background(if (LocalMiuix.current) cs.surface else cs.surfaceContainer).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
+        Modifier.fillMaxWidth().background(cs.surfaceContainer).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
     ) { NAV.forEach { n -> NavButton(n.icon, n.label, tab == n.id, 58.dp, 34.dp, 11f, Modifier.weight(1f)) { onTab(n.id) } } }
@@ -117,7 +114,7 @@ fun PebbleRail(tab: Int, onTab: (Int) -> Unit) {
     )
     val line = cs.outlineVariant
     Column(
-        Modifier.width(92.dp + startInset).fillMaxHeight().background(if (LocalMiuix.current) cs.surface else cs.surfaceContainer)
+        Modifier.width(92.dp + startInset).fillMaxHeight().background(cs.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Start))
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
             .drawBehind { drawLine(line, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) }

@@ -2,14 +2,8 @@ package com.pebble.player.ui
 
 import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.clip
-import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Slider
@@ -17,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -184,18 +177,10 @@ fun Icon(name: String, contentDescription: String?, modifier: Modifier = Modifie
 /** Material 3 switch with a check (on) / cross (off) inside the thumb. */
 @Composable
 fun PebbleSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
-    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.Switch(checked = checked, onCheckedChange = onChange, modifier = modifier)
-    else androidx.compose.material3.Switch(
+    androidx.compose.material3.Switch(
         checked = checked, onCheckedChange = onChange, modifier = modifier,
         thumbContent = { Icon(if (checked) "check" else "close", null, Modifier.size(16.dp)) },
     )
-}
-
-/** Radio button: the Miuix one inside the Miuix style. */
-@Composable
-fun PebbleRadio(selected: Boolean, onClick: () -> Unit) {
-    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.RadioButton(selected = selected, onClick = onClick)
-    else androidx.compose.material3.RadioButton(selected = selected, onClick = onClick)
 }
 
 /** Scope-free AnimatedVisibility: avoids the ColumnScope/RowScope extension being picked inside nested Box/Column. */
@@ -224,10 +209,7 @@ fun PebbleSlider(
     steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.Slider(
-        value = value, onValueChange = onValueChange, modifier = modifier,
-        valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
-    ) else Slider(
+    Slider(
         value = value, onValueChange = onValueChange, modifier = modifier,
         valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
     )

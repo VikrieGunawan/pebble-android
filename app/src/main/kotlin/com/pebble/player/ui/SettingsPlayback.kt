@@ -71,6 +71,10 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
         ToggleCard("history", t("Resume where you stopped"), t("Continue from your last position."), prefs.resume) { put(K.resume, it) }
         ToggleCard("smartphone", t("Keep screen on"), t("The screen stays awake while a video plays."), prefs.wake) { put(K.wake, it) }
 
+        SectionLabel("smartphone", t("Leaving the app"))
+        ToggleCard("open_in_new", t("Auto picture-in-picture"), t("A playing video becomes a floating window when you leave the app."), prefs.autoPip) { put(K.autoPip, it) }
+        ToggleCard("music_note", t("Keep playing when screen is off"), t("The video keeps playing after the screen turns off. If off, it pauses."), prefs.bgPlay) { put(K.bgPlay, it) }
+
         SectionLabel("tune", t("Controls"))
         ChoiceCard("forward_10", t("Skip step"), t("How far the skip buttons and double-tap jump."), SKIPS.map { "${it}s" }, skipI) { put(K.skip, SKIPS[it]) }
         ChoiceCard("speed", t("Default speed"), t("The speed every video starts at."), SPEED_LABELS, speedI) { put(K.speed, SPEEDS[it]) }
@@ -88,9 +92,7 @@ fun PlaybackPage(prefs: Prefs, store: Store) {
 
 @Composable
 internal fun PlayCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    if (LocalMiuix.current) top.yukonga.miuix.kmp.basic.Card(modifier.fillMaxWidth(), insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
-    } else Column(
+    Column(
         modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp), content = content,
     )

@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -226,7 +227,7 @@ fun DevicePage() {
                         Text(t("How other devices see this phone."), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                     }
                 }
-                OutlinedTextField(name, { name = it }, label = t("Bluetooth name"), singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), enabled = adapter != null)
+                OutlinedTextField(name, { name = it }, label = { Text(t("Bluetooth name")) }, singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), enabled = adapter != null)
                 ActionBtn("check", t("Apply name"), adapter != null && name.isNotBlank()) {
                     msg = try { if (adapter?.setName(name.trim()) == true) t("Name updated") else t("Couldn't change the name") } catch (_: SecurityException) { t("Permission denied") }
                 }

@@ -48,6 +48,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -297,7 +302,7 @@ private fun NameStep(p: Profile, onChange: (Profile) -> Unit) {
     Spacer(Modifier.height(24.dp))
     OutlinedTextField(
         value = p.name, onValueChange = { onChange(p.copy(name = it.take(24))) },
-        label = t("Your name"), singleLine = true, shape = RoundedCornerShape(20.dp),
+        label = { Text(t("Your name")) }, singleLine = true, shape = RoundedCornerShape(20.dp),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusMgr.clearFocus() }), modifier = Modifier.fillMaxWidth(),
     )
