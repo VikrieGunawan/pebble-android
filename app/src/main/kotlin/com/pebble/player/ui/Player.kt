@@ -100,6 +100,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.systemGestures
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
@@ -460,6 +471,19 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var hudTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(hudTick) { if (hudTick > 0) { delay(900); hud = null } }
     var seekFlash by remember { mutableStateOf("") }
+    // swipes (brightness / volume) count only when they start on the video itself: not on the header, the bottom controls or the system edges
+    val dens = LocalDensity.current
+    val ldir = LocalLayoutDirection.current
+    val winW = LocalWindowInfo.current.containerSize.width
+    val sbTop = WindowInsets.statusBars.getTop(dens)
+    val navBot = WindowInsets.navigationBars.getBottom(dens)
+    val sgL = WindowInsets.systemGestures.getLeft(dens, ldir)
+    val sgR = WindowInsets.systemGestures.getRight(dens, ldir)
+    var headRect by remember { mutableStateOf(Rect.Zero) }
+    var botRect by remember { mutableStateOf(Rect.Zero) }
+    var boxPos by remember { mutableStateOf(Offset.Zero) }
+    val downAt = remember { floatArrayOf(0f, 0f) }
+    var dragging by remember { mutableStateOf(false) }
     var seekN by remember { mutableIntStateOf(0) }
     LaunchedEffect(seekN) { if (seekFlash.isNotEmpty()) { delay(600); seekFlash = "" } }
     // Double-tap in the middle: a play/pause icon pops in and fades out, controls stay hidden.
@@ -500,7 +524,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     }
     fun applyFit(v: Int) { fit = v; scope.launch { store.put(K.fit, v) } }
     fun pipParams(): android.app.PictureInPictureParams {
-        val b = android.app.PictureInPictureParams.Builder().setActions(mediaSess.pipActions())
+        val b = android.app.PictureInPictureParams.Builder().setActions(mediaSess.pipActions(prev != null, next != null))
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) b.setAutoEnterEnabled(prefs.autoPip && isPlaying)
             if (vSize.width > 0 && vSize.height > 0) {
                 val r = vSize.width.toFloat() / vSize.height
@@ -514,7 +538,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             act?.enterPictureInPictureMode(pipParams())
         } catch (_: Exception) { pebbleToast(ctx, t("Picture-in-picture isn't available")) }
     }
-    LaunchedEffect(isPlaying, prev, next, vSize, prefs.autoPip) { runCatching { act?.setPictureInPictureParams(pipParams()) } }
+    LaunchedEffect(isPlaying, prev, next, vSize, prefs.autoPip, mediaSess, inPip) { runCatching { act?.setPictureInPictureParams(pipParams()) } }
     val autoPipNow by rememberUpdatedState(prefs.autoPip)
     DisposableEffect(player) {
         // Android 10-11: enter from onUserLeaveHint; 12+ uses auto-enter set in pipParams()
@@ -565,6 +589,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         Box(
             // gestures cover the video area only: with a side panel open, the thirds (rewind / pause / forward) are measured on the video
             Modifier.fillMaxSize().padding(start = sideInset, end = sideInset + endPad.coerceAtLeast(0.dp))
+                .onGloballyPositioned { boxPos = it.positionInRoot() }
+                .pointerInput(Unit) { awaitEachGesture { val d = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial); downAt[0] = d.position.x; downAt[1] = d.position.y } }
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { show = !show; tick++ },
@@ -583,13 +609,21 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                         },
                     )
                 }
-                .pointerInput(Unit) {
+                .pointerInput(sbTop, navBot, sgL, sgR, winW) {
                     var left = true
                     var acc = 0f
+                    var allowed = true
                     detectVerticalDragGestures(
-                        onDragStart = { o -> left = o.x < size.width / 2f; acc = 0f },
-                        onDragEnd = { hudTick++ }, onDragCancel = { hudTick++ },
+                        onDragStart = { o ->
+                            left = o.x < size.width / 2f; acc = 0f
+                            val p = Offset(downAt[0] + boxPos.x, downAt[1] + boxPos.y)
+                            allowed = p.y > sbTop && p.y < boxPos.y + size.height - navBot && p.x > sgL && p.x < winW - sgR &&
+                                !(show && ready && (headRect.contains(p) || botRect.contains(p)))
+                            dragging = allowed
+                        },
+                        onDragEnd = { dragging = false; hudTick++ }, onDragCancel = { dragging = false; hudTick++ },
                     ) { change, dy ->
+                        if (!allowed) return@detectVerticalDragGestures
                         change.consume()
                         val d = -dy / size.height * 1.4f
                         if (left) {
@@ -674,7 +708,9 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             }
         }
 
-        PAnim(show && ready, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
+        // any action on the video (press and hold, double tap, swipe) hides the controls until it is done
+        val busy = boosting || dragging || hud != null || seekFlash.isNotEmpty() || pfA.value > 0f
+        PAnim(show && ready && !busy, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
             val padEnd = endPad.coerceAtLeast(0.dp)
             val corner by animateDpAsState(if (isPlaying) 20.dp else 30.dp, label = "playCorner")
             val glass = pGlass
@@ -682,7 +718,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             Box(Modifier.fillMaxSize()) {
                 // header: its background runs edge to edge (through the camera notch); only the content stays clear of it
                 Row(
-                    Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(pScrim, Color.Transparent)))
+                    Modifier.align(Alignment.TopCenter).fillMaxWidth().onGloballyPositioned { headRect = it.boundsInRoot() }.background(Brush.verticalGradient(listOf(pScrim, Color.Transparent)))
                         .windowInsetsPadding(cutV).statusBarsPadding().padding(start = 10.dp + sideInset, end = 10.dp + sideInset + padEnd, top = 6.dp, bottom = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -714,7 +750,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
 
                 // bottom card: seek bar, then the tools in two groups
                 Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(cutV).navigationBarsPadding()
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { botRect = it.boundsInRoot() }.windowInsetsPadding(cutV).navigationBarsPadding()
                         .padding(start = 10.dp + sideInset, end = 10.dp + sideInset + padEnd, bottom = 6.dp)
                         .clip(RoundedCornerShape(26.dp)).background(glass).border(1.dp, rim, RoundedCornerShape(26.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                 ) {
