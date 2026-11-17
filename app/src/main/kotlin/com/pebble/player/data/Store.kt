@@ -42,6 +42,7 @@ data class Prefs(
     val holdSpeed: Float = 2f,     // speed while the video is pressed and held
     val amoled: Boolean = false,   // pure black in dark mode
     val gridSize: Int = 1,         // 0 compact, 1 normal, 2 large
+    val tabAnim: Int = 0,          // tab switch animation: 0 fade, 1 slide
     val profile: Profile = Profile(),
     val blacklist: Set<String> = emptySet(),
     val favs: Set<String> = emptySet(),
@@ -71,6 +72,7 @@ object K {
     val amoled = booleanPreferencesKey("amoled")
     val holdSpeed = floatPreferencesKey("holdspeed")
     val gridSize = intPreferencesKey("gridsize")
+    val tabAnim = intPreferencesKey("tabanim")
     val pName = stringPreferencesKey("p_name")
     val pEmoji = stringPreferencesKey("p_emoji")
     val pColor = intPreferencesKey("p_color")
@@ -110,6 +112,7 @@ class Store(context: Context) {
             amoled = p[K.amoled] ?: false,
             holdSpeed = p[K.holdSpeed] ?: 2f,
             gridSize = p[K.gridSize] ?: 1,
+            tabAnim = p[K.tabAnim] ?: 0,
             lang = p[K.lang] ?: "",
             profile = Profile(p[K.pName] ?: "", p[K.pEmoji] ?: "", p[K.pColor] ?: 0, p[K.pPhoto] ?: ""),
             blacklist = p[K.bl] ?: emptySet(),
@@ -165,7 +168,7 @@ class Store(context: Context) {
     suspend fun resetSettings() = ds.edit {
         val keys = listOf<Preferences.Key<*>>(
             K.theme, K.dyn, K.accent, K.layout, K.sort, K.autoplay, K.resume, K.autoFs,
-            K.skip, K.speed, K.fit, K.orient, K.onLost, K.wake, K.autoPip, K.bgPlay, K.amoled, K.gridSize, K.holdSpeed,
+            K.skip, K.speed, K.fit, K.orient, K.onLost, K.wake, K.autoPip, K.bgPlay, K.amoled, K.gridSize, K.tabAnim, K.holdSpeed,
         )
         keys.forEach { k -> it.remove(k) }
     }
