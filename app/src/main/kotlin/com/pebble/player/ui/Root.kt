@@ -259,7 +259,7 @@ private fun MainFlow(app: PebbleApp, prefs: Prefs, openUri: Uri?, onOpenConsumed
                 if (pagerVisible) Box(Modifier.fillMaxSize().graphicsLayer { translationX = -sp.value * size.width }) {
                     // Tabs sit side by side; switching slides the strip and the tabs in between pass by.
                     TabPager(
-                        tab = if (tab == 4) lastTab else tab, count = 4, onTab = { tab = it }, active = tab != 4,
+                        tab = if (tab == 4) lastTab else tab, count = 4, onTab = { tab = it }, active = tab != 4, fade = prefs.tabAnim == 0,
                         inFolder = tab == 1 && !libFolder.isNullOrBlank(),
                         onFolderUp = {
                             val segs = libFolder?.split('/')?.filter { it.isNotBlank() } ?: emptyList()

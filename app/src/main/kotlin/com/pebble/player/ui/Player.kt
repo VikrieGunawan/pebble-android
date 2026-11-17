@@ -226,9 +226,11 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     val scope = rememberCoroutineScope()
     val am = remember { ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val uriStr = video.uri.toString()
+    var repMode by remember { mutableIntStateOf(0) } // 0 off, 1 repeat one, 2 repeat all (the queue wraps around, previous / next always on)
     val idx = queue.indexOfFirst { it.id == video.id }
-    val prev = queue.getOrNull(idx - 1).takeIf { idx > 0 }
-    val next = queue.getOrNull(idx + 1).takeIf { idx >= 0 }
+    val wrap = repMode == 2 && idx >= 0 && queue.size > 1
+    val prev = queue.getOrNull(idx - 1).takeIf { idx > 0 } ?: queue.lastOrNull().takeIf { wrap }
+    val next = queue.getOrNull(idx + 1).takeIf { idx >= 0 } ?: queue.firstOrNull().takeIf { wrap }
     val curPrefs by rememberUpdatedState(prefs)
     val curNext by rememberUpdatedState(next)
     val curSelect by rememberUpdatedState(onSelect)
@@ -243,7 +245,6 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var subName by remember(video.id) { mutableStateOf(if (subUri != null) saved?.optString("name") ?: "" else "") }
     var subs by remember(video.id) { mutableStateOf(saved?.optBoolean("on", true) ?: true) }
 
-    var loop by remember { mutableStateOf(false) }
     var autoNext by remember { mutableStateOf(true) }
     var shuffle by remember { mutableStateOf(false) }
     var ratio by remember { mutableFloatStateOf(0f) }
@@ -264,6 +265,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     var shownPanel by remember { mutableStateOf<String?>(null) } // what is on screen; lags behind `panel` so a swap can close the old menu first
     var audioDlg by remember { mutableStateOf(false) }
     val curAuto by rememberUpdatedState(autoNext)
+    val curRepeat by rememberUpdatedState(repMode)
+    var ended by remember { mutableStateOf(false) }
     val curShuffle by rememberUpdatedState(shuffle)
 
     val player = remember(video.id) {
@@ -308,7 +311,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
         firstLoad = false
     }
     LaunchedEffect(prefs.onLost) { player.setHandleAudioBecomingNoisy(prefs.onLost == 0) }
-    LaunchedEffect(player, loop) { player.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF }
+    LaunchedEffect(player, repMode, queue.size) { player.repeatMode = if (repMode == 1 || (repMode == 2 && queue.size <= 1)) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF }
     LaunchedEffect(player, muted) { player.volume = if (muted) 0f else 1f }
     LaunchedEffect(panel) {
         if (shownPanel != null && shownPanel != panel) { shownPanel = null; if (panel != null) delay(260) }
@@ -371,7 +374,8 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 buffering = s == Player.STATE_BUFFERING
                 if (s == Player.STATE_READY) ready = true
                 if (s == Player.STATE_READY) dur = player.duration.coerceAtLeast(0)
-                if (s == Player.STATE_ENDED && curAuto) {
+                ended = s == Player.STATE_ENDED
+                if (s == Player.STATE_ENDED && (curAuto || curRepeat == 2)) {
                     (if (curShuffle) curQueue.filter { it.id != curId }.randomOrNull() else curNext)?.let { curSelect(it) }
                 }
             }
@@ -524,7 +528,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
     }
     fun applyFit(v: Int) { fit = v; scope.launch { store.put(K.fit, v) } }
     fun pipParams(): android.app.PictureInPictureParams {
-        val b = android.app.PictureInPictureParams.Builder().setActions(mediaSess.pipActions(prev != null, next != null))
+        val b = android.app.PictureInPictureParams.Builder().setActions(mediaSess.pipActions())
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) b.setAutoEnterEnabled(prefs.autoPip && isPlaying)
             if (vSize.width > 0 && vSize.height > 0) {
                 val r = vSize.width.toFloat() / vSize.height
@@ -538,7 +542,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
             act?.enterPictureInPictureMode(pipParams())
         } catch (_: Exception) { pebbleToast(ctx, t("Picture-in-picture isn't available")) }
     }
-    LaunchedEffect(isPlaying, prev, next, vSize, prefs.autoPip, mediaSess, inPip) { runCatching { act?.setPictureInPictureParams(pipParams()) } }
+    LaunchedEffect(isPlaying, prev, next, vSize, prefs.autoPip) { runCatching { act?.setPictureInPictureParams(pipParams()) } }
     val autoPipNow by rememberUpdatedState(prefs.autoPip)
     DisposableEffect(player) {
         // Android 10-11: enter from onUserLeaveHint; 12+ uses auto-enter set in pipParams()
@@ -739,11 +743,13 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                 Row(Modifier.align(Alignment.Center).padding(end = padEnd), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     PBtn("skip_previous", t("Previous"), 36.dp, enabled = prev != null, bg = glass, onClick = { go(prev) })
                     PBtn("replay_10", t("Back"), 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition - curPrefs.skip * 1000L).coerceAtLeast(0)); tick++ })
+                    // repeat off and nothing left to play: the play button becomes replay
+                    val replay = ended && repMode == 0 && (!autoNext || (if (shuffle) queue.size > 1 else next == null))
                     Box(
                         Modifier.size(58.dp).clip(RoundedCornerShape(corner.coerceAtLeast(0.dp))).background(cs.primary)
-                            .clickable { if (player.isPlaying) player.pause() else player.play(); tick++ },
+                            .clickable { if (replay) { player.seekTo(0); player.play() } else if (player.isPlaying) player.pause() else player.play(); tick++ },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(if (isPlaying) "pause" else "play_arrow", t("Play or pause"), Modifier.size(32.dp), tint = cs.onPrimary) }
+                    ) { Icon(if (replay) "restart_alt" else if (isPlaying) "pause" else "play_arrow", if (replay) t("Replay") else t("Play or pause"), Modifier.size(32.dp), tint = cs.onPrimary) }
                     PBtn("forward_10", t("Forward"), 44.dp, bg = glass, onClick = { player.seekTo((player.currentPosition + curPrefs.skip * 1000L).coerceAtMost(player.duration.coerceAtLeast(0))); tick++ })
                     PBtn("skip_next", t("Next"), 36.dp, enabled = pickNext() != null, bg = glass, onClick = { go(pickNext()) })
                 }
@@ -772,7 +778,7 @@ fun PlayerScreen(video: Video, queue: List<Video>, prefs: Prefs, store: Store, o
                             IBtn("closed_caption", t("Subtitles"), panel == "subs" || (subUri != null && subs)) { togglePanel("subs") }
                         }
                         Row(Modifier.clip(RoundedCornerShape(20.dp)).background(pSoft).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IBtn("repeat", t("Loop"), loop) { loop = !loop }
+                            IBtn(if (repMode == 1) "repeat_one" else "repeat", when (repMode) { 1 -> t("Repeat one"); 2 -> t("Repeat all"); else -> t("Repeat") }, repMode != 0) { repMode = (repMode + 1) % 3 }
                             IBtn("timer", t("Sleep timer"), panel == "sleep" || sleepEnd > 0) { togglePanel("sleep") }
                             IBtn("picture_in_picture_alt", t("Pop-out"), false) { enterPip() }
                             IBtn("aspect_ratio", t("Video ratio"), panel == "ratio") { togglePanel("ratio") }

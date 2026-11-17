@@ -81,12 +81,12 @@ internal class PlayerMediaSession(
     private fun act(icon: Int, label: String, action: String) = Notification.Action.Builder(Icon.createWithResource(ctx, icon), label, pi(action)).build()
 
     /** Previous / play-pause / next for the floating (picture-in-picture) window. */
-    fun pipActions(prev: Boolean, next: Boolean): List<android.app.RemoteAction> {
+    fun pipActions(): List<android.app.RemoteAction> {
         fun ra(icon: Int, label: String, action: String) = android.app.RemoteAction(Icon.createWithResource(ctx, icon), label, label, pi(action))
         val out = ArrayList<android.app.RemoteAction>()
-        if (prev) out += ra(R.drawable.ic_notif_prev, t("Previous"), A_PREV)
+        if (hasPrev) out += ra(R.drawable.ic_notif_prev, t("Previous"), A_PREV)
         out += if (player.playWhenReady) ra(R.drawable.ic_notif_pause, t("Pause"), A_TOGGLE) else ra(R.drawable.ic_notif_play, t("Play"), A_TOGGLE)
-        if (next) out += ra(R.drawable.ic_notif_next, t("Next"), A_NEXT)
+        if (hasNext) out += ra(R.drawable.ic_notif_next, t("Next"), A_NEXT)
         return out
     }
 

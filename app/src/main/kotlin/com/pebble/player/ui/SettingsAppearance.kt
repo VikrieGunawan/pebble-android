@@ -70,6 +70,8 @@ fun AppearancePage(prefs: Prefs, store: Store) {
         ToggleCard("dark_mode", t("Pure black dark mode"), t("A true black background. Saves battery on OLED screens."), prefs.amoled) { put(K.amoled, it) }
         if (!dark && prefs.amoled) Text(t("Pure black shows up when dark mode is on."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
 
+        ChoiceCard("tune", t("Tab animation"), t("How the screen changes when you switch tabs."), listOf(t("Fade"), t("Slide")), prefs.tabAnim) { put(K.tabAnim, it) }
+
         SectionLabel("text_fields", t("Language"))
         LanguageCard(prefs.lang) { put(K.lang, it) }
 
@@ -108,7 +110,7 @@ fun AppearancePage(prefs: Prefs, store: Store) {
                 }
             }
             ActionBtn("restart_alt", t("Reset"), true) {
-                put(K.theme, 0); put(K.dyn, true); put(K.accent, 0xFFE8502B.toInt()); put(K.amoled, false)
+                put(K.theme, 0); put(K.tabAnim, 0); put(K.dyn, true); put(K.accent, 0xFFE8502B.toInt()); put(K.amoled, false)
                 put(K.gridSize, 1); put(K.sort, 1)
             }
         }
